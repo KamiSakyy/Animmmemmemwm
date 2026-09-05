@@ -25,6 +25,8 @@ final class VideoResolver {
         if(has(host,"video1.anilib.me","video2.anilib.me","anilib.me"))return anilib(url);
         return scan(api,url);
     }
+    static boolean downloadable(String url){String safe=ApiRepository.safeUrl(url);if(safe.isEmpty())return false;String lower=safe.toLowerCase(Locale.ROOT);String path=Uri.parse(safe).getPath();String p=path==null?lower:path.toLowerCase(Locale.ROOT);return p.contains(".m3u8")||p.contains(".mpd")||p.contains(".mp4")||p.contains(".mkv")||p.contains(".webm")||lower.contains(".m3u8")||lower.contains(".mpd")||lower.contains(".mp4")||lower.contains(".mkv")||lower.contains(".webm");}
+    static int qualityOf(String url){return quality(url);}
     private static boolean has(String host,String...names){for(String n:names)if(host.equals(n)||host.endsWith("."+n))return true;return false;}
     private static String host(String url){try{String h=Uri.parse(url).getHost();return h==null?"":h.toLowerCase(Locale.ROOT);}catch(Exception e){return "";}}
     private static TreeMap<Integer,String> direct(ApiRepository api,String url)throws Exception{TreeMap<Integer,String> out=new TreeMap<>();String path=Uri.parse(url).getPath();String lower=path==null?url.toLowerCase(Locale.ROOT):path.toLowerCase(Locale.ROOT);if(lower.endsWith(".m3u8")){try{out.putAll(hls(api,url));}catch(Exception ignored){}if(out.isEmpty())out.put(quality(url),url);}else if(lower.endsWith(".mpd")){try{out.putAll(dash(api,url));}catch(Exception ignored){}if(out.isEmpty())out.put(0,url);}else if(lower.endsWith(".mp4")||lower.endsWith(".mkv")||lower.endsWith(".webm")){out.put(quality(url),url);}return clean(out);}
