@@ -1,6 +1,6 @@
 {
   "format": "yoru.source.profile.v1",
-  "version": 1,
+  "version": 2,
   "routes": [
     {
       "from": "https://api.cdnlibs.org/api/",
@@ -21,15 +21,9 @@
       ]
     },
     {
-      "from": "https://api.jikan.moe/",
+      "from": "https://www.anijoy.ru/",
       "to": [
-        "https://api.jikan.moe/"
-      ]
-    },
-    {
-      "from": "https://kitsu.io/",
-      "to": [
-        "https://kitsu.io/"
+        "https://www.anijoy.ru/"
       ]
     }
   ],

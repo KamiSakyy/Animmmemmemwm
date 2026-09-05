@@ -13,7 +13,7 @@ public final class Anime {
     public final ArrayList<Anime> related=new ArrayList<>();
     public final ArrayList<Episode> episodeList=new ArrayList<>();
     public String key(){ return "anilibria".equals(source)?id:source+":"+id; }
-    public boolean metadataOnly(){return "shikimori".equals(source)||"jikan".equals(source)||"kitsu".equals(source);}
+    public boolean metadataOnly(){return "shikimori".equals(source);}
     public String meta(){String s=year>0?String.valueOf(year):"";if(!type.isEmpty())s+=(s.isEmpty()?"":" · ")+type;return s;}
     public JSONObject json(){JSONObject j=new JSONObject();try{j.put("id",key());j.put("provider",source);j.put("nativeId",id);j.put("title",title);j.put("english",original);j.put("alias",alias);j.put("poster",poster);j.put("description",description.length()>1200?description.substring(0,1200):description);j.put("year",year);j.put("type",type);j.put("status",status);j.put("age",age);j.put("studio",studio);j.put("episodesTotal",episodes);j.put("malId",malId);j.put("anilistId",anilistId);j.put("kpId",kpId);j.put("libriaAlias",libriaAlias);j.put("ratingScore",score);JSONArray gs=new JSONArray();for(String g:genres)gs.put(new JSONObject().put("id",g).put("name",g));j.put("genres",gs);}catch(JSONException ignored){}return j;}
     private static String clip(String s,int max){return s==null?"":s.length()>max?s.substring(0,max):s;}
