@@ -1,0 +1,1008 @@
+Отлично, рабоатет, но как я понял аниметка это не источник, но ладно, оставим, ТЕПЕРЬ ИЩИ НОВЫЕ ИСТОЧНИКИ АНИМЕ, КОТОРЫХ У НАС НЕТУ!!!! 
+
+https://kdk.fle.su/
+
+Теперь полный анализ этого сайта, это самый крупный аниме сайт , найди источники и т.д.
+
+А также смотри
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  ФИНАЛЬНЫЙ ОТЧЁТ: ГЛУБОКИЙ АНАЛИЗ AniStar + allvideometrika + Kodik
+═══════════════════════════════════════════════════════════════════════════════════════
+Дата: 2026-09-04
+Аналитик: White-Hat Security Analyst
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  1. ИНФРАСТРУКТУРА
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  AniStar:
+    anistar.org       -> 104.26.2.171   (Cloudflare)
+    v4.astar.bz       -> 104.26.2.171   (Cloudflare)
+    v30.astar.bz      -> nginx          (без CF)
+
+  allvideometrika.com:
+    allvideometrika.com -> 172.67.214.245 (Cloudflare)
+
+  Kodik (видео-поставщик):
+    kodikplayer.com     -> Плеер
+    cloud.solodcdn.com  -> CDN хранилище (ОСНОВНОЙ)
+    sky.solodcdn.com    -> CDN хранилище (альтернативный)
+    beggins-as.stloadi.live -> 45.95.201.43 (резервный CDN)
+    ls.kodikres.com     -> localStorage wrapper
+    st-*.kodikres.com   -> Аналитика/ошибки
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  2. МЕХАНИЗМ РАБОТЫ ВИДЕО
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  AniStar (DLE CMS) -> allvideometrika (трекинг) -> Kodik Player -> cloud.solodcdn.com
+
+  Шаг 1: AniStar страница загружает allvideometrika.com/lostfilm.php?sid={ID}
+         → JS создаёт скрытый iframe (1x1px, opacity 0.1)
+         → Перехватывает ВСЕ клики пользователя
+         → Отправляет postMessage в iframe
+
+  Шаг 2: Kodik Player (kodikplayer.com/video/{id}/{hash}/{quality})
+         → Загружается ТОЛЬКО в iframe (защита от прямого доступа)
+         → Плеер: HLS.js + Flowplayer
+
+  Шаг 3: Kodik Player делает POST /ftor
+         → Получает зашифрованные HLS-ссылки
+         → Декодирует через Caesar(-8) + base64
+         → Загружает HLS с cloud.solodcdn.com
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  3. API /ftor — КЛЮЧЕВОЙ ENDPOINT
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  URL:    POST https://kodikplayer.com/ftor
+  Статус: ОТКРЫТ, без авторизации
+
+  Параметры:
+    d={domain}              — домен (v4.astar.bz)
+    d_sign={signature}      — подпись домена
+    pd=kodikplayer.com      — player domain
+    pd_sign={signature}     — подпись плеера
+    ref={referer}           — referer URL
+    ref_sign={signature}    — подпись referer
+    bad_user=false          — флаг
+    hash={video_hash}       — хеш видео (32 hex)
+    id={video_id}           — ID видео
+    type=video              — тип
+    translation_id={id}     — ID перевода
+    country=CN              — страна
+
+  Ответ (JSON):
+    {
+      "default": 360,
+      "links": {
+        "360": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}],
+        "480": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}],
+        "720": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}]
+      },
+      "vast": [...],
+      "reserve_vast": [...]
+    }
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  4. АЛГОРИТМ ДЕКОДИРОВАНИЯ HLS-ССЫЛОК
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  Найден в JS плеера (app.player.08340a98...js):
+
+  e.src = atob(t.replace(/[a-zA-Z]/g, function(e) {
+      return String.fromCharCode(
+          (e <= "Z" ? 90 : 122) >= (e = e.charCodeAt(0) + 18) ? e : e - 26
+      )
+  }))
+
+  ДЕКОДИРОВАНИЕ (Python):
+    1. Caesar cipher: сдвиг каждой буквы на -8 (или +18 по модулю 26)
+    2. Base64 decode
+
+  Пример:
+    Encoded:  Tg9rjO91HK5hj2fdHOVsjq5rj20dlFVtkvDejO9pHPUdUhs5UuRuGBsbWEQ3...
+    Caesar:   Ly9jbG91ZC5zb2xvZGNkbi5jb20vdXNlcnVwbG9hZHMvMzk5MmJmYTkt...
+    Base64:   //cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-...
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  5. РАБОЧИЕ HLS-ССЫЛКИ (ПРОВЕРЕНЫ)
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  Видео: "Новая крутая аниме игра" (ID: 91873, hash: 060cab6559...)
+  Перевод: Субтитры (ID: 869)
+
+  360p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/360.mp4:hls:manifest.m3u8
+        → 200 OK, 248 MB, Content-Type: application/vnd.apple.mpegurl
+
+  480p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/480.mp4:hls:manifest.m3u8
+        → 200 OK, 379 MB
+
+  720p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/720.mp4:hls:manifest.m3u8
+        → 200 OK, 691 MB
+
+  Формат .m3u8:
+    #EXTM3U
+    #EXT-X-TARGETDURATION:6
+    #EXT-X-ALLOW-CACHE:YES
+    #EXT-X-PLAYLIST-TYPE:VOD
+    #EXT-X-VERSION:3
+    #EXTINF:6.000, ./720.mp4:hls:seg-1-v1-a1.ts
+    #EXTINF:6.000, ./720.mp4:hls:seg-2-v1-a1.ts
+    ... (до ~150 сегментов)
+
+  Формат сегментов: .ts (MPEG-TS), 6 секунд каждый
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  6. ПАТТЕРН URL
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  HLS manifest:
+    https://cloud.solodcdn.com/useruploads/{uuid}/{hash}:{timestamp}/{quality}.mp4:hls:manifest.m3u8
+
+  Сегменты:
+    https://cloud.solodcdn.com/useruploads/{uuid}/{hash}:{timestamp}/{quality}.mp4:hls:seg-{N}-v1-a1.ts
+
+  Где:
+    {uuid}      — UUID папки (например: 3992bfa9-9b77-48e2-8fca-9ddfa8934a85)
+    {hash}      — MD5-like хеш (32 hex символа)
+    {timestamp} — Unix timestamp или дата (2026090423)
+    {quality}   — 360, 480, 720, 1080
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  7. УЯЗВИМОСТИ И НАХОДКИ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  [КРИТИЧЕСКИЕ]
+    • /ftor API ОТКРЫТ — любой может получить зашифрованные HLS-ссылки
+    • Декодирование тривиально (Caesar -8 + base64)
+    • HLS-ссылки и сегменты доступны БЕЗ авторизации
+    • Плеер Kodik работает без токена/сессии
+
+  [СРЕДНИЕ]
+    • allvideometrika.com перехватывает ВСЕ клики на странице
+    • Скрытый iframe с полными разрешениями (camera, microphone)
+    • Fingerprinting: customfingerprints.bablosoft.com
+    • timeClick.php — отслеживание движений мыши
+    • Плеер работает ТОЛЬКО в iframe (обход через правильный Referer)
+
+  [НИЗКИЕ]
+    • Yandex.Metrika + Google Analytics
+    • reyden-x токен в открытом HTML
+    • DLE CMS — известные уязвимости
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  8. СРАВНЕНИЕ: AniLibria vs AniStar
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  |                    | AniLibria              | AniStar                  |
+  |--------------------|------------------------|--------------------------|
+  | Хранение           | Свой CDN               | Kodik CDN (solodcdn)     |
+  | API                | Открытый REST          | /ftor (зашифрованный)    |
+  | Шифрование         | Нет                    | Caesar + base64          |
+  | HLS доступ         | Прямые ссылки          | Через /ftor + decode     |
+  | Авторизация        | Не нужна               | Не нужна                 |
+  | Трекинг            | Минимальный            | Агрессивный              |
+  | Защита             | Saeko (frontend)       | Cloudflare + iframe-only |
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  9. PYTHON-СКРИПТ ДЛЯ ПОЛУЧЕНИЯ HLS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  import requests, base64
+
+  def caesar_shift(text, shift=-8):
+      result = []
+      for char in text:
+          if char.isalpha():
+              base = 65 if char.isupper() else 97
+              result.append(chr((ord(char) - base + shift) % 26 + base))
+          else:
+              result.append(char)
+      return ''.join(result)
+
+  def decode_kodik_url(encoded):
+      caesar = caesar_shift(encoded, -8)
+      padded = caesar + '=' * (4 - len(caesar) % 4)
+      decoded = base64.b64decode(padded).decode('utf-8')
+      return 'https:' + decoded if decoded.startswith('//') else decoded
+
+  # Получаем ссылки через /ftor
+  payload = {
+      "d": "v4.astar.bz",
+      "d_sign": "...", "pd": "kodikplayer.com", "pd_sign": "...",
+      "ref": "https://v4.astar.bz/", "ref_sign": "...",
+      "bad_user": "false", "hash": "HASH", "id": "ID",
+      "type": "video", "translation_id": "869", "country": "CN",
+  }
+  r = requests.post("https://kodikplayer.com/ftor", data=payload, headers={
+      'Referer': 'https://kodikplayer.com/video/{id}/{hash}/720p',
+      'X-Requested-With': 'XMLHttpRequest',
+  })
+  data = r.json()
+  for quality in ['360', '480', '720']:
+      url = decode_kodik_url(data['links'][quality][0]['src'])
+      print(f"{quality}p: {url}")
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  10. ВЫВОДЫ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  ✅ AniStar видео хранится на Kodik CDN (cloud.solodcdn.com)
+  ✅ API /ftor открыт и возвращает зашифрованные HLS-ссылки
+  ✅ Шифрование: Caesar cipher (сдвиг -8) + base64 — ТРИВИАЛЬНО
+  ✅ Прямые HLS-ссылки работают без авторизации
+  ✅ Сегменты .ts доступны напрямую
+  ✅ allvideometrika.com — только трекер, не видео-хостинг
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  ФИНАЛЬНЫЙ ОТЧЁТ: ГЛУБОКИЙ АНАЛИЗ AniStar + allvideometrika + Kodik
+═══════════════════════════════════════════════════════════════════════════════════════
+Дата: 2026-09-04
+Аналитик: White-Hat Security Analyst
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  1. ИНФРАСТРУКТУРА
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  AniStar:
+    anistar.org       -> 104.26.2.171   (Cloudflare)
+    v4.astar.bz       -> 104.26.2.171   (Cloudflare)
+    v30.astar.bz      -> nginx          (без CF)
+
+  allvideometrika.com:
+    allvideometrika.com -> 172.67.214.245 (Cloudflare)
+
+  Kodik (видео-поставщик):
+    kodikplayer.com     -> Плеер
+    cloud.solodcdn.com  -> CDN хранилище (ОСНОВНОЙ)
+    sky.solodcdn.com    -> CDN хранилище (альтернативный)
+    beggins-as.stloadi.live -> 45.95.201.43 (резервный CDN)
+    ls.kodikres.com     -> localStorage wrapper
+    st-*.kodikres.com   -> Аналитика/ошибки
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  2. МЕХАНИЗМ РАБОТЫ ВИДЕО
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  AniStar (DLE CMS) -> allvideometrika (трекинг) -> Kodik Player -> cloud.solodcdn.com
+
+  Шаг 1: AniStar страница загружает allvideometrika.com/lostfilm.php?sid={ID}
+         → JS создаёт скрытый iframe (1x1px, opacity 0.1)
+         → Перехватывает ВСЕ клики пользователя
+         → Отправляет postMessage в iframe
+
+  Шаг 2: Kodik Player (kodikplayer.com/video/{id}/{hash}/{quality})
+         → Загружается ТОЛЬКО в iframe (защита от прямого доступа)
+         → Плеер: HLS.js + Flowplayer
+
+  Шаг 3: Kodik Player делает POST /ftor
+         → Получает зашифрованные HLS-ссылки
+         → Декодирует через Caesar(-8) + base64
+         → Загружает HLS с cloud.solodcdn.com
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  3. API /ftor — КЛЮЧЕВОЙ ENDPOINT
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  URL:    POST https://kodikplayer.com/ftor
+  Статус: ОТКРЫТ, без авторизации
+
+  Параметры:
+    d={domain}              — домен (v4.astar.bz)
+    d_sign={signature}      — подпись домена
+    pd=kodikplayer.com      — player domain
+    pd_sign={signature}     — подпись плеера
+    ref={referer}           — referer URL
+    ref_sign={signature}    — подпись referer
+    bad_user=false          — флаг
+    hash={video_hash}       — хеш видео (32 hex)
+    id={video_id}           — ID видео
+    type=video              — тип
+    translation_id={id}     — ID перевода
+    country=CN              — страна
+
+  Ответ (JSON):
+    {
+      "default": 360,
+      "links": {
+        "360": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}],
+        "480": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}],
+        "720": [{"src": "Tg9rjO91HK5...", "type": "application/x-mpegURL"}]
+      },
+      "vast": [...],
+      "reserve_vast": [...]
+    }
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  4. АЛГОРИТМ ДЕКОДИРОВАНИЯ HLS-ССЫЛОК
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  Найден в JS плеера (app.player.08340a98...js):
+
+  e.src = atob(t.replace(/[a-zA-Z]/g, function(e) {
+      return String.fromCharCode(
+          (e <= "Z" ? 90 : 122) >= (e = e.charCodeAt(0) + 18) ? e : e - 26
+      )
+  }))
+
+  ДЕКОДИРОВАНИЕ (Python):
+    1. Caesar cipher: сдвиг каждой буквы на -8 (или +18 по модулю 26)
+    2. Base64 decode
+
+  Пример:
+    Encoded:  Tg9rjO91HK5hj2fdHOVsjq5rj20dlFVtkvDejO9pHPUdUhs5UuRuGBsbWEQ3...
+    Caesar:   Ly9jbG91ZC5zb2xvZGNkbi5jb20vdXNlcnVwbG9hZHMvMzk5MmJmYTkt...
+    Base64:   //cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-...
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  5. РАБОЧИЕ HLS-ССЫЛКИ (ПРОВЕРЕНЫ)
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  Видео: "Новая крутая аниме игра" (ID: 91873, hash: 060cab6559...)
+  Перевод: Субтитры (ID: 869)
+
+  360p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/360.mp4:hls:manifest.m3u8
+        → 200 OK, 248 MB, Content-Type: application/vnd.apple.mpegurl
+
+  480p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/480.mp4:hls:manifest.m3u8
+        → 200 OK, 379 MB
+
+  720p: https://cloud.solodcdn.com/useruploads/3992bfa9-9b77-48e2-8fca-9ddfa8934a85/2071d9840b6f17ec5e29f1a7a6db9a93:2026090423/720.mp4:hls:manifest.m3u8
+        → 200 OK, 691 MB
+
+  Формат .m3u8:
+    #EXTM3U
+    #EXT-X-TARGETDURATION:6
+    #EXT-X-ALLOW-CACHE:YES
+    #EXT-X-PLAYLIST-TYPE:VOD
+    #EXT-X-VERSION:3
+    #EXTINF:6.000, ./720.mp4:hls:seg-1-v1-a1.ts
+    #EXTINF:6.000, ./720.mp4:hls:seg-2-v1-a1.ts
+    ... (до ~150 сегментов)
+
+  Формат сегментов: .ts (MPEG-TS), 6 секунд каждый
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  6. ПАТТЕРН URL
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  HLS manifest:
+    https://cloud.solodcdn.com/useruploads/{uuid}/{hash}:{timestamp}/{quality}.mp4:hls:manifest.m3u8
+
+  Сегменты:
+    https://cloud.solodcdn.com/useruploads/{uuid}/{hash}:{timestamp}/{quality}.mp4:hls:seg-{N}-v1-a1.ts
+
+  Где:
+    {uuid}      — UUID папки (например: 3992bfa9-9b77-48e2-8fca-9ddfa8934a85)
+    {hash}      — MD5-like хеш (32 hex символа)
+    {timestamp} — Unix timestamp или дата (2026090423)
+    {quality}   — 360, 480, 720, 1080
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  7. УЯЗВИМОСТИ И НАХОДКИ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  [КРИТИЧЕСКИЕ]
+    • /ftor API ОТКРЫТ — любой может получить зашифрованные HLS-ссылки
+    • Декодирование тривиально (Caesar -8 + base64)
+    • HLS-ссылки и сегменты доступны БЕЗ авторизации
+    • Плеер Kodik работает без токена/сессии
+
+  [СРЕДНИЕ]
+    • allvideometrika.com перехватывает ВСЕ клики на странице
+    • Скрытый iframe с полными разрешениями (camera, microphone)
+    • Fingerprinting: customfingerprints.bablosoft.com
+    • timeClick.php — отслеживание движений мыши
+    • Плеер работает ТОЛЬКО в iframe (обход через правильный Referer)
+
+  [НИЗКИЕ]
+    • Yandex.Metrika + Google Analytics
+    • reyden-x токен в открытом HTML
+    • DLE CMS — известные уязвимости
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  8. СРАВНЕНИЕ: AniLibria vs AniStar
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  |                    | AniLibria              | AniStar                  |
+  |--------------------|------------------------|--------------------------|
+  | Хранение           | Свой CDN               | Kodik CDN (solodcdn)     |
+  | API                | Открытый REST          | /ftor (зашифрованный)    |
+  | Шифрование         | Нет                    | Caesar + base64          |
+  | HLS доступ         | Прямые ссылки          | Через /ftor + decode     |
+  | Авторизация        | Не нужна               | Не нужна                 |
+  | Трекинг            | Минимальный            | Агрессивный              |
+  | Защита             | Saeko (frontend)       | Cloudflare + iframe-only |
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  9. PYTHON-СКРИПТ ДЛЯ ПОЛУЧЕНИЯ HLS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  import requests, base64
+
+  def caesar_shift(text, shift=-8):
+      result = []
+      for char in text:
+          if char.isalpha():
+              base = 65 if char.isupper() else 97
+              result.append(chr((ord(char) - base + shift) % 26 + base))
+          else:
+              result.append(char)
+      return ''.join(result)
+
+  def decode_kodik_url(encoded):
+      caesar = caesar_shift(encoded, -8)
+      padded = caesar + '=' * (4 - len(caesar) % 4)
+      decoded = base64.b64decode(padded).decode('utf-8')
+      return 'https:' + decoded if decoded.startswith('//') else decoded
+
+  # Получаем ссылки через /ftor
+  payload = {
+      "d": "v4.astar.bz",
+      "d_sign": "...", "pd": "kodikplayer.com", "pd_sign": "...",
+      "ref": "https://v4.astar.bz/", "ref_sign": "...",
+      "bad_user": "false", "hash": "HASH", "id": "ID",
+      "type": "video", "translation_id": "869", "country": "CN",
+  }
+  r = requests.post("https://kodikplayer.com/ftor", data=payload, headers={
+      'Referer': 'https://kodikplayer.com/video/{id}/{hash}/720p',
+      'X-Requested-With': 'XMLHttpRequest',
+  })
+  data = r.json()
+  for quality in ['360', '480', '720']:
+      url = decode_kodik_url(data['links'][quality][0]['src'])
+      print(f"{quality}p: {url}")
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  10. ВЫВОДЫ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  ✅ AniStar видео хранится на Kodik CDN (cloud.solodcdn.com)
+  ✅ API /ftor открыт и возвращает зашифрованные HLS-ссылки
+  ✅ Шифрование: Caesar cipher (сдвиг -8) + base64 — ТРИВИАЛЬНО
+  ✅ Прямые HLS-ссылки работают без авторизации
+  ✅ Сегменты .ts доступны напрямую
+  ✅ allvideometrika.com — только трекер, не видео-хостинг
+═══════════════════════════════════════════════════════════════════════════════════════
+  ПОЛНЫЙ ТЕХНИЧЕСКИЙ АНАЛИЗ ANIDUB.COM — HLS, CDN, API, АРХИТЕКТУРА
+═══════════════════════════════════════════════════════════════════════════════════════
+Дата: 2026-09-04
+Аналитик: White-Hat Security Analyst
+Цель: Образовательный OSINT-анализ
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 1: ОБЩАЯ ИНФОРМАЦИЯ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Сайт:        https://anidub.com
+IP:          172.67.130.170 (Cloudflare)
+Backend:     Apache/2 (предположительно)
+CMS:         DataLife Engine (DLE) — https://dle-news.ru
+Шаблон:      kinolife-blue
+Frontend:    HTML + jQuery + собственный плеер
+PWA:         Нет
+Analytics:   Yandex.Metrika (ID: 92022363)
+Cloudflare:  Да (CF-RAY)
+
+Поддомены:
+  anidub.com              → 172.67.130.170 (Cloudflare)
+  www.anidub.com          → 172.67.130.170
+  player26.ladonyvesna2005.info → 172.67.130.170 (тот же IP!)
+  cdn1.anivids.link       → отдельный CDN
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 2: DNS И ИНФРАСТРУКТУРА
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Проверенные поддомены:
+  anidub.com              → 172.67.130.170 (Cloudflare)
+  www.anidub.com          → 172.67.130.170
+  api.anidub.com          → NXDOMAIN
+  cdn.anidub.com          → NXDOMAIN
+  static.anidub.com       → NXDOMAIN
+  player.anidub.com       → NXDOMAIN
+  video.anidub.com        → NXDOMAIN
+  stream.anidub.com       → NXDOMAIN
+  embed.anidub.com        → NXDOMAIN
+  m.anidub.com            → NXDOMAIN
+  tr.anidub.com           → 172.67.130.170 (Telegram/трекер)
+  v12.anidub.digital      → 172.67.130.170 (CDN/зеркало)
+
+Порты anidub.com:
+  80/tcp   OPEN   (HTTP)
+  443/tcp  OPEN   (HTTPS)
+  8080/tcp OPEN   (HTTP alt)
+  8443/tcp OPEN   (HTTPS alt)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 3: CMS И СТРУКТУРА САЙТА
+═══════════════════════════════════════════════════════════════════════════════════════
+
+CMS: DataLife Engine (DLE)
+  • Мета-тег: <meta name="generator" content="DataLife Engine (https://dle-news.ru)" />
+  • Шаблон: kinolife-blue
+  • jQuery: 3.7.1
+  • Bootstrap: 5.3.3
+
+Структура URL:
+  Главная:         / (список аниме)
+  Страница аниме:  /{id}-{translit}.html
+  Пример:          /12410-otverzhennaja-svjataja-i-ee-gastronomicheskoe-puteshestvie-v-drugom-mire.html
+
+Страница аниме содержит:
+  • Описание, постер, метаданные
+  • iframe с плеером (player26.ladonyvesna2005.info)
+  • Список серий (внутри iframe)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 4: ПЛЕЕР — LADONYVESNA2005.INFO
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Плеер домен: player26.ladonyvesna2005.info
+  • IP: 172.67.130.170 (тот же, что и anidub.com — Cloudflare)
+  • Поддомены: player1, player2, ..., player26 (ротация)
+
+Технологии плеера:
+  • HLS.js — для воспроизведения HLS
+  • Plyr — UI плеера
+  • Собственный JS: player-ui.js
+
+Структура плеера:
+  <video id="hls-video" preload="metadata" poster="assets/thumb/{hash}.jpg" playsinline>
+    <source id="vsource" src="vid.php?v=/{storage}/{hash}" type="application/x-mpegURL"/>
+  </video>
+
+PLAYER_CONTEXT (JSON в inline script):
+{
+  "locale": "ru",
+  "hasSeries": true,
+  "seriesKey": "9638bb0c1ba0d66411fe9b405f50c2ba0185bc13",
+  "currentLink": "/s12/5a531f37c53ab5a471d06befe6b5fcce",
+  "currentEpisodeKey": "533fa5155a42c77beb7bcb10ff9b89e7d4a2e703",
+  "currentEpisodeLabel": "1 серия",
+  "episodes": [
+    {
+      "link": "/s12/5a531f37c53ab5a471d06befe6b5fcce",
+      "key": "533fa5155a42c77beb7bcb10ff9b89e7d4a2e703",
+      "label": "1 серия",
+      "poster": "assets/thumb/5a531f37c53ab5a471d06befe6b5fcce.jpg",
+      "vtt": "assets/vtt/5a531f37c53ab5a471d06befe6b5fcce.vtt",
+      "filename": "Suterare.Seijo.no.Isekai.Gohan.Tabi...mp4"
+    },
+    ...
+  ],
+  "streamTtl": 7200
+}
+
+Функции плеера (32 функции в player-ui.js):
+  • refreshStream() — обновление истёкшего потока
+  • streamExpired() — проверка TTL потока
+  • selser() — выбор серии
+  • freshStreamSource() — генерация свежего URL
+  • episodeMeta() — метаданные эпизода
+  • configureEpisodeQuality() — настройка качества
+  • nextvideo() / prevideo() — переключение серий
+  • bindEpisodeSwitchHls() — переключение в HLS
+  • telemetryRecoveryStart/Success/Fail() — телеметрия
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 5: МЕХАНИЗМ ПОЛУЧЕНИЯ HLS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Шаг 1: Получить страницу аниме
+  GET https://anidub.com/{id}-{translit}.html
+  → HTML с iframe плеера
+
+Шаг 2: Извлечь URL плеера
+  Из HTML: <iframe src="https://player26.ladonyvesna2005.info/index.php?v=/{storage}/{hash}&playlist">
+  Пример: https://player26.ladonyvesna2005.info/index.php?v=/s12/5a531f37c53ab5a471d06befe6b5fcce&playlist
+
+Шаг 3: Загрузить плеер
+  GET {player_url}
+  → HTML плеера с PLAYER_CONTEXT
+
+Шаг 4: Извлечь hash из PLAYER_CONTEXT
+  currentLink = "/s12/5a531f37c53ab5a471d06befe6b5fcce"
+  Или из vsource.src = "vid.php?v=%2Fs12%2F5a531f37c53ab5a471d06befe6b5fcce"
+
+Шаг 5: Запросить master M3U8
+  GET https://player26.ladonyvesna2005.info/vid.php?v=/s12/{hash}
+  → master.m3u8 (HLS)
+
+Шаг 6: Получить chunk M3U8 для нужного качества
+  Из master.m3u8 извлечь URL нужного качества
+  → chunk.m3u8 (список .ts сегментов)
+
+Шаг 7: Скачать .ts сегменты
+  Из chunk.m3u8 извлечь URL сегментов
+  → n_0_0_0.ts, n_1_0_0.ts, ...
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 6: API ENDPOINTS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+ОТКРЫТЫЕ ENDPOINTS:
+
+  1. vid.php — получение HLS master
+     URL: https://player{N}.ladonyvesna2005.info/vid.php?v=/{storage}/{hash}
+     Метод: GET
+     Параметры:
+       v — путь к видео (например: /s12/5a531f37c53ab5a471d06befe6b5fcce)
+     Ответ: application/vnd.apple.mpegURL (master.m3u8)
+
+  2. index.php — загрузка плеера
+     URL: https://player{N}.ladonyvesna2005.info/index.php?v=/{storage}/{hash}&playlist
+     Метод: GET
+     Ответ: HTML плеера с PLAYER_CONTEXT
+
+  3. assets/thumb/{hash}.jpg — постер
+     URL: https://player{N}.ladonyvesna2005.info/assets/thumb/{hash}.jpg
+     Метод: GET
+
+  4. assets/vtt/{hash}.vtt — субтитры/превью
+     URL: https://player{N}.ladonyvesna2005.info/assets/vtt/{hash}.vtt
+     Метод: GET
+
+ЗАКРЫТЫЕ / НЕИЗВЕСТНЫЕ:
+  • API для получения списка аниме — не обнаружено (используется DLE)
+  • API для поиска — не обнаружено
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 7: СТРУКТУРА HLS URL
+═══════════════════════════════════════════════════════════════════════════════════════
+
+MASTER M3U8 (от vid.php):
+  #EXTM3U
+  #EXT-X-STREAM-INF:BANDWIDTH=3139300,RESOLUTION=1280x720
+  https://cdn1.anivids.link/vod9/{storage}/{hash}/fhd.mp4/chunk.m3u8?md5={md5}&expires={timestamp}
+  #EXT-X-STREAM-INF:BANDWIDTH=1639300,RESOLUTION=854x480
+  https://cdn1.anivids.link/vod9/{storage}/{hash}/sd.mp4/chunk.m3u8?md5={md5}&expires={timestamp}
+
+CHUNK M3U8 (от CDN):
+  #EXTM3U
+  #EXT-X-VERSION:3
+  #EXT-X-TARGETDURATION:16
+  #EXT-X-MEDIA-SEQUENCE:0
+  #EXTINF:10.76,
+  n_0_0_0.ts?nimblesessionid={sid}&expires={timestamp}&md5={md5}
+  #EXTINF:10.176,
+  n_1_0_0.ts?nimblesessionid={sid}&expires={timestamp}&md5={md5}
+  ...
+
+Параметры URL:
+  • md5 — HMAC-подпись (защита от хотлинка)
+  • expires — Unix timestamp истечения (~1 час)
+  • nimblesessionid — ID сессии Nimble Streamer
+
+CDN домены:
+  • cdn1.anivids.link — основной
+  • Возможны: cdn2, cdn3, ... (не проверено)
+
+Storage пути:
+  • /vod9/ — основное хранилище
+  • /s12/, /s9/, /s8/ — разные storage (зависит от аниме)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 8: ЗАЩИТА И ОГРАНИЧЕНИЯ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+ЗАЩИТА ПЛЕЕРА:
+
+  1. isFramed check
+     • Плеер проверяет window != window.top
+     • Если не в iframe — удаляет body
+     • Обход: загружать через iframe или подделать Referer
+
+  2. TTL потока (streamExpired)
+     • expttl берётся из GET-параметра "expires" HLS URL
+     • По умолчанию: 7200 секунд (2 часа)
+     • streamExpired() возвращает true за 20-30 секунд до истечения
+     • refreshStream() обновляет URL с параметром _refresh={timestamp}
+
+  3. md5 подпись
+     • Каждый HLS URL подписан md5
+     • Подпись проверяется на CDN
+     • Без валидной подписи — 403 Forbidden
+
+  4. Referer check
+     • CDN проверяет Referer
+     • Должен быть player*.ladonyvesna2005.info или anidub.com
+
+ОГРАНИЧЕНИЯ:
+  • HLS-ссылки работают ~1 час (по expires)
+  • После истечения — нужен refreshStream() или новый запрос к vid.php
+  • TS сегменты доступны только с валидной сессией
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 9: ПРЯМЫЕ HLS-ССЫЛКИ (ПРИМЕР)
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Аниме: Отверженная святая и её гастрономическое путешествие в другом мире
+Серия: 1 серия
+
+MASTER M3U8:
+  https://player26.ladonyvesna2005.info/vid.php?v=/s12/5a531f37c53ab5a471d06befe6b5fcce
+
+720p (FHD) — 1280x720, ~3.1 Mbps:
+  https://cdn1.anivids.link/vod9/s12/5a531f37c53ab5a471d06befe6b5fcce/fhd.mp4/chunk.m3u8?md5=KNeV77qy_nO11M5xLBQI1w&expires=1788545591
+
+480p (SD) — 854x480, ~1.6 Mbps:
+  https://cdn1.anivids.link/vod9/s12/5a531f37c53ab5a471d06befe6b5fcce/sd.mp4/chunk.m3u8?md5=xHjybxvbB9lOkW5e69j4Tg&expires=1788545591
+
+TS сегмент (пример):
+  https://cdn1.anivids.link/vod9/s12/5a531f37c53ab5a471d06befe6b5fcce/fhd.mp4/n_0_0_0.ts?nimblesessionid=5530889&expires=1788545591&md5=KNeV77qy_nO11M5xLBQI1w
+  Content-Type: video/mpegts
+  Content-Length: ~4.8 MB
+
+Длительность: ~24 минуты (169 сегментов)
+Формат: HLS V3, без шифрования
+Шифрование: НЕТ (DRM-free)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 10: PYTHON-СКРИПТ ДЛЯ ПОЛУЧЕНИЯ HLS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+import requests
+import re
+
+def get_anidub_hls(anime_url):
+    """
+    Получает HLS-ссылки с anidub.com
+
+    Args:
+        anime_url: URL страницы аниме (например: https://anidub.com/12410-...html)
+
+    Returns:
+        dict: {quality: hls_url, ...}
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9',
+    }
+
+    # Шаг 1: Получить страницу аниме
+    r = requests.get(anime_url, headers=headers, timeout=20)
+    r.raise_for_status()
+
+    # Шаг 2: Извлечь URL iframe плеера
+    iframe_match = re.search(r'<iframe[^>]+src=["']([^"']+)["']', r.text)
+    if not iframe_match:
+        raise ValueError("Player iframe not found")
+
+    player_url = iframe_match.group(1)
+    if player_url.startswith('//'):
+        player_url = 'https:' + player_url
+
+    # Шаг 3: Загрузить плеер
+    player_headers = headers.copy()
+    player_headers['Referer'] = anime_url
+
+    r2 = requests.get(player_url, headers=player_headers, timeout=20)
+    r2.raise_for_status()
+
+    # Шаг 4: Извлечь vsource.src
+    vsource_match = re.search(r'<source[^>]+src=["']([^"']+)["']', r2.text)
+    if not vsource_match:
+        raise ValueError("vsource not found")
+
+    vid_path = vsource_match.group(1)  # vid.php?v=/s12/...
+
+    # Шаг 5: Сформировать полный URL vid.php
+    from urllib.parse import urljoin
+    vid_url = urljoin(player_url, vid_path)
+
+    # Шаг 6: Получить master M3U8
+    r3 = requests.get(vid_url, headers=player_headers, timeout=20)
+    r3.raise_for_status()
+
+    # Шаг 7: Распарсить master M3U8
+    streams = {}
+    stream_pattern = r'#EXT-X-STREAM-INF:([^\n]+)\n([^\n]+)'
+    for info, url in re.findall(stream_pattern, r3.text):
+        # Извлечь RESOLUTION
+        res_match = re.search(r'RESOLUTION=(\d+x\d+)', info)
+        resolution = res_match.group(1) if res_match else 'unknown'
+
+        # Извлечь BANDWIDTH
+        bw_match = re.search(r'BANDWIDTH=(\d+)', info)
+        bandwidth = int(bw_match.group(1)) if bw_match else 0
+
+        streams[resolution] = {
+            'url': url,
+            'bandwidth': bandwidth,
+            'info': info
+        }
+
+    return streams
+
+
+# Пример использования
+if __name__ == '__main__':
+    anime_url = 'https://anidub.com/12410-otverzhennaja-svjataja-i-ee-gastronomicheskoe-puteshestvie-v-drugom-mire.html'
+    hls_links = get_anidub_hls(anime_url)
+
+    for quality, data in hls_links.items():
+        print(f"{quality}: {data['url']}")
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 11: СКРИПТ ДЛЯ СКАЧИВАНИЯ .TS СЕГМЕНТОВ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+import requests
+import re
+from urllib.parse import urljoin
+
+def download_ts_segments(chunk_m3u8_url, output_dir='./ts_segments'):
+    """
+    Скачивает все .ts сегменты из HLS chunk m3u8
+
+    Args:
+        chunk_m3u8_url: URL chunk m3u8 (например: https://cdn1.anivids.link/.../chunk.m3u8)
+        output_dir: директория для сохранения
+    """
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://player26.ladonyvesna2005.info/',
+    }
+
+    # Скачать chunk m3u8
+    r = requests.get(chunk_m3u8_url, headers=headers, timeout=20)
+    r.raise_for_status()
+
+    # Извлечь сегменты
+    segments = re.findall(r'^(?!#)([^\n]+)', r.text, re.MULTILINE)
+
+    base_url = chunk_m3u8_url.rsplit('/', 1)[0] + '/'
+
+    downloaded = []
+    for i, seg in enumerate(segments):
+        if not seg.strip():
+            continue
+
+        seg_url = urljoin(base_url, seg)
+        seg_name = seg.split('?')[0]  # n_0_0_0.ts
+
+        r2 = requests.get(seg_url, headers=headers, timeout=30)
+        if r2.status_code == 200:
+            filepath = os.path.join(output_dir, f'{i:04d}_{seg_name}')
+            with open(filepath, 'wb') as f:
+                f.write(r2.content)
+            downloaded.append(filepath)
+            print(f"Downloaded: {seg_name} ({len(r2.content)} bytes)")
+        else:
+            print(f"Failed: {seg_name} ({r2.status_code})")
+
+    return downloaded
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 12: СКРИПТ ДЛЯ КОНКАТЕНАЦИИ .TS В MP4
+═══════════════════════════════════════════════════════════════════════════════════════
+
+import subprocess
+import os
+
+def ts_to_mp4(ts_files, output_file='output.mp4'):
+    """
+    Конкатенирует .ts файлы в MP4 через ffmpeg
+
+    Args:
+        ts_files: список путей к .ts файлам (отсортированных)
+        output_file: имя выходного MP4
+    """
+    # Создать файл списка для ffmpeg
+    list_file = 'ts_list.txt'
+    with open(list_file, 'w') as f:
+        for ts in ts_files:
+            f.write(f"file '{ts}'\n")
+
+    # Запустить ffmpeg
+    cmd = [
+        'ffmpeg',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', list_file,
+        '-c', 'copy',
+        '-bsf:a', 'aac_adtstoasc',
+        output_file
+    ]
+
+    subprocess.run(cmd, check=True)
+    os.remove(list_file)
+    print(f"Saved: {output_file}")
+
+
+# Альтернатива без ffmpeg (чистый Python) — медленнее:
+def ts_to_mp4_python(ts_files, output_file='output.mp4'):
+    """Простая конкатенация .ts файлов (без перекодировки)"""
+    with open(output_file, 'wb') as out:
+        for ts in ts_files:
+            with open(ts, 'rb') as f:
+                out.write(f.read())
+    print(f"Saved: {output_file}")
+
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 13: ПОЛНЫЙ ПАЙПЛАЙН: URL → MP4
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Полный пайплайн скачивания:
+
+  1. Получить страницу аниме
+     → anidub.com/{id}-{translit}.html
+
+  2. Извлечь iframe плеера
+     → player{N}.ladonyvesna2005.info/index.php?v=/{storage}/{hash}&playlist
+
+  3. Загрузить плеер, извлечь vid.php URL
+     → vid.php?v=/{storage}/{hash}
+
+  4. Получить master M3U8
+     → #EXTM3U с несколькими качествами
+
+  5. Выбрать качество, получить chunk M3U8
+     → список .ts сегментов
+
+  6. Скачать все .ts сегменты
+     → n_0_0_0.ts, n_1_0_0.ts, ...
+
+  7. Конкатенировать в MP4
+     → ffmpeg -f concat -i list.txt -c copy output.mp4
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 14: СРАВНИТЕЛЬНАЯ ТАБЛИЦА
+═══════════════════════════════════════════════════════════════════════════════════════
+
+  ┌────────────────────┬───────────────────┬──────────────────────────┐
+  │        Параметр    │    Animetka       │      Anidub              │
+  ├────────────────────┼───────────────────┼──────────────────────────┤
+  │ CMS                │ Vue 3 SPA         │ DLE                      │
+  │ Плеер              │ Kodik (embed)     │ LadonyVesna (iframe)     │
+  │ Плеер домен        │ kodikplayer.com   │ ladonyvesna2005.info     │
+  │ CDN                │ cloud.solodcdn    │ cdn1.anivids.link        │
+  │ API видео          │ Kodik FAPI        │ vid.php (GET)            │
+  │ Метод API          │ POST              │ GET                      │
+  │ Шифрование src     │ Caesar(-8)+b64    │ Нет (прямой URL)         │
+  │ Защита URL         │ Подписи Kodik     │ md5 + expires (TTL)      │
+  │ HLS endpoint       │ /ftor             │ /vid.php?v=              │
+  │ Качества           │ 360/480/720       │ 480/720                  │
+  │ Шифрование HLS     │ Нет               │ Нет                      │
+  │ DRM                │ Нет               │ Нет                      │
+  │ iframe check       │ Нет               │ Да (isFramed)            │
+  │ TTL потока         │ Нет               │ Да (streamExpired)       │
+  │ Обход возможен     │ ✅ Да             │ ✅ Да (проще)            │
+  │ Сложность          │ Средняя           │ Низкая                   │
+  └────────────────────┴───────────────────┴──────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════
+  РАЗДЕЛ 15: ЧЕКЛИСТ
+═══════════════════════════════════════════════════════════════════════════════════════
+
+[✅] DNS разведка
+[✅] Порт-скан
+[✅] HTTP заголовки
+[✅] HTML анализ (DLE CMS)
+[✅] Плеер идентифицирован (LadonyVesna)
+[✅] PLAYER_CONTEXT извлечён
+[✅] vid.php endpoint найден
+[✅] Master M3U8 получен (200 OK)
+[✅] Chunk M3U8 получен (200 OK)
+[✅] TS сегменты доступны (200 OK)
+[✅] CDN идентифицирован (cdn1.anivids.link)
+[✅] Защита описана (md5 + expires + TTL)
+[✅] iframe check найден
+[✅] streamExpired/refreshStream декомпилированы
+[✅] Python-скрипты написаны
+[✅] Полный пайплайн описан
+
+════════════════════════════════
++ Проанализуй сам, проверь
+
+  Вот, возьми у них источники, используй их
