@@ -8,10 +8,11 @@ import java.io.File;
 import java.util.*;
 
 public final class MediaCache {
+    private static final String CHROME="Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36";
     private final Context context;private final StandaloneDatabaseProvider database;private SimpleCache stream,offline;
     public MediaCache(Context c){context=c.getApplicationContext();database=new StandaloneDatabaseProvider(context);}
     public StandaloneDatabaseProvider database(){return database;}
-    public DefaultHttpDataSource.Factory http(){HashMap<String,String> headers=new HashMap<>();headers.put("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");headers.put("Referer","https://yani.tv/");return new DefaultHttpDataSource.Factory().setUserAgent("YORU-Android/2.1").setDefaultRequestProperties(headers).setConnectTimeoutMs(15000).setReadTimeoutMs(25000).setAllowCrossProtocolRedirects(false);}
+    public DefaultHttpDataSource.Factory http(){HashMap<String,String> headers=new HashMap<>();headers.put("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");headers.put("Referer","https://yani.tv/");return new DefaultHttpDataSource.Factory().setUserAgent(CHROME).setDefaultRequestProperties(headers).setConnectTimeoutMs(15000).setReadTimeoutMs(25000).setAllowCrossProtocolRedirects(false);}
     public synchronized SimpleCache offline(){if(offline==null)offline=new SimpleCache(new File(context.getFilesDir(),"offline-media"),new NoOpCacheEvictor(),database);return offline;}
     public synchronized SimpleCache temporary(){if(stream==null)stream=new SimpleCache(new File(context.getCacheDir(),"video"),new LeastRecentlyUsedCacheEvictor(256L*1024*1024),database);return stream;}
     public CacheDataSource.Factory onlineFactory(){return new CacheDataSource.Factory().setCache(temporary()).setUpstreamDataSourceFactory(new DefaultDataSource.Factory(context,http())).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);}
