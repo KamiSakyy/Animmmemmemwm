@@ -12,6 +12,9 @@ on:
 jobs:
   android-apk:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     defaults:
       run:
         working-directory: yoru-android
@@ -21,9 +24,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            yoru-android/*.gradle
+            yoru-android/**/*.gradle
+            yoru-android/gradle/wrapper/gradle-wrapper.properties
       - uses: android-actions/setup-android@v3
-      - name: Install Android SDK components
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Restore Android SDK cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_HOME }}/platforms/android-36
+            ${{ env.ANDROID_HOME }}/build-tools/36.0.0
+            ${{ env.ANDROID_HOME }}/platform-tools
+          key: yoru-android-sdk-36-36.0.0-${{ runner.os }}
+      - name: Install missing Android SDK components
+        run: |
+          if [ ! -d "$ANDROID_HOME/platforms/android-36" ] || [ ! -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
+            sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          else
+            echo "Android SDK 36 already restored"
+          fi
       - name: Restore release signing files
         working-directory: .
         run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
@@ -33,15 +54,15 @@ jobs:
         working-directory: .
         run: |
           mkdir -p apk-output
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-3.0.0-release.apk
-          sha256sum apk-output/YORU-3.0.0-release.apk > apk-output/YORU-3.0.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-3.1.0-release.apk
+          sha256sum apk-output/YORU-3.1.0-release.apk > apk-output/YORU-3.1.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-3.0.0-release.apk apk-output/YORU-3.0.0-release.apk.sha256
-          git commit -m "Add built YORU 3.0.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-3.1.0-release.apk apk-output/YORU-3.1.0-release.apk.sha256
+          git commit -m "Add built YORU 3.1.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-3.0.0-release-apk
-          path: apk-output/YORU-3.0.0-release.apk
+          name: yoru-3.1.0-release-apk
+          path: apk-output/YORU-3.1.0-release.apk
