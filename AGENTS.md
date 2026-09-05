@@ -39,7 +39,7 @@
 
 ## VPN module notes
 
-YORU 2.7.0 держит встроенный VPN экран, импорт подписок, выбор локаций, режим `только YORU / выбранные приложения / все приложения`, `VpnService` и Xray-core integration point. Критично: MP4/share/save/open должны отдавать только полный файл; экспорт проверяет `SimpleCache` spans и размер. VPN parser должен принимать plain/base64/base64url, JSON/sing-box/Xray, Clash JSON/YAML и ссылки внутри строк.
+YORU 2.8.0 держит встроенный VPN экран, импорт подписок, выбор локаций, режим `только YORU / выбранные приложения / все приложения`, `VpnService` и Xray-core integration point. Критично: VLESS должен поддерживаться полноценно через Xray, включая Reality/TLS/WS/gRPC/H2/XHTTP/HTTPUpgrade/flow. Перед включением системного VPN подписка должна распаковываться через обычную не-VPN сеть Android. Вкладки `VPN` и `Загрузки` не должны падать из-за битых локальных записей. MP4/share/save/open должны отдавать только полный файл; экспорт проверяет `SimpleCache` spans и размер. VPN parser должен принимать plain/base64/base64url, JSON/sing-box/Xray, Clash JSON/YAML и ссылки внутри строк.
 
 Чтобы не хранить огромный бинарный core в репозитории, workflow скачивает `libv2ray.aar` из MIT-проекта V2RayEZ перед сборкой APK. Код YORU обращается к `libv2ray` через reflection, поэтому исходники остаются собираемыми без локального AAR, а APK из Actions получает реальное ядро.
 
