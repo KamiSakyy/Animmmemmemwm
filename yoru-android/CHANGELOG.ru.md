@@ -1,3 +1,13 @@
+# YORU 3.3.0 — Yummy video sources без JutSu
+
+- Удалён неработающий `JutSu` из source list, выбора плеера, catalog/details routing, автоподбора и download pool.
+- YummyAnime resolver расширен под Rutube: video id извлекается из iframe/страницы, поток берётся из `rutube.ru/api/play/options/.../video_balancer.m3u8`, master playlist раскладывается по качествам.
+- Добавлен статический Zedfilm/hlamer resolver: `video_Init` Base64 JSON, прямые `url/url2/hls/dash/file/source` поля и HTML/JSON scan для `.mpd`, `.m3u8`, `.mp4`.
+- Усилен VK/ВКонтакте видео: поддержаны `vkvideo`, `video_ext.php`, escaped/unescaped `url/mp4_*`, `hls/hls_fmp4` и прямые stream-ссылки.
+- Варианты YummyAnime в выборе озвучек теперь показывают плеер рядом с озвучкой, чтобы отличать Kodik, CVH, Aksor, Alloha, Rutube, VK, Zedfilm и Sibnet.
+- Изучены актуальные репозитории 2025–2026: Kodik-Download-Watch, AnimeParsers, ani-web, ShikiPlayer, moe-parsers и YummyTV. Token-required Kodik/Alloha/Collaps API paths и proxy/WebView-only fallback не добавлялись.
+- Версия Android-пакета поднята до `versionName 3.3.0`, `versionCode 22`.
+
 # YORU 3.2.0 — глобальное обновление интерфейса, JutSu и фильтры
 
 - Исправлен каталог `JutSu`: названия больше не берутся из служебных token/hash-строк, карточки получают чистое имя из HTML/alt/title или безопасный slug-fallback.
