@@ -27,23 +27,21 @@ jobs:
       - name: Restore release signing files
         working-directory: .
         run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Build debug and release APK
-        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+      - name: Build release APK
+        run: ./gradlew --no-daemon :app:assembleRelease
       - name: Save APK into branch
         working-directory: .
         run: |
           mkdir -p apk-output
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-2.9.0-debug.apk
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-2.9.0-release.apk
-          sha256sum apk-output/YORU-2.9.0-debug.apk > apk-output/YORU-2.9.0-debug.apk.sha256
-          sha256sum apk-output/YORU-2.9.0-release.apk > apk-output/YORU-2.9.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-3.0.0-release.apk
+          sha256sum apk-output/YORU-3.0.0-release.apk > apk-output/YORU-3.0.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-2.9.0-debug.apk apk-output/YORU-2.9.0-debug.apk.sha256 apk-output/YORU-2.9.0-release.apk apk-output/YORU-2.9.0-release.apk.sha256
-          git commit -m "Add built YORU 2.9.0 APK files [skip ci]" || exit 0
+          git add -f apk-output/YORU-3.0.0-release.apk apk-output/YORU-3.0.0-release.apk.sha256
+          git commit -m "Add built YORU 3.0.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-2.9.0-apk
-          path: apk-output/YORU-2.9.0-*.apk
+          name: yoru-3.0.0-release-apk
+          path: apk-output/YORU-3.0.0-release.apk

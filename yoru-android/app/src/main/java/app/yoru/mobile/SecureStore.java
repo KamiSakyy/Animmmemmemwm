@@ -43,4 +43,8 @@ public final class SecureStore {
     public synchronized void dataSaver(boolean enabled){try{settings.put("dataSaver",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized void wifiDownloads(boolean enabled){try{settings.put("wifiDownloads",enabled);write("settings",settings);}catch(Exception ignored){}}
 
+    public synchronized List<String> searchHistory(){ArrayList<String> out=new ArrayList<>();JSONArray rows=settings.optJSONArray("searchHistory");for(int i=0;rows!=null&&i<rows.length();i++){String q=rows.optString(i,"").trim();if(!q.isEmpty()&&!out.contains(q))out.add(q);if(out.size()>=14)break;}return out;}
+    public synchronized void addSearch(String query){String q=query==null?"":query.trim().replaceAll("\\s+"," ");if(q.length()<2)return;if(q.length()>80)q=q.substring(0,80).trim();try{ArrayList<String> rows=new ArrayList<>();rows.add(q);for(String old:searchHistory())if(!old.equalsIgnoreCase(q))rows.add(old);JSONArray arr=new JSONArray();for(int i=0;i<Math.min(14,rows.size());i++)arr.put(rows.get(i));settings.put("searchHistory",arr);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized void clearSearchHistory(){try{settings.remove("searchHistory");write("settings",settings);}catch(Exception ignored){}}
+
 }
