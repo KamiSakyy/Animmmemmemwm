@@ -18,7 +18,7 @@ final class VideoResolver {
         TreeMap<Integer,String> direct=direct(api,url);if(!direct.isEmpty())return direct;String host=host(url);String path=path(url);
         if(has(host,"yummyani.me","yani.tv")&&path.toLowerCase(Locale.ROOT).contains("iframecvh"))return cvh(api,url);
         if(has(host,"cdnvideohub.com","plapi.cdnvideohub.com"))return cvh(api,url);
-        if(has(host,"kodikplayer.com","kodik.info","kodik.cc","kodik.biz"))return kodik(api,url);
+        if(has(host,"kodikplayer.com","kodik.info","kodik.cc","kodik.biz","aniqit.com"))return kodik(api,url);
         if(has(host,"alloha.yani.tv","alloha.tv"))return alloha(api,url);
         if(has(host,"aksor.tv","aksor.yani.tv","player.aksor.tv"))return aksor(api,url);
         if(has(host,"video.sibnet.ru","sibnet.ru"))return sibnet(api,url);
