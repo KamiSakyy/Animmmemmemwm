@@ -11,5 +11,4 @@
  @android.webkit.JavascriptInterface <methods>;
 }
 
--keep class libv2ray.** { *; }
 -keep class go.** { *; }
