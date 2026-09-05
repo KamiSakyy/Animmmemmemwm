@@ -1,3 +1,13 @@
+# YORU 2.1.3 — YummyAnime iframe в нашем плеере и точное скачивание
+
+- Для `YummyAnime Iframe · YummyAnime` добавлен быстрый native-resolver перед запуском iframe.
+- Kodik обновлён под актуальную схему 2026: `urlParams`, cookie-сессия, динамический endpoint из `app.player_single`, `bad_user`, `cdn_is_working` и декодирование ссылок.
+- Добавлен CVH/CdnVideoHub resolver для `iframeCVH.html` с выбором серии и озвучки по `dubbing_code`, `anime_id`, `episode`.
+- Если поток текущей iframe-озвучки найден, серия открывается во встроенном Media3-плеере с подписью `НАШ МОДНЫЙ ПЛЕЕР`.
+- Скачивание текущей iframe-озвучки больше не подменяется вариантами других источников: показываются только найденные потоки текущего iframe или текущего native-плеера.
+- WebView-перехватчик усилен MIME/Range-проверкой ссылок без расширения, наблюдением `fetch`, `XMLHttpRequest`, `WebSocket` и `performance`.
+- Версия Android-пакета поднята до `versionName 2.1.3`, `versionCode 7`.
+
 # YORU 2.1.2 — скачивание текущего iframe и уведомления
 
 - Добавлена кнопка «Скачать эту серию» прямо в карточку выбора серии на экране плеера.

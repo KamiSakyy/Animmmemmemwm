@@ -1,6 +1,6 @@
 # YORU для Android
 
-Нативное Android-приложение на Java, Android SDK и Gradle для просмотра аниме: каталог, поиск, карточки, коллекция, история, загрузки и настройки сделаны стандартными Android Views. Онлайн-видео открывается через iframe YummyAnime либо через нативный Media3 ExoPlayer, если источник отдаёт прямой HLS/DASH/MP4-поток.
+Нативное Android-приложение на Java, Android SDK и Gradle для просмотра аниме: каталог, поиск, карточки, коллекция, история, загрузки и настройки сделаны стандартными Android Views. Онлайн-видео открывается через нативный Media3 ExoPlayer, когда поток можно извлечь из источника или YummyAnime iframe; iframe остаётся запасным вариантом.
 
 ## Требования
 
@@ -15,8 +15,8 @@
 - AniList и SameBand убраны из приложения.
 - В плеере доступен выбор «Все источники» или конкретного источника: YummyAnime, AniLiberty, AnimeVost, AniLib, AnimeGO, AniMedia.
 - YummyAnime Iframe для серий, озвучек и студий, которые доступны только через внешний плеер.
-- Нативный плеер Media3 для прямых MP4/HLS/DASH-потоков AniLiberty, AnimeVost, AniMedia и распознанных iframe-вариантов.
-- Принудительная подготовка скачивания из текущего YummyAnime iframe: WebView ловит реальные `.m3u8`, `.mpd`, `.mp4`, `.mkv`, `.webm` запросы во время воспроизведения, и кнопка «Скачать эту серию» отдаёт их в очередь загрузок первыми.
+- Нативный плеер Media3 для прямых MP4/HLS/DASH-потоков AniLiberty, AnimeVost, AniMedia и распознанных iframe-вариантов; для YummyAnime iframe при удачном извлечении отображается `НАШ МОДНЫЙ ПЛЕЕР`.
+- Принудительная подготовка скачивания из текущего YummyAnime iframe: resolver и WebView ловят Kodik, CVH/CdnVideoHub, MIME-потоки без расширений и реальные `.m3u8`, `.mpd`, `.mp4`, `.mkv`, `.webm` запросы во время воспроизведения.
 - Скачивание собирает общий пул из текущего плеера, родного источника, YummyAnime, AniLiberty, AnimeVost, AniLib, AnimeGO, AniMedia и прямого Kodik, если источники отдают доступный поток без пользовательских API-ключей.
 - Подбор прямых потоков для загрузки из Kodik, Alloha, Aksor, Sibnet, VK, Aniboom, AniLib и SovetRomantica, если плеер отдаёт доступный адрес.
 - В карточке аниме скачивание выбирает серию из списка, а в плеере скачивает текущую серию без ручного ввода номера.
@@ -63,7 +63,7 @@ gradlew.bat --no-daemon :app:assembleRelease
 
 - `app/src/main/java/app/yoru/mobile/` — код приложения.
 - `ApiRepository.java` — публичные источники, сопоставление тайтлов, серии и варианты загрузки.
-- `VideoResolver.java` — распознавание прямых потоков из iframe-плееров.
+- `VideoResolver.java` — распознавание прямых потоков из iframe-плееров, включая Kodik 2026 и CVH/CdnVideoHub.
 - `EpisodeUpdateReceiver.java` — проверка новых серий и уведомления.
 - `MainActivity.java` — главная, каталог, коллекция и источники.
 - `DetailsActivity.java` — описание и связанные истории.
