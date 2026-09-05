@@ -39,7 +39,7 @@
 
 ## VPN module notes
 
-YORU 2.6.0 держит встроенный VPN экран, импорт подписок, выбор локаций, режим `только YORU / выбранные приложения / все приложения`, `VpnService` и Xray-core integration point.
+YORU 2.7.0 держит встроенный VPN экран, импорт подписок, выбор локаций, режим `только YORU / выбранные приложения / все приложения`, `VpnService` и Xray-core integration point. Критично: MP4/share/save/open должны отдавать только полный файл; экспорт проверяет `SimpleCache` spans и размер. VPN parser должен принимать plain/base64/base64url, JSON/sing-box/Xray, Clash JSON/YAML и ссылки внутри строк.
 
 Чтобы не хранить огромный бинарный core в репозитории, workflow скачивает `libv2ray.aar` из MIT-проекта V2RayEZ перед сборкой APK. Код YORU обращается к `libv2ray` через reflection, поэтому исходники остаются собираемыми без локального AAR, а APK из Actions получает реальное ядро.
 
