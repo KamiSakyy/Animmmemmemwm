@@ -188,6 +188,7 @@ public final class ApiRepository {
     private static String episodeTitle(String text,int fallback){String t=cleanText(text);if(t.isEmpty())return "Серия "+fallback;t=t.replaceFirst("(?iu)^смотреть\\s+","");return t.length()>120?t.substring(0,120):t;}
     private static String latinSlug(String text){String s=(text==null?"":text).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+","-").replaceAll("^-+|-+$","");return s.matches(".*[a-z].*")?s:"";}
     private static String findText(String input,String regex){Matcher m=Pattern.compile(regex,Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE|Pattern.DOTALL).matcher(input==null?"":input);return m.find()?cleanText(unescape(m.group(1))):"";}
+    private static String unescape(String s){return s==null?"":s.replace("&quot;","\"").replace("&#34;","\"").replace("&#039;","'").replace("&amp;","&").replace("\\/","/");}
 
     private Anime.Page animelib4kCatalog(String search,int page,Filter f)throws Exception{Anime.Page base=catalog("animelib",search,page,f);Anime.Page out=new Anime.Page();out.page=base.page;out.total=base.total;out.more=base.more;for(Anime a:base.items){Anime copy=Anime.from(a.json());copy.source="animelib4k";out.items.add(remember(copy));}return out;}
     private Anime.Page kodikCatalog(String search,int page,Filter f)throws Exception{Anime.Page base=catalog("shikimori",search,page,f);Anime.Page out=new Anime.Page();out.page=base.page;out.total=base.total;out.more=base.more;for(Anime a:base.items)out.items.add(remember(kodikShell(a)));return out;}
