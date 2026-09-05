@@ -1,0 +1,6 @@
+.gradle/
+**/build/
+local.properties
+owner-signing/*
+!owner-signing/README.md
+*.apk

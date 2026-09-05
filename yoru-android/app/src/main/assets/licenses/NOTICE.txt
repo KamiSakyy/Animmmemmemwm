@@ -1,0 +1,5 @@
+YORU Android 2.0
+AndroidX Media3 — The Android Open Source Project, Apache License 2.0.
+jsoup — Jonathan Hedley, MIT License.
+Source-format references: vypivshiy/anicli-api (MIT), immisterio/Lampac. Native adapters are implemented in Java for YORU.
+Artwork and anime belong to their respective rights holders.

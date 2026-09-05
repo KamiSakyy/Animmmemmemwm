@@ -1,0 +1,7 @@
+yoru-android/owner-signing/
+yoru-android/owner-reports/
+yoru-android/.gradle/
+yoru-android/app/build/
+yoru-android/build/
+*.apk
+*.aab

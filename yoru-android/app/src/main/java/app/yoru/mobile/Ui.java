@@ -1,0 +1,51 @@
+package app.yoru.mobile;
+
+import android.Manifest;
+import android.app.*;
+import android.content.*;
+import android.content.pm.PackageManager;
+import android.graphics.*;
+import android.graphics.drawable.*;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+import org.json.*;
+import java.util.*;
+
+public final class Ui {
+    public static final int BG=0xff111017,CARD=0xff211b2a,SURFACE=0xff191520,PURPLE=0xffc0a4ef,TEXT=0xfff2edf8,MUTED=0xffa497b1,LINE=0xff352b40;
+    public static int dp(Context c,float n){return (int)(n*c.getResources().getDisplayMetrics().density+.5f);}
+    public static GradientDrawable shape(int color,float radius,Context c){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(c,radius));return d;}
+    public static GradientDrawable stroke(int color,float radius,Context c){GradientDrawable d=shape(color,radius,c);d.setStroke(dp(c,1),LINE);return d;}
+    public static TextView text(Context c,String s,int size,int color,boolean bold){TextView t=new TextView(c);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setFontFeatureSettings("kern");t.setIncludeFontPadding(false);if(bold)t.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));t.setLineSpacing(dp(c,2),1);return t;}
+    public static TextView label(Context c,String s){TextView t=text(c,s,10,MUTED,true);t.setLetterSpacing(.08f);return t;}
+    public static LinearLayout column(Context c){LinearLayout v=new LinearLayout(c);v.setOrientation(LinearLayout.VERTICAL);return v;}
+    public static LinearLayout row(Context c){LinearLayout v=new LinearLayout(c);v.setOrientation(LinearLayout.HORIZONTAL);v.setGravity(Gravity.CENTER_VERTICAL);return v;}
+    public static LinearLayout.LayoutParams lp(Context c,int width,int height){return new LinearLayout.LayoutParams(width<0?width:dp(c,width),height<0?height:dp(c,height));}
+    public static void space(LinearLayout v,int height){View a=new View(v.getContext());v.addView(a,lp(v.getContext(),1,height));}
+    public static TextView button(Context c,String title,boolean primary,Runnable action){TextView t=text(c,title,13,primary?0xff241a32:TEXT,true);t.setGravity(Gravity.CENTER);t.setPadding(dp(c,16),dp(c,12),dp(c,16),dp(c,12));t.setMinHeight(dp(c,44));t.setBackground(primary?shape(PURPLE,12,c):stroke(CARD,12,c));t.setClickable(true);t.setFocusable(true);t.setOnClickListener(v->action.run());return t;}
+    public static View iconButton(Context c,String name,String desc,Runnable action){Icon i=new Icon(c,name);i.setContentDescription(desc);i.setBackground(stroke(SURFACE,11,c));i.setClickable(true);i.setFocusable(true);i.setOnClickListener(v->action.run());return i;}
+    public static void gap(LinearLayout row,View child,int width,int height,int left){LinearLayout.LayoutParams p=lp(row.getContext(),width,height);p.leftMargin=dp(row.getContext(),left);row.addView(child,p);}
+    public static void toast(Context c,String s){Toast.makeText(c,s,Toast.LENGTH_SHORT).show();}
+    public static LinearLayout base(Activity a){a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);LinearLayout root=column(a);root.setBackgroundColor(BG);root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});a.setContentView(root);root.requestApplyInsets();if(Build.VERSION.SDK_INT>=33)a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,a::onBackPressed);return root;}
+    public static boolean allow(Activity a){if(YoruApp.app().original)return true;LinearLayout root=base(a);root.setGravity(Gravity.CENTER);root.setPadding(dp(a,28),dp(a,40),dp(a,28),dp(a,40));root.addView(text(a,"YORU",32,PURPLE,true));space(root,20);root.addView(text(a,"Подлинность приложения не подтверждена. Установите оригинальную сборку.",16,TEXT,false));return false;}
+    public static void openDetails(Context c,Anime a){c.startActivity(new Intent(c,DetailsActivity.class).putExtra("anime",a.json().toString()));}
+    public static void openPlayer(Context c,Anime a,String mode,double episode){if(mode==null||mode.equals("auto")||mode.equals("offline")){androidx.media3.exoplayer.offline.Download d=YoruApp.app().downloads().findCompleted(a,episode);if(d!=null){openOffline(c,d.request.id,a,episode);return;}}c.startActivity(new Intent(c,PlayerActivity.class).putExtra("anime",a.json().toString()).putExtra("mode",mode).putExtra("episode",episode));}
+    public static Anime intentAnime(Activity a){try{return Anime.from(new JSONObject(a.getIntent().getStringExtra("anime")));}catch(Exception e){return new Anime();}}
+    public static String time(int sec){sec=Math.max(0,sec);return String.format(Locale.ROOT,"%d:%02d",sec/60,sec%60);}
+    public static void bucketDialog(Activity a,Anime anime,Runnable done){String[] names=Arrays.copyOf(SecureStore.BUCKET_LABELS,6);names[5]="Убрать из коллекции";new AlertDialog.Builder(a).setTitle("Моя коллекция").setItems(names,(d,which)->{YoruApp.app().store.favorite(anime,which==5?"":SecureStore.BUCKETS[which]);if(which!=5){if(Build.VERSION.SDK_INT>=33&&a.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},4201);EpisodeUpdateReceiver.schedule(a);}toast(a,which==5?"Убрано из коллекции":"Добавлено: "+names[which]);done.run();}).setNegativeButton("Отмена",null).show();}
+    public static final class Card extends LinearLayout {
+        private final ImageView image;private final TextView title,meta,tag;
+        public Card(Context c,int imageHeight){super(c);setOrientation(VERTICAL);setPadding(dp(c,5),dp(c,5),dp(c,5),dp(c,10));FrameLayout frame=new FrameLayout(c);frame.setBackground(shape(CARD,12,c));frame.setClipToOutline(true);image=new ImageView(c);image.setScaleType(ImageView.ScaleType.CENTER_CROP);frame.addView(image,new FrameLayout.LayoutParams(-1,-1));tag=text(c,"",9,0xffd9c4f0,true);tag.setPadding(dp(c,6),dp(c,4),dp(c,6),dp(c,4));tag.setBackground(shape(0xd921192d,6,c));FrameLayout.LayoutParams label=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.START);label.leftMargin=dp(c,7);label.bottomMargin=dp(c,7);frame.addView(tag,label);addView(frame,new LinearLayout.LayoutParams(-1,dp(c,imageHeight)));title=text(c,"",12,TEXT,true);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(c,36));p.topMargin=dp(c,9);addView(title,p);meta=text(c,"",10,MUTED,false);meta.setSingleLine();meta.setEllipsize(android.text.TextUtils.TruncateAt.END);addView(meta,new LinearLayout.LayoutParams(-1,-2));}
+        public void bind(Anime a){title.setText(a.title);meta.setText(a.meta());tag.setText((a.score>0?String.format(Locale.US,"★ %.1f · ",a.score):"")+ApiRepository.sourceNames.get(a.source));YoruApp.app().images.load(image,a);setOnClickListener(v->openDetails(getContext(),a));setContentDescription(a.title+". "+a.meta());}
+    }
+    public static final class Icon extends View {
+        private final Paint p=new Paint(3);private final String kind;public int color=MUTED;
+        public Icon(Context c,String type){super(c);kind=type;}
+        @Override protected void onDraw(Canvas c){super.onDraw(c);c.save();float size=Math.min(getWidth(),getHeight())*.52f;c.translate((getWidth()-size)/2,(getHeight()-size)/2);c.scale(size/24,size/24);p.setColor(color);p.setStrokeWidth(1.7f);p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);Path x=new Path();switch(kind){case "download":c.drawLine(12,3,12,16,p);c.drawLine(7,11,12,16,p);c.drawLine(17,11,12,16,p);x.moveTo(4,17);x.lineTo(4,21);x.lineTo(20,21);x.lineTo(20,17);c.drawPath(x,p);break;case "search":c.drawCircle(10,10,6.3f,p);c.drawLine(15,15,21,21,p);break;case "back":x.moveTo(14,5);x.lineTo(7,12);x.lineTo(14,19);c.drawPath(x,p);break;case "close":c.drawLine(6,6,18,18,p);c.drawLine(18,6,6,18,p);break;case "play":x.moveTo(8,4);x.lineTo(20,12);x.lineTo(8,20);x.close();c.drawPath(x,p);break;case "heart":x.moveTo(12,20);x.cubicTo(-3,10,4,0,12,6);x.cubicTo(20,0,27,10,12,20);c.drawPath(x,p);break;case "home":x.moveTo(3,11);x.lineTo(12,3);x.lineTo(21,11);x.moveTo(6,10);x.lineTo(6,21);x.lineTo(18,21);x.lineTo(18,10);c.drawPath(x,p);break;case "grid":for(int i=0;i<2;i++)for(int j=0;j<2;j++)c.drawRoundRect(3+i*11,3+j*11,10+i*11,10+j*11,1.5f,1.5f,p);break;case "sources":x.moveTo(12,3);x.lineTo(22,8);x.lineTo(12,13);x.lineTo(2,8);x.close();x.moveTo(2,13);x.lineTo(12,18);x.lineTo(22,13);x.moveTo(2,18);x.lineTo(12,23);x.lineTo(22,18);c.drawPath(x,p);break;case "history":c.drawArc(4,4,21,21,-150,300,false,p);c.drawLine(3,4,3,10,p);c.drawLine(3,10,9,10,p);c.drawLine(12,8,12,13,p);c.drawLine(12,13,16,15,p);break;case "settings":c.drawCircle(12,12,7,p);c.drawCircle(12,12,2.5f,p);for(int i=0;i<8;i++){c.save();c.rotate(i*45,12,12);c.drawLine(12,1,12,4,p);c.restore();}break;case "filter":c.drawLine(3,5,21,5,p);c.drawLine(6,12,18,12,p);c.drawLine(9,19,15,19,p);break;case "expand":c.drawLine(3,9,3,3,p);c.drawLine(3,3,9,3,p);c.drawLine(15,3,21,3,p);c.drawLine(21,3,21,9,p);c.drawLine(21,15,21,21,p);c.drawLine(21,21,15,21,p);c.drawLine(9,21,3,21,p);c.drawLine(3,21,3,15,p);break;default:c.drawCircle(12,12,8,p);c.drawLine(12,8,12,13,p);c.drawPoint(12,17,p);}c.restore();}
+    }
+    public static void openOffline(Context c,String id,Anime a,double episode){c.startActivity(new Intent(c,PlayerActivity.class).putExtra("anime",a.json().toString()).putExtra("downloadId",id).putExtra("episode",episode));}
+    public static String bytes(long n){if(n<0)return "—";if(n>=1024L*1024*1024)return String.format(new java.util.Locale("ru"),"%.2f ГБ",n/(1024.0*1024*1024));if(n>=1024L*1024)return String.format(new java.util.Locale("ru"),"%.1f МБ",n/(1024.0*1024));if(n>=1024)return String.format(new java.util.Locale("ru"),"%.0f КБ",n/1024.0);return n+" Б";}
+    public static String number(double n){return n==Math.floor(n)?String.valueOf((int)n):String.valueOf(n);}
+
+}
