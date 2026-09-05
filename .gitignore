@@ -5,3 +5,7 @@ yoru-android/app/build/
 yoru-android/build/
 *.apk
 *.aab
+.cache/
+.local-tools/
+
+workspace-output/
