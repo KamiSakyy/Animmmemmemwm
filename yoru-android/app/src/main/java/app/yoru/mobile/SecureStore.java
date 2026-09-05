@@ -42,4 +42,15 @@ public final class SecureStore {
     public synchronized boolean wifiDownloads(){return settings.optBoolean("wifiDownloads",true);}
     public synchronized void dataSaver(boolean enabled){try{settings.put("dataSaver",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized void wifiDownloads(boolean enabled){try{settings.put("wifiDownloads",enabled);write("settings",settings);}catch(Exception ignored){}}
+
+    public synchronized String vpnSubscriptionUrl(){return settings.optString("vpnSubscriptionUrl","");}
+    public synchronized void vpnSubscriptionUrl(String value){try{settings.put("vpnSubscriptionUrl",value==null?"":value);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized JSONArray vpnProfiles(){JSONArray a=settings.optJSONArray("vpnProfiles");return a==null?new JSONArray():a;}
+    public synchronized void vpnProfiles(JSONArray value){try{settings.put("vpnProfiles",value==null?new JSONArray():value);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized String vpnSelected(){return settings.optString("vpnSelected","");}
+    public synchronized void vpnSelected(String value){try{settings.put("vpnSelected",value==null?"":value);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized String vpnMode(){String v=settings.optString("vpnMode","self");return v.equals("all")||v.equals("selected")?v:"self";}
+    public synchronized void vpnMode(String value){try{settings.put("vpnMode",value==null?"self":value);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized JSONArray vpnApps(){JSONArray a=settings.optJSONArray("vpnApps");return a==null?new JSONArray():a;}
+    public synchronized void vpnApps(JSONArray value){try{settings.put("vpnApps",value==null?new JSONArray():value);write("settings",settings);}catch(Exception ignored){}}
 }
