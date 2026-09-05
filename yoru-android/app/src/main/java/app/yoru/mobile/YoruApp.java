@@ -21,7 +21,7 @@ public final class YoruApp extends Application {
     public synchronized DownloadHub downloads(){if(downloads==null)downloads=new DownloadHub(this,mediaCache);return downloads;}
     public boolean savingMobile(){return store.dataSaver()&&traffic.mobile();}
     public boolean autoNextAllowed(){return store.autoNext()&&!savingMobile();}
-    @Override public void onCreate(){super.onCreate();instance=this;original=AppSecurity.original(this);WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);store=new SecureStore(this);traffic=new TrafficMeter(this,store);mediaCache=new MediaCache(this);api=new ApiRepository(this);images=new ImageLoader(this);channels();EpisodeUpdateReceiver.schedule(this);}
+    @Override public void onCreate(){super.onCreate();instance=this;original=AppSecurity.original(this);WebView.setWebContentsDebuggingEnabled(false);store=new SecureStore(this);traffic=new TrafficMeter(this,store);mediaCache=new MediaCache(this);api=new ApiRepository(this);images=new ImageLoader(this);channels();EpisodeUpdateReceiver.schedule(this);main.postDelayed(()->io.execute(()->{try{api.refreshProtection(false);}catch(Exception ignored){}}),12000);}
     private void channels(){if(Build.VERSION.SDK_INT>=26){NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);if(nm!=null)nm.createNotificationChannel(new NotificationChannel("yoru-updates",getString(R.string.updates_channel_name),NotificationManager.IMPORTANCE_DEFAULT));}}
     public static YoruApp app(){return instance;}
 }
