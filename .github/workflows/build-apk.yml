@@ -28,21 +28,7 @@ jobs:
         working-directory: .
         run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
       - name: Build debug and release APK
-        run: |
-          set +e
-          ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease 2>&1 | tee ../gradle-build.log
-          code=${PIPESTATUS[0]}
-          if [ "$code" -ne 0 ]; then
-            cd ..
-            mkdir -p apk-output
-            cp gradle-build.log apk-output/build-error.log
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -f apk-output/build-error.log
-            git commit -m "Save Android build error [skip ci]" || true
-            git push origin HEAD:arena/01a07147-animmmemmemwm || true
-            exit "$code"
-          fi
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
       - name: Save APK into branch
         working-directory: .
         run: |
