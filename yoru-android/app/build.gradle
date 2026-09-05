@@ -10,8 +10,8 @@ android {
   applicationId 'app.yoru.mobile'
   minSdk 26
   targetSdk 36
-  versionCode 8
-  versionName '2.1.4'
+  versionCode 9
+  versionName '2.2.0'
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
  }
  signingConfigs { release {
@@ -42,4 +42,5 @@ dependencies {
  implementation 'androidx.media3:media3-database:1.5.1'
  implementation 'org.jsoup:jsoup:1.18.3'
  implementation 'androidx.annotation:annotation:1.9.1'
+ implementation 'androidx.core:core:1.15.0'
 }
