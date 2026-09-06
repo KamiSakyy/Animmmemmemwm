@@ -121,6 +121,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -518,6 +519,7 @@ private fun LibraryScreen(vm: YoruKotlinVm, nav: NavHostController) {
     var mode by remember { mutableStateOf("fav") }
     val favorites = remember(vm.tick) { vm.store.favorites() }
     val recent = remember(vm.tick) { vm.store.recent() }
+    val stats = remember(vm.tick) { vm.store.stats() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SectionTitle("Коллекция") }
         item {
@@ -534,7 +536,6 @@ private fun LibraryScreen(vm: YoruKotlinVm, nav: NavHostController) {
             if (recent.isEmpty()) item { EmptyCard("История появится после просмотра.") }
             items(recent, key = { it.anime.id }) { progress -> LibraryAnimeRow(progress.anime, vm.settings, "Серия ${numberLabel(progress.episode)} · ${durationLabel(progress.position)}") { nav.navigate("player/${Uri.encode(progress.anime.id)}/${Uri.encode(progress.episode.toString())}") } }
         } else {
-            val stats = remember(vm.tick) { vm.store.stats() }
             item { StatGrid(stats.optInt("favorites"), stats.optInt("history"), stats.optInt("downloads"), stats.optInt("minutes")) }
             item { OutlinedButton(onClick = { vm.clearHistory() }, modifier = Modifier.fillMaxWidth()) { Text("Очистить историю") } }
         }
