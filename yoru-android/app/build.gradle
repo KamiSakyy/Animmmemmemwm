@@ -10,8 +10,8 @@ android {
   applicationId 'app.yoru.mobile'
   minSdk 26
   targetSdk 36
-  versionCode 46
-  versionName '4.12.3'
+  versionCode 47
+  versionName '4.12.4'
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
   ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
  }
@@ -44,4 +44,5 @@ dependencies {
  implementation 'org.jsoup:jsoup:1.18.3'
  implementation 'androidx.annotation:annotation:1.9.1'
  implementation 'androidx.core:core:1.15.0'
+ implementation 'androidx.recyclerview:recyclerview:1.4.0'
 }
