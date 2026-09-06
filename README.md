@@ -5,17 +5,17 @@
 1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.0.0** (`app.yuro.guard`) — отдельное внеплановое приложение для мониторинга трафика, локального VPN-firewall, лимитов и встроенного браузера.
 
-## YURO Guard 1.3.0
+## YURO Guard 1.4.0
 
 Исходники: `yoru-android/yuroguard`.
 Workflow сборки: `.github/workflows/build-yuroguard-apk.yml`.
 
-Готовый release APK: `apk-output/YURO-Guard-1.3.0-release.apk`.
-SHA256 APK: `4bc2e1b6858132203130a578a92a2877ce2878e1a4ff188b7aa2eef958af91ba`.
-Инструкция: `handoff/YURO_GUARD_1.3.0_BUILD.ru.md`.
-Source handoff: `handoff/YURO-Guard-1.3.0-source-handoff.zip`.
+Готовый release APK: `apk-output/YURO-Guard-1.4.0-release.apk`.
+SHA256 APK: `7223276eb004bf6df857d2cc6d76082df21715b74096f7547bf4ad682753526e`.
+Инструкция: `handoff/YURO_GUARD_1.4.0_BUILD.ru.md`.
+Source handoff: `handoff/YURO-Guard-1.4.0-source-handoff.zip`.
 
-Ключ 1.3.0: icon-only навигация с кастомными YURO-иконками, исправлен отчёт/защита от вылета и перехода в браузер, исправлено сохранение scroll/tab, YURO VPN больше не трогает другой VPN при входе и не автоподключается после boot/update, добавлен отдельный DPI-обход профиль с QUIC/SNI/HTTP/DNS событиями и ручной кнопкой подключения.
+Ключ 1.4.0: Telegram Rescue / Auto DPI. Добавлен локальный SOCKS5 proxy `127.0.0.1:10808`, который не отключает другой VPN, кнопка `Авто Telegram` открывает Telegram proxy deep-link, автоподбор проверяет Telegram DC и выбирает уровень aggressive split, proxy делает adaptive first-flight splitting/SNI split/micro split и пишет соединения/стратегии в журнал.
 
 ## YORU Android Java 4.12.7
 
