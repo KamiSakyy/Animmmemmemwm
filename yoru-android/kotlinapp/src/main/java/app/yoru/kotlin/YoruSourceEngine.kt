@@ -614,7 +614,7 @@ class YoruSourceEngine(private val client: OkHttpClient) {
 
     private fun vostAnime(j: JSONObject): AnimeItem {
         val raw = j.optString("title", "Аниме")
-        val clean = raw.replace(Regex("\\s*\\[[^]]*]\\s*$"), "")
+        val clean = raw.replace(Regex("\\s*\\[[^]]*]\\s*" + 36.toChar()), "")
         val names = clean.split(" / ", limit = 2)
         return AnimeItem(j.optString("id"), names.firstOrNull().orEmpty().ifBlank { "Аниме" }, "animevost", original = names.getOrNull(1).orEmpty(), poster = safe(j.optString("urlImagePreview")), year = j.optInt("year", yearFrom(raw)), type = j.optString("type", "Аниме"), episodes = Regex("из\\s*(\\d+)").find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0, status = "Опубликован", description = strip(j.optString("description", "")), genres = j.optString("genre", "").split(',').map { it.trim() }.filter { it.isNotBlank() })
     }
@@ -862,8 +862,8 @@ class YoruSourceEngine(private val client: OkHttpClient) {
         .replace('\u00a0', ' ')
         .replace(Regex("""\s+"""), " ")
         .replace(Regex("""(?iu)^смотреть\s+"""), "")
-        .replace(Regex("""(?iu)\s+все\s+серии.*$"""), "")
-        .replace(Regex("""\s*\[[^]]*]\s*$"""), "")
+        .replace(Regex("(?iu)\\s+все\\s+серии.*" + 36.toChar()), "")
+        .replace(Regex("\\s*\\[[^]]*]\\s*" + 36.toChar()), "")
         .trim()
 
     private fun plainName(raw: String): String = raw
@@ -917,7 +917,7 @@ class YoruSourceEngine(private val client: OkHttpClient) {
 
     private fun description(html: String): String {
         for (cls in listOf("description", "full-text", "story", "entry")) {
-            val raw = Regex("""<[^>]+class=["'][^"']*$cls[^"']*["'][^>]*>(.*?)</[^>]+>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+            val raw = Regex("<[^>]+class=[\"'][^\"']*" + Regex.escape(cls) + "[^\"']*[\"'][^>]*>(.*?)</[^>]+>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
                 .find(html)?.groupValues?.getOrNull(1).orEmpty()
             val clean = strip(raw).take(1200)
             if (clean.length > 40) return clean
@@ -941,8 +941,10 @@ class YoruSourceEngine(private val client: OkHttpClient) {
             .toList()
     }
 
-    private fun qualityOf(url: String): Int = Regex("""(?:^|[^0-9])([1-9][0-9]{2,3})p?(?:[^0-9]|$)""")
-        .find(url)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    private fun qualityOf(url: String): Int {
+        val pattern = Regex("(?:^|[^0-9])([1-9][0-9]{2,3})p?(?:[^0-9]|" + 36.toChar() + ")")
+        return pattern.find(url)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    }
 
     private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> {
         val comparator = compareBy<Int> { abs(it - preferred) }.thenByDescending { it }
