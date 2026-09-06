@@ -182,6 +182,7 @@ public class MainActivity extends Activity {
         mediaShieldCard(col);
         dpiBypassCard(col);
         totals(col);
+        trafficRankingCard(col);
         permissionCenter(col);
         infoCard(col, "Работает всегда", "Счётчик теперь отдельный от VPN: foreground-мониторинг считает TrafficStats постоянно, а при Usage Access добавляет точные Android NetworkStatsManager бакеты мобильной сети и Wi‑Fi по UID. VPN нужен только для блокировок и лимитов.");
     }
@@ -273,23 +274,18 @@ public class MainActivity extends Activity {
         LinearLayout c = card();
         LinearLayout head = row(); head.setGravity(Gravity.CENTER_VERTICAL);
         YuroIcon icon = new YuroIcon(this, YuroIcon.DPI); icon.setColor(CYAN); head.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
-        LinearLayout titleBox = column(); titleBox.setPadding(dp(10),0,0,0); titleBox.addView(text("DPI обход", 18, true, TEXT)); titleBox.addView(text("отдельный профиль, включается только вручную", 10, false, MUTED)); head.addView(titleBox, new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout titleBox = column(); titleBox.setPadding(dp(10),0,0,0); titleBox.addView(text("Telegram VPN Rescue", 18, true, TEXT)); titleBox.addView(text("только через YURO VPN, без proxy", 10, false, MUTED)); head.addView(titleBox, new LinearLayout.LayoutParams(0,-2,1));
         c.addView(head); space(c, 10);
-        c.addView(text("Telegram Rescue теперь работает двумя путями: 1) локальный SOCKS5 proxy без отключения чужого VPN; 2) YURO VPN/DPI-lite только если нажать подключение. Proxy режет первый TCP/TLS поток adaptive split стратегиями.", 12, false, MUTED)); space(c, 10);
-        c.addView(toggleRow("Авто DPI профиль", GuardPrefs.dpiBypass(this), "сам выбирает split/SNI/micro стратегии для новых соединений", on -> { GuardPrefs.dpiBypass(this,on); GuardPrefs.dpiLogging(this,true); refreshGuard(); }));
-        c.addView(toggleRow("Блокировать QUIC UDP/443", GuardPrefs.dpiQuicBlock(this), "заставляет сервисы чаще уходить в TCP/TLS, где работает split", on -> { GuardPrefs.dpiQuicBlock(this,on); refreshGuard(); }));
+        c.addView(text("Локальный proxy удалён. Для Telegram используется только Android VpnService: YURO поднимает внутренний TUN bridge, ведёт DNS/UDP/TCP, режет первый TCP/TLS payload и блокирует QUIC UDP/443, чтобы заставить TCP-путь.", 12, false, MUTED)); space(c, 10);
+        c.addView(toggleRow("Авто DPI профиль", GuardPrefs.dpiBypass(this), "сам выбирает split/SNI/micro стратегии для новых TCP-соединений", on -> { GuardPrefs.dpiBypass(this,on); GuardPrefs.dpiLogging(this,true); GuardPrefs.dpiVpnBridge(this,on); refreshGuard(); }));
+        c.addView(toggleRow("Блокировать QUIC UDP/443", GuardPrefs.dpiQuicBlock(this), "Telegram/HTTP3 чаще переходит на TCP, где работает split", on -> { GuardPrefs.dpiQuicBlock(this,on); refreshGuard(); }));
         c.addView(dpiLevelRow());
-        LinearLayout proxy = row();
-        proxy.addView(button(DpiProxyService.isAlive() ? "SOCKS5 ON" : "Запустить SOCKS5", true, () -> { if (DpiProxyService.isAlive()) stopDpiProxy(); else startDpiProxy(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(0, dp(48), 1); pp.leftMargin = dp(8);
-        proxy.addView(button("Telegram", false, this::openTelegramProxy), pp);
-        c.addView(proxy); space(c, 8);
         LinearLayout buttons = row();
-        buttons.addView(button("Авто Telegram", true, () -> { selectTelegramApps(); startDpiProxy(); runTelegramAutoTune(); openTelegramProxy(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
+        buttons.addView(button("Авто Telegram VPN", true, () -> { selectTelegramApps(); GuardPrefs.dpiBypass(this, true); GuardPrefs.dpiVpnBridge(this, true); runTelegramAutoTune(); prepareVpn(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, dp(48), 1); bp.leftMargin = dp(8);
         buttons.addView(button("Автоподбор", false, this::runTelegramAutoTune), bp);
         c.addView(buttons); space(c, 8);
-        c.addView(button("YURO VPN DPI", false, () -> { GuardPrefs.dpiBypass(this, true); prepareVpn(); }), new LinearLayout.LayoutParams(-1, dp(48)));
+        c.addView(button(GuardVpnService.isAlive() && GuardPrefs.dpiVpnBridge(this) ? "VPN DPI ON" : "Подключить VPN DPI", false, () -> { GuardPrefs.dpiBypass(this, true); GuardPrefs.dpiVpnBridge(this, true); prepareVpn(); }), new LinearLayout.LayoutParams(-1, dp(48)));
         col.addView(c, mlp(-1, -2, 0, 14, 0, 0));
     }
 
@@ -324,6 +320,37 @@ public class MainActivity extends Activity {
             if (metricWifi != null) metricWifi.setText(fmt(t.wifiRx + t.wifiTx));
             if (heroSub != null) heroSub.setText(((GuardPrefs.monitorEnabled(this) || MonitorService.isAlive()) ? "Постоянный счётчик активен" : "Счётчик на паузе") + " · " + GuardPrefs.modeTitle(GuardPrefs.mode(this)) + " · выбрано " + GuardPrefs.selected(this).size());
         } catch (Throwable ignored) {}
+    }
+
+    private void trafficRankingCard(LinearLayout col) {
+        section(col, "Рейтинг трафика");
+        LinearLayout c = card();
+        LinearLayout head = row(); head.setGravity(Gravity.CENTER_VERTICAL);
+        YuroIcon icon = new YuroIcon(this, YuroIcon.CHART); icon.setColor(PURPLE); head.addView(icon, new LinearLayout.LayoutParams(dp(34), dp(34)));
+        TextView title = text("Кто потребил больше всего", 17, true, TEXT); title.setPadding(dp(10),0,0,0); head.addView(title, new LinearLayout.LayoutParams(0,-2,1));
+        c.addView(head); space(c, 10);
+        List<AppEntry> rows = db.appsByNet(this, GuardPrefs.includeSystem(this), "", NetDb.NET_ALL, 8);
+        long max = 1; for (AppEntry e : rows) max = Math.max(max, e.total());
+        int shown = 0;
+        for (AppEntry e : rows) { if (e.total() <= 0) continue; c.addView(rankMiniRow(e, ++shown, max)); if (shown >= 5) break; }
+        if (shown == 0) c.addView(text("Пока рейтинг набирается. Постоянный мониторинг уже считает в фоне.", 12, false, MUTED));
+        col.addView(c, mlp(-1, -2, 0, 8, 0, 0));
+    }
+
+    private View rankMiniRow(AppEntry e, int rank, long max) {
+        LinearLayout wrap = column(); wrap.setPadding(0, dp(6), 0, dp(6));
+        LinearLayout r = row(); r.setGravity(Gravity.CENTER_VERTICAL);
+        TextView n = text("#" + rank, 13, true, rank == 1 ? CYAN : PURPLE); n.setGravity(Gravity.CENTER); n.setBackground(shape(CARD3, 13)); r.addView(n, new LinearLayout.LayoutParams(dp(42), dp(32)));
+        LinearLayout names = column(); names.setPadding(dp(10),0,dp(8),0); TextView name = text(e.label, 13, true, TEXT); name.setSingleLine(true); names.addView(name); names.addView(text(fmt(e.total()) + " · сейчас " + rate(e.speed()), 10, false, MUTED)); r.addView(names, new LinearLayout.LayoutParams(0,-2,1));
+        wrap.addView(r); wrap.addView(bar((int)Math.max(4, Math.min(100, e.total() * 100L / Math.max(1, max))))); return wrap;
+    }
+
+    private View bar(int percent) {
+        LinearLayout base = row(); base.setPadding(dp(52), dp(4), 0, 0);
+        LinearLayout line = row(); line.setBackground(shape(0x33291f38, 4));
+        View fill = new View(this); fill.setBackground(shape(PURPLE, 4)); line.addView(fill, new LinearLayout.LayoutParams(0, dp(6), percent));
+        View rest = new View(this); line.addView(rest, new LinearLayout.LayoutParams(0, dp(6), Math.max(1, 100 - percent)));
+        base.addView(line, new LinearLayout.LayoutParams(-1, dp(6))); return base;
     }
 
     private void permissionCenter(LinearLayout col) {
@@ -378,8 +405,8 @@ public class MainActivity extends Activity {
         List<BucketRow> timeline = db.timelineByNet(reportNet, period, 100);
         if (timeline.isEmpty()) col.addView(empty("Пока нет данных. Постоянный мониторинг уже включён — оставь приложение/сервис работать хотя бы минуту.")); else for (BucketRow r : timeline) col.addView(timelineRow(r));
         section(col, "Топ приложений");
-        List<AppEntry> top = db.appsByNet(this, GuardPrefs.includeSystem(this), "", reportNet, 40); int shown = 0;
-        for (AppEntry e : top) { long value = reportNet == NetDb.NET_MOBILE ? e.mobileTotal() : e.total(); if (value <= 0) continue; col.addView(appStatRow(e, reportNet)); shown++; if (shown >= 30) break; }
+        List<AppEntry> top = db.appsByNet(this, GuardPrefs.includeSystem(this), "", reportNet, 40); int shown = 0; long maxApp = 1; for (AppEntry e : top) maxApp = Math.max(maxApp, reportNet == NetDb.NET_MOBILE ? e.mobileTotal() : e.total());
+        for (AppEntry e : top) { long value = reportNet == NetDb.NET_MOBILE ? e.mobileTotal() : e.total(); if (value <= 0) continue; col.addView(appStatRow(e, reportNet, shown + 1, maxApp)); shown++; if (shown >= 30) break; }
         if (shown == 0) col.addView(empty("Статистика приложений ещё набирается или нужен Usage Access для точного источника."));
         section(col, "Куда идёт трафик / DPI-lite");
         List<NetDb.EventRow> events = db.recentEvents(35);
@@ -399,12 +426,14 @@ public class MainActivity extends Activity {
         c.setLayoutParams(mlp(-1, -2, 0, 0, 0, 8)); return c;
     }
 
-    private View appStatRow(AppEntry e, int net) {
+    private View appStatRow(AppEntry e, int net, int rank, long max) {
+        LinearLayout wrap = column(); wrap.setPadding(0,0,0,dp(8));
         LinearLayout c = row(); c.setGravity(Gravity.CENTER_VERTICAL); c.setPadding(dp(12), dp(10), dp(12), dp(10)); c.setBackground(shape(CARD, 16));
-        ImageView icon = new ImageView(this); if (e.icon != null) icon.setImageDrawable(e.icon); c.addView(icon, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        TextView rn = text("#" + rank, 12, true, rank == 1 ? CYAN : PURPLE); rn.setGravity(Gravity.CENTER); rn.setBackground(shape(CARD3, 12)); c.addView(rn, new LinearLayout.LayoutParams(dp(38), dp(34)));
+        ImageView icon = new ImageView(this); if (e.icon != null) icon.setImageDrawable(e.icon); LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(42), dp(42)); ip.leftMargin = dp(8); c.addView(icon, ip);
         LinearLayout texts = column(); texts.setPadding(dp(10), 0, dp(8), 0); TextView name = text(e.label, 14, true, TEXT); name.setSingleLine(true); texts.addView(name); texts.addView(text((e.system ? "Системное · " : "") + e.pkg, 10, false, MUTED)); c.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         long value = net == NetDb.NET_MOBILE ? e.mobileTotal() : e.total(); TextView val = text(fmt(value), 13, true, PURPLE); val.setGravity(Gravity.RIGHT); c.addView(val);
-        c.setLayoutParams(mlp(-1, -2, 0, 0, 0, 8)); return c;
+        wrap.addView(c); wrap.addView(bar((int)Math.max(4, Math.min(100, value * 100L / Math.max(1, max))))); return wrap;
     }
 
     private View eventRow(NetDb.EventRow ev) {
@@ -430,24 +459,11 @@ public class MainActivity extends Activity {
 
     private View linkCard(String title, String url) { LinearLayout c = card(); c.setPadding(dp(14), dp(13), dp(14), dp(13)); c.addView(text(title, 16, true, TEXT)); space(c, 5); c.addView(text(url, 11, false, MUTED)); c.setOnClickListener(v -> { Intent i = new Intent(this, BrowserActivity.class); i.putExtra("url", url); startActivity(i); }); return c; }
 
-    private void startDpiProxy() {
-        GuardPrefs.dpiProxyEnabled(this, true); GuardPrefs.dpiBypass(this, true); GuardPrefs.dpiLogging(this, true);
-        Intent i = new Intent(this, DpiProxyService.class).setAction(DpiProxyService.ACTION_START);
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
-        toast("SOCKS5 Rescue: 127.0.0.1:" + GuardPrefs.dpiProxyPort(this));
-    }
-    private void stopDpiProxy() { GuardPrefs.dpiProxyEnabled(this, false); try { startService(new Intent(this, DpiProxyService.class).setAction(DpiProxyService.ACTION_STOP)); } catch (Throwable ignored) {} toast("SOCKS5 Rescue остановлен"); }
-    private void openTelegramProxy() {
-        String port = String.valueOf(GuardPrefs.dpiProxyPort(this));
-        Intent tg = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://socks?server=127.0.0.1&port=" + port));
-        try { startActivity(tg); }
-        catch (Throwable e) { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/socks?server=127.0.0.1&port=" + port))); } catch (Throwable ignored) { toast("Telegram не найден"); } }
-    }
     private void selectTelegramApps() {
         String[] pkgs = {"org.telegram.messenger", "org.telegram.messenger.web", "org.thunderdog.challegram", "org.telegram.plus", "nekox.messenger", "tw.nekomimi.nekogram"};
         int found = 0;
         for (String p : pkgs) { try { getPackageManager().getPackageInfo(p, 0); GuardPrefs.setSelected(this, p, true); found++; } catch (Throwable ignored) {} }
-        toast(found > 0 ? "Telegram выбран: " + found : "Telegram-пакет не найден, proxy всё равно запущен");
+        toast(found > 0 ? "Telegram выбран для VPN: " + found : "Telegram-пакет не найден — выбери его вручную в Приложения");
     }
 
     private void runTelegramAutoTune() {
@@ -499,7 +515,8 @@ public class MainActivity extends Activity {
         @Override public long getItemId(int p) { return p; }
         @Override public View getView(int pos, View convertView, ViewGroup parent) {
             AppEntry e = rows.get(pos); LinearLayout outer = row(); outer.setGravity(Gravity.CENTER_VERTICAL); outer.setPadding(dp(12), dp(10), dp(10), dp(10)); outer.setBackground(shape(CARD, 16));
-            ImageView icon = new ImageView(MainActivity.this); if (e.icon != null) icon.setImageDrawable(e.icon); outer.addView(icon, new LinearLayout.LayoutParams(dp(44), dp(44)));
+            TextView rank = text("#" + (pos + 1), 11, true, pos == 0 ? CYAN : PURPLE); rank.setGravity(Gravity.CENTER); rank.setBackground(shape(CARD3, 12)); outer.addView(rank, new LinearLayout.LayoutParams(dp(38), dp(32)));
+            ImageView icon = new ImageView(MainActivity.this); if (e.icon != null) icon.setImageDrawable(e.icon); LinearLayout.LayoutParams aip = new LinearLayout.LayoutParams(dp(44), dp(44)); aip.leftMargin = dp(8); outer.addView(icon, aip);
             LinearLayout texts = column(); texts.setPadding(dp(10), 0, dp(8), 0); TextView name = text(e.label, 14, true, TEXT); name.setSingleLine(true); texts.addView(name); texts.addView(text((e.system ? "Системное · " : "") + e.pkg, 10, false, MUTED)); texts.addView(text("Трафик " + fmt(e.total()) + " · сейчас " + rate(e.speed()), 10, false, e.speed() > 0 ? CYAN : MUTED)); outer.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
             CheckBox cb = new CheckBox(MainActivity.this); cb.setButtonTintList(android.content.res.ColorStateList.valueOf(PURPLE)); cb.setChecked(e.selected); cb.setFocusable(false); cb.setClickable(false); outer.addView(cb);
             outer.setOnClickListener(v -> { boolean on = !e.selected; e.selected = on; GuardPrefs.setSelected(MainActivity.this, e.pkg, on); notifyDataSetChanged(); refreshGuard(); });

@@ -32,6 +32,7 @@ public class GuardVpnService extends VpnService {
     private ParcelFileDescriptor vpn;
     private Thread drainThread;
     private Thread workerThread;
+    private TunBridge bridge;
     private String policyKey = "";
     private NetDb db;
 
@@ -102,6 +103,11 @@ public class GuardVpnService extends VpnService {
     private Policy computePolicy() {
         String mode = GuardPrefs.mode(this);
         Set<String> selected = GuardPrefs.selected(this);
+        if (GuardPrefs.dpiBypass(this) && GuardPrefs.dpiVpnBridge(this)) {
+            HashSet<String> targets = new HashSet<>(selected);
+            if (targets.isEmpty()) targets.addAll(installedTelegramPackages());
+            return targets.isEmpty() ? Policy.none() : Policy.bridge(targets, "Telegram VPN DPI bridge");
+        }
         long cap = GuardPrefs.capBytes(this);
         if (GuardPrefs.MODE_BLOCK_SELECTED.equals(mode)) {
             return selected.isEmpty() ? Policy.none() : Policy.allowed(selected, "Блок выбранных");
@@ -120,6 +126,14 @@ public class GuardVpnService extends VpnService {
         HashSet<String> except = new HashSet<>(selected);
         except.add(getPackageName());
         return Policy.disallowed(except, "Только выбранные онлайн");
+    }
+
+    private Set<String> installedTelegramPackages() {
+        HashSet<String> out = new HashSet<>();
+        String[] pkgs = {"org.telegram.messenger", "org.telegram.messenger.web", "org.thunderdog.challegram", "org.telegram.plus", "nekox.messenger", "tw.nekomimi.nekogram"};
+        PackageManager pm = getPackageManager();
+        for (String pkg : pkgs) try { pm.getPackageInfo(pkg, 0); out.add(pkg); } catch (Throwable ignored) {}
+        return out;
     }
 
     private synchronized void applyPolicy(Policy p) {
@@ -147,17 +161,25 @@ public class GuardVpnService extends VpnService {
             for (String pkg : list) {
                 try {
                     pm.getPackageInfo(pkg, 0);
-                    if (p.type == Policy.ALLOWED) b.addAllowedApplication(pkg);
+                    if (p.type == Policy.ALLOWED || p.type == Policy.BRIDGE) b.addAllowedApplication(pkg);
                     else b.addDisallowedApplication(pkg);
                     added++;
                 } catch (PackageManager.NameNotFoundException ignored) {}
             }
-            if (p.type == Policy.ALLOWED && added == 0) return;
+            if ((p.type == Policy.ALLOWED || p.type == Policy.BRIDGE) && added == 0) return;
             vpn = b.establish();
-            if (vpn != null) startDrain(vpn);
+            if (vpn != null) {
+                if (p.type == Policy.BRIDGE) startBridge(vpn);
+                else startDrain(vpn);
+            }
         } catch (Throwable ignored) {
             closeVpn();
         }
+    }
+
+    private void startBridge(ParcelFileDescriptor fd) {
+        bridge = new TunBridge(this, fd, db);
+        bridge.start();
     }
 
     private void startDrain(ParcelFileDescriptor fd) {
@@ -175,6 +197,8 @@ public class GuardVpnService extends VpnService {
     }
 
     private synchronized void closeVpn() {
+        TunBridge oldBridge = bridge; bridge = null;
+        if (oldBridge != null) try { oldBridge.stop(); } catch (Exception ignored) {}
         ParcelFileDescriptor old = vpn;
         vpn = null;
         if (old != null) try { old.close(); } catch (Exception ignored) {}
@@ -200,12 +224,13 @@ public class GuardVpnService extends VpnService {
     @Override public void onDestroy() { stopGuard(); super.onDestroy(); }
 
     static class Policy {
-        static final int NONE = 0, ALLOWED = 1, DISALLOWED = 2;
+        static final int NONE = 0, ALLOWED = 1, DISALLOWED = 2, BRIDGE = 3;
         final int type; final Set<String> packages; final String title;
         Policy(int type, Set<String> packages, String title) { this.type = type; this.packages = packages == null ? new HashSet<>() : packages; this.title = title; }
         static Policy none() { return new Policy(NONE, new HashSet<>(), "Мониторинг"); }
         static Policy allowed(Set<String> pkgs, String title) { return new Policy(ALLOWED, new HashSet<>(pkgs), title); }
         static Policy disallowed(Set<String> pkgs, String title) { return new Policy(DISALLOWED, new HashSet<>(pkgs), title); }
+        static Policy bridge(Set<String> pkgs, String title) { return new Policy(BRIDGE, new HashSet<>(pkgs), title); }
         String key() {
             ArrayList<String> l = new ArrayList<>(packages); Collections.sort(l);
             return type + ":" + title + ":" + l.toString();
