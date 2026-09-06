@@ -2,7 +2,7 @@
 
 YORU Forge — отдельное Android-приложение для редактирования исходников YORU на телефоне и локальной оффлайн-сборки APK.
 
-## Версия 0.2.0
+## Версия 0.3.0 ARM64
 
 Что есть:
 
@@ -12,9 +12,9 @@ YORU Forge — отдельное Android-приложение для редак
 - встроенный редактор `.java`, `.gradle`, `.xml`, `.json`, `.md`, `.properties`, `.yml` и других текстовых файлов;
 - сохранение изменений обратно в выбранную папку;
 - экспорт исходников в `.zip` без `.git`, `build`, APK, архивов и signing-файлов;
-- импорт локального `toolchain pack`;
-- проверка наличия минимальных компонентов toolchain;
-- локальная сборка APK на телефоне через импортированный toolchain;
+- импорт локального ARM64 `toolchain pack`;
+- проверка наличия минимальных компонентов toolchain и запуск self-test;
+- локальная сборка APK на телефоне через импортированный ARM64 toolchain;
 - лог локальной сборки внутри приложения.
 
 ## Почему toolchain отдельно
@@ -23,9 +23,9 @@ YORU Forge — отдельное Android-приложение для редак
 
 Оценка веса:
 
-- Forge APK без toolchain: примерно 30–120 КБ после release/minify;
-- минимальный toolchain pack отдельно: примерно 70–160 МБ, зависит от android.jar, aapt2 под Android, D8, ECJ, apksig и jar-зависимостей проекта;
-- если встроить toolchain прямо в APK: примерно 90–220 МБ и выше.
+- Forge APK без toolchain: цель до 1 МБ, обычно 30–300 КБ после release/minify;
+- минимальный ARM64 toolchain pack отдельно: примерно 100–150 МБ, зависит от android.jar, aapt2 под Android, D8, ECJ, apksig и jar-зависимостей проекта;
+- если встроить toolchain прямо в APK: примерно 120–220 МБ и выше.
 
 ## Структура toolchain pack
 
@@ -33,9 +33,7 @@ Zip должен содержать:
 
 ```text
 platforms/android-36/android.jar
-bin/aapt2
-# или bin/aapt2-arm64-v8a
-# или bin/aapt2-armeabi-v7a
+bin/aapt2-arm64-v8a
 dex/ecj.jar
 dex/d8.jar
 dex/apksig.jar
@@ -43,7 +41,7 @@ keystore/debug.jks
 deps/*.jar
 ```
 
-`ecj.jar`, `d8.jar`, `apksig.jar` должны быть пригодны для запуска на Android через `/system/bin/dalvikvm`, то есть уже подготовлены как dex/jar. `aapt2` должен быть собран под Android ABI устройства, а не под Linux x86_64.
+`ecj.jar`, `d8.jar`, `apksig.jar` должны быть пригодны для запуска на Android через `/system/bin/dalvikvm`, то есть уже подготовлены как dex/jar. `aapt2-arm64-v8a` должен быть собран под Android ARM64, а не под Linux x86_64. При импорте Forge запускает self-test всех инструментов.
 
 ## Как пользоваться
 

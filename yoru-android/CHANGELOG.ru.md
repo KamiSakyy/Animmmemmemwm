@@ -1,3 +1,13 @@
+# YORU Forge 0.3.0 — ARM64-only toolchain и self-test
+
+- Forge закреплён как маленький APK до 1 МБ без встроенного SDK.
+- Локальная сборка переведена на ARM64-only toolchain pack: `aapt2-arm64-v8a`, `android.jar`, dex-версии ECJ/D8/apksigner, debug-keystore и jar-зависимости.
+- Добавлен self-test toolchain при импорте и перед сборкой: Forge реально запускает `aapt2`, ECJ, D8 и apksigner.
+- Добавлена подготовка manifest перед сборкой: package/applicationId и `${applicationId}` больше не ломают локальный `aapt2 link`.
+- Добавлена поддержка нескольких `classes*.dex`, чтобы крупные зависимости не ломали APK.
+- Команды сборки запускаются с `LD_LIBRARY_PATH`, `PATH` и `TMPDIR` из приватной папки Forge для Android ARM64 toolchain.
+- Добавлена спецификация `FORGE_TOOLCHAIN_PACK.ru.md` с точной структурой pack и весом.
+
 # YORU Forge 0.2.0 — оффлайн локальный сборщик
 
 - Forge переведён на локальную сборку без облачного workflow внутри приложения.
