@@ -37,6 +37,13 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+
+        <service
+            android:name=".DpiProxyService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="local SOCKS5 Telegram DPI rescue proxy" />
+        </service>
         <service
             android:name=".GuardVpnService"
             android:exported="false"

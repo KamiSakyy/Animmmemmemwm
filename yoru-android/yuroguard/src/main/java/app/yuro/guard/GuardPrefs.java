@@ -59,6 +59,15 @@ public final class GuardPrefs {
     public static boolean dpiQuicBlock(Context c) { return sp(c).getBoolean("dpi_quic_block", true); }
     public static void dpiQuicBlock(Context c, boolean v) { sp(c).edit().putBoolean("dpi_quic_block", v).apply(); }
 
+    public static boolean dpiProxyEnabled(Context c) { return sp(c).getBoolean("dpi_proxy_enabled", false); }
+    public static void dpiProxyEnabled(Context c, boolean v) { sp(c).edit().putBoolean("dpi_proxy_enabled", v).apply(); }
+
+    public static int dpiProxyPort(Context c) { return sp(c).getInt("dpi_proxy_port", 10808); }
+    public static void dpiProxyPort(Context c, int v) { sp(c).edit().putInt("dpi_proxy_port", Math.max(1025, Math.min(65535, v))).apply(); }
+
+    public static int dpiAutoLevel(Context c) { return sp(c).getInt("dpi_auto_level", 2); }
+    public static void dpiAutoLevel(Context c, int v) { sp(c).edit().putInt("dpi_auto_level", Math.max(0, Math.min(4, v))).apply(); }
+
     public static long capBytes(Context c) { return sp(c).getLong("cap_bytes", 200L * 1024L); }
     public static void capBytes(Context c, long v) { sp(c).edit().putLong("cap_bytes", Math.max(8 * 1024L, v)).apply(); }
 

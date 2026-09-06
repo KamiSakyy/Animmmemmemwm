@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -273,15 +275,30 @@ public class MainActivity extends Activity {
         YuroIcon icon = new YuroIcon(this, YuroIcon.DPI); icon.setColor(CYAN); head.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
         LinearLayout titleBox = column(); titleBox.setPadding(dp(10),0,0,0); titleBox.addView(text("DPI обход", 18, true, TEXT)); titleBox.addView(text("отдельный профиль, включается только вручную", 10, false, MUTED)); head.addView(titleBox, new LinearLayout.LayoutParams(0,-2,1));
         c.addView(head); space(c, 10);
-        c.addView(text("На Android без root YURO использует видимые признаки: DNS, TLS SNI, HTTP Host/URL, QUIC UDP/443 и CDN-домены. Чужой VPN не трогаем до кнопки подключения.", 12, false, MUTED)); space(c, 10);
-        c.addView(toggleRow("Профиль DPI обхода", GuardPrefs.dpiBypass(this), "подготовить SNI/HTTP/DNS desync-профиль и усиленный журнал", on -> { GuardPrefs.dpiBypass(this,on); GuardPrefs.dpiLogging(this,true); refreshGuard(); }));
-        c.addView(toggleRow("Блокировать QUIC UDP/443", GuardPrefs.dpiQuicBlock(this), "заставляет сервисы чаще уходить в TCP/TLS, где виден SNI", on -> { GuardPrefs.dpiQuicBlock(this,on); refreshGuard(); }));
+        c.addView(text("Telegram Rescue теперь работает двумя путями: 1) локальный SOCKS5 proxy без отключения чужого VPN; 2) YURO VPN/DPI-lite только если нажать подключение. Proxy режет первый TCP/TLS поток adaptive split стратегиями.", 12, false, MUTED)); space(c, 10);
+        c.addView(toggleRow("Авто DPI профиль", GuardPrefs.dpiBypass(this), "сам выбирает split/SNI/micro стратегии для новых соединений", on -> { GuardPrefs.dpiBypass(this,on); GuardPrefs.dpiLogging(this,true); refreshGuard(); }));
+        c.addView(toggleRow("Блокировать QUIC UDP/443", GuardPrefs.dpiQuicBlock(this), "заставляет сервисы чаще уходить в TCP/TLS, где работает split", on -> { GuardPrefs.dpiQuicBlock(this,on); refreshGuard(); }));
+        c.addView(dpiLevelRow());
+        LinearLayout proxy = row();
+        proxy.addView(button(DpiProxyService.isAlive() ? "SOCKS5 ON" : "Запустить SOCKS5", true, () -> { if (DpiProxyService.isAlive()) stopDpiProxy(); else startDpiProxy(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
+        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(0, dp(48), 1); pp.leftMargin = dp(8);
+        proxy.addView(button("Telegram", false, this::openTelegramProxy), pp);
+        c.addView(proxy); space(c, 8);
         LinearLayout buttons = row();
-        buttons.addView(button(GuardPrefs.dpiBypass(this) ? "DPI профиль ON" : "Включить DPI профиль", true, () -> { GuardPrefs.dpiBypass(this, !GuardPrefs.dpiBypass(this)); GuardPrefs.dpiLogging(this, true); refreshGuard(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
+        buttons.addView(button("Авто Telegram", true, () -> { selectTelegramApps(); startDpiProxy(); runTelegramAutoTune(); openTelegramProxy(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, dp(48), 1); bp.leftMargin = dp(8);
-        buttons.addView(button("Подключить VPN", false, () -> { GuardPrefs.dpiBypass(this, true); prepareVpn(); }), bp);
-        c.addView(buttons);
+        buttons.addView(button("Автоподбор", false, this::runTelegramAutoTune), bp);
+        c.addView(buttons); space(c, 8);
+        c.addView(button("YURO VPN DPI", false, () -> { GuardPrefs.dpiBypass(this, true); prepareVpn(); }), new LinearLayout.LayoutParams(-1, dp(48)));
         col.addView(c, mlp(-1, -2, 0, 14, 0, 0));
+    }
+
+    private View dpiLevelRow() {
+        LinearLayout wrap = column(); wrap.setPadding(0, dp(4), 0, dp(8));
+        wrap.addView(text("Агрессивность авто-профиля: " + GuardPrefs.dpiAutoLevel(this) + "/4", 12, true, CYAN));
+        LinearLayout r = row();
+        for (int i=1;i<=4;i++) { final int level=i; r.addView(chip(String.valueOf(i), GuardPrefs.dpiAutoLevel(this)==i, () -> { GuardPrefs.dpiAutoLevel(this, level); refreshGuard(); render(); })); }
+        wrap.addView(r); return wrap;
     }
 
     private void totals(LinearLayout col) {
@@ -412,6 +429,48 @@ public class MainActivity extends Activity {
     }
 
     private View linkCard(String title, String url) { LinearLayout c = card(); c.setPadding(dp(14), dp(13), dp(14), dp(13)); c.addView(text(title, 16, true, TEXT)); space(c, 5); c.addView(text(url, 11, false, MUTED)); c.setOnClickListener(v -> { Intent i = new Intent(this, BrowserActivity.class); i.putExtra("url", url); startActivity(i); }); return c; }
+
+    private void startDpiProxy() {
+        GuardPrefs.dpiProxyEnabled(this, true); GuardPrefs.dpiBypass(this, true); GuardPrefs.dpiLogging(this, true);
+        Intent i = new Intent(this, DpiProxyService.class).setAction(DpiProxyService.ACTION_START);
+        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i);
+        toast("SOCKS5 Rescue: 127.0.0.1:" + GuardPrefs.dpiProxyPort(this));
+    }
+    private void stopDpiProxy() { GuardPrefs.dpiProxyEnabled(this, false); try { startService(new Intent(this, DpiProxyService.class).setAction(DpiProxyService.ACTION_STOP)); } catch (Throwable ignored) {} toast("SOCKS5 Rescue остановлен"); }
+    private void openTelegramProxy() {
+        String port = String.valueOf(GuardPrefs.dpiProxyPort(this));
+        Intent tg = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://socks?server=127.0.0.1&port=" + port));
+        try { startActivity(tg); }
+        catch (Throwable e) { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/socks?server=127.0.0.1&port=" + port))); } catch (Throwable ignored) { toast("Telegram не найден"); } }
+    }
+    private void selectTelegramApps() {
+        String[] pkgs = {"org.telegram.messenger", "org.telegram.messenger.web", "org.thunderdog.challegram", "org.telegram.plus", "nekox.messenger", "tw.nekomimi.nekogram"};
+        int found = 0;
+        for (String p : pkgs) { try { getPackageManager().getPackageInfo(p, 0); GuardPrefs.setSelected(this, p, true); found++; } catch (Throwable ignored) {} }
+        toast(found > 0 ? "Telegram выбран: " + found : "Telegram-пакет не найден, proxy всё равно запущен");
+    }
+
+    private void runTelegramAutoTune() {
+        toast("Проверяю Telegram DC…");
+        io.execute(() -> {
+            String[] dc = {"149.154.167.50", "149.154.167.51", "149.154.175.50", "149.154.175.53", "91.108.56.130", "91.108.56.131", "91.108.4.200", "91.108.8.8"};
+            int ok = 0; long best = Long.MAX_VALUE; String bestIp = "";
+            for (String ip : dc) {
+                long t = System.currentTimeMillis(); Socket sock = null;
+                try {
+                    sock = new Socket(); sock.connect(new InetSocketAddress(ip, 443), 1800);
+                    long ms = System.currentTimeMillis() - t; ok++; if (ms < best) { best = ms; bestIp = ip; }
+                    db.recordEvent(-1, "Telegram Rescue", "TCP", "telegram-dc", ip, 443, "autotune", false, "connect " + ms + "ms");
+                } catch (Throwable e) {
+                    db.recordEvent(-1, "Telegram Rescue", "TCP", "telegram-dc", ip, 443, "autotune fail", true, e.getClass().getSimpleName());
+                } finally { try { if (sock != null) sock.close(); } catch (Throwable ignored) {} }
+            }
+            int level = ok >= 3 ? 2 : ok >= 1 ? 3 : 4;
+            GuardPrefs.dpiAutoLevel(this, level); GuardPrefs.dpiBypass(this, true); GuardPrefs.dpiLogging(this, true); GuardPrefs.dpiQuicBlock(this, true);
+            final int finalOk = ok; final long finalBest = best; final String finalBestIp = bestIp; final int finalLevel = level;
+            ui.post(() -> { toast(finalOk > 0 ? "Telegram DC OK: " + finalOk + ", уровень " + finalLevel + (finalBestIp.length()>0 ? " · " + finalBestIp + " " + finalBest + "ms" : "") : "DC не открылись, уровень 4"); render(); });
+        });
+    }
 
     private void startMonitorIfNeeded() { if (GuardPrefs.monitorEnabled(this)) startMonitor(); }
     private void startMonitor() { GuardPrefs.monitorEnabled(this, true); try { Intent i = new Intent(this, MonitorService.class).setAction(MonitorService.ACTION_START); if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i); } catch (Throwable ignored) {} }
