@@ -76,6 +76,7 @@ jobs:
       - name: Save APK into branch
         working-directory: .
         run: |
+          git pull --rebase origin arena/01a07147-animmmemmemwm
           mkdir -p apk-output
           rm -f apk-output/YORU-4.10.0-release.apk apk-output/YORU-4.10.0-release.apk.sha256 apk-output/YORU-Kotlin-1.0.0-release.apk apk-output/YORU-Kotlin-1.0.0-release.apk.sha256
           cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.10.0-release.apk
