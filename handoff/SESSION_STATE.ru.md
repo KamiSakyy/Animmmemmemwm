@@ -102,6 +102,15 @@ git diff --check
 - `MainActivity.kt` переписан под дизайн YORU: главный экран, каталог, коллекция, загрузки, календарь, настройки, карточка, fullscreen image viewer и player.
 - Добавлены `YoruModels.kt`, `YoruStore.kt`, `YoruRepository.kt` для чистой Kotlin-архитектуры без Java-легаси.
 - Kotlin store хранит избранное, историю, настройки, скачанные серии, экспорт/импорт совместимого формата.
-- Kotlin repository сохраняет быстрый AniLibria path, OkHttp cache и локальное локальное сохранение видео без лишних технических экранов.
+- Kotlin repository сохраняет быстрый AniLibria path, OkHttp cache и локальное сохранение видео без лишних технических экранов.
 - Kotlin player: Media3/ExoPlayer, быстрый буфер, progress, resume, auto-next, opening skip, fullscreen, PiP, smart-fill, speed до 2.5×, double tap seek.
 - `.github/workflows/build-apk.yml` переведён на сборку только `:kotlinapp:assembleRelease`, итоговый файл `YORU-Kotlin-1.1.0-release.apk`.
+
+## Финал YORU Kotlin 1.1.0
+
+- Source commit: `7c5cad5` плюс APK commit `9351b9d`.
+- GitHub Actions Android run: `34034083572`, status success.
+- Release APK: `apk-output/YORU-Kotlin-1.1.0-release.apk`.
+- APK SHA256: `1af9661d308bda25536e4e5fd6015b7a727dd6eb15a5c4aa6487eb1e1b04efd7`.
+- Source ZIP: `handoff/YORU-Kotlin-1.1.0-source-handoff.zip`.
+- Source ZIP SHA256: `54817cebb4d86c7e9ef09da7df87aeb27083d5f32765ed0009903ae8d2f9d60d`.
