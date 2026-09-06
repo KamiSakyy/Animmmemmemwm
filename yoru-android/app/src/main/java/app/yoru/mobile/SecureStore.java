@@ -58,6 +58,11 @@ public final class SecureStore {
     public synchronized float playbackSpeed(){ensure();double v=settings.optDouble("playbackSpeed",1.0);if(v<0.75||v>2.0)v=1.0;return (float)v;}
     public synchronized void playbackSpeed(float speed){ensure();try{float v=Math.max(0.75f,Math.min(2.0f,speed));settings.put("playbackSpeed",v);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean takeUpdatePulse(){ensure();try{long now=System.currentTimeMillis(),last=settings.optLong("lastUpdatePulse",0);if(now-last<3*60*1000L)return false;settings.put("lastUpdatePulse",now);write("settings",settings);return true;}catch(Exception e){return false;}}
+    public synchronized void updateCheckState(long at,int checked,int alerts,String status){ensure();try{settings.put("lastEpisodeCheckAt",Math.max(0,at));settings.put("lastEpisodeCheckCount",Math.max(0,checked));settings.put("lastEpisodeCheckAlerts",Math.max(0,alerts));settings.put("lastEpisodeCheckStatus",status==null?"":status);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized long lastEpisodeCheckAt(){ensure();return settings.optLong("lastEpisodeCheckAt",0);}
+    public synchronized int lastEpisodeCheckCount(){ensure();return settings.optInt("lastEpisodeCheckCount",0);}
+    public synchronized int lastEpisodeCheckAlerts(){ensure();return settings.optInt("lastEpisodeCheckAlerts",0);}
+    public synchronized String lastEpisodeCheckStatus(){ensure();return settings.optString("lastEpisodeCheckStatus","");}
     public synchronized String voicePreference(){ensure();return settings.optString("voicePreference","");}
     public synchronized void voicePreference(String value){ensure();try{settings.put("voicePreference",value==null?"":value.trim());if(voicePreference().isEmpty())settings.put("onlyPreferredVoice",false);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean onlyPreferredVoice(){ensure();return settings.optBoolean("onlyPreferredVoice",false)&&!voicePreference().isEmpty();}
