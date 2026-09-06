@@ -2,7 +2,7 @@
 
 Текущие Android-продукты в ветке:
 
-1. **YORU Android Java 4.12.11** (`app.yoru.mobile`) — основное anime-приложение.
+1. **YORU Android Java 4.13.0** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.5.0** (`app.yuro.guard`) — отдельное приложение для мониторинга трафика, локального Android VPN-firewall, VPN-only DPI-lite профиля, рейтинга потребления и экономного WebView-браузера.
 
 ## YURO Guard 1.5.0
@@ -17,12 +17,15 @@ Source handoff: `handoff/YURO-Guard-1.5.0-source-handoff.zip`.
 
 Ключ 1.5.0: proxy/SOCKS5 полностью удалён. Telegram Rescue переведён на **YURO VPN-only**: внутренний TUN bridge для выбранных Telegram-приложений, DNS/UDP/TCP forwarding, QUIC UDP/443 block и adaptive TCP/TLS first-flight split в рамках Android `VpnService`. Главная и отчёт получили рейтинг “кто больше потребил”, топ-приложения, live totals/rates и более аккуратный YURO dark UI. Открытие приложения не запрашивает VPN и не отключает другой VPN; Android VPN permission/start вызывается только по кнопке подключения.
 
-## YORU Android Java 4.12.11
+## YORU Android Java 4.13.0
 
 Исходники: `yoru-android/app`. Kotlin-модуль не участвует в активной сборке YORU; Gradle собирает `:app`. Forge/toolchain в этой линии не используется.
 
-Готовый release APK: `apk-output/YORU-4.12.11-release.apk`.
-SHA256 APK: `ac213aa3125b1ce29cc0d73ce73bcbba8717fad4e230337fb567608e2e6babe5`.
-Source handoff YORU: `handoff/YORU-4.12.11-source-handoff.zip`.
+Готовый release APK: `apk-output/YORU-4.13.0-release.apk`.
+SHA256 APK: `c1514e276127a137d8a2bde55a46f50c202ae205e7ab60a2919efffcc74607ea`.
+Размер APK: `2651088` bytes.
+Source handoff YORU: `handoff/YORU-4.13.0-source-handoff.zip`.
+Инструкция: `handoff/YORU_4.13.0_BUILD.ru.md`.
+CI run: `34063163110`.
 
-Ключ YORU 4.12.11: оптимизирован календарь — режим `Все` рисует первые 5 событий и плавно добавляет следующие 5 при прокрутке/кнопке, добавлены footer `показано X из Y`, счётчики фильтров/дней, `К ближайшей`, long-press добавление в коллекцию, non-blocking cache read и ещё календарные UX/performance улучшения. Оптимизации cold start/cache 4.12.10, bounded executors 4.12.9 и фоновые уведомления 4.12.8 сохранены.
+Ключ YORU 4.13.0: Quality+ добавляет честные 1440p/2160p/“лучшее доступное” только при наличии реального потока; любимые озвучки стали списком приоритета для карточки, плеера, источников и скачивания; Карточка+ показывает расширенные публичные метаданные; коллекция получила пользовательские папки/полки поверх старых статусов. Animetka подключена глубже через публичный `/api/anime/playlist`, без private tokens/auth bypass/DRM bypass. Оптимизации календаря 4.12.11, cold start/cache 4.12.10, bounded executors 4.12.9 и фоновые уведомления 4.12.8 сохранены.
