@@ -3,12 +3,11 @@ package app.yoru.mobile;
 import android.app.*;
 import android.os.*;
 import android.webkit.WebView;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public final class YoruApp extends Application {
     public static YoruApp instance;
-    public final ExecutorService io=Executors.newFixedThreadPool(4);
+    public final ExecutorService io=ioPool();
     public final Handler main=new Handler(Looper.getMainLooper());
     public SecureStore store;
     public ApiRepository api;
@@ -18,6 +17,7 @@ public final class YoruApp extends Application {
     public MediaCache mediaCache;
     private DownloadHub downloads;
     public volatile int activePlayers;
+    private static ExecutorService ioPool(){int n=Math.max(4,Math.min(6,Runtime.getRuntime().availableProcessors()+1));return Executors.newFixedThreadPool(n,r->{Thread t=new Thread(r,"yoru-io");t.setPriority(Thread.NORM_PRIORITY-1);return t;});}
     public synchronized DownloadHub downloads(){if(downloads==null)downloads=new DownloadHub(this,mediaCache);return downloads;}
     public boolean savingMobile(){return store.dataSaver()&&traffic.mobile();}
     public boolean autoNextAllowed(){return store.autoNext()&&!savingMobile();}
