@@ -8,10 +8,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class TrafficMeter {
     private final ConnectivityManager connectivity;private final SecureStore store;private final Handler main=new Handler(Looper.getMainLooper());
-    private long mobile,wifi,other,since,lastTotal=-1,lastElapsed;private int lastKind;private boolean available=true;
+    private long mobile,wifi,other,since,lastTotal=-1,lastElapsed;private int lastKind;private boolean available=true,started;
     private final CopyOnWriteArrayList<Runnable> listeners=new CopyOnWriteArrayList<>();
-    public TrafficMeter(Context context,SecureStore s){store=s;connectivity=(ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);JSONObject old=store.traffic();mobile=old.optLong("mobile");wifi=old.optLong("wifi");other=old.optLong("other");since=old.optLong("since",System.currentTimeMillis());lastTotal=old.optLong("lastTotal",-1);lastElapsed=old.optLong("lastElapsed",0);lastKind=old.optInt("lastKind",2);sample();try{connectivity.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback(){public void onAvailable(Network n){changed();}public void onLost(Network n){changed();}public void onCapabilitiesChanged(Network n,NetworkCapabilities c){changed();}});}catch(Exception ignored){}main.postDelayed(new Runnable(){public void run(){sample();main.postDelayed(this,5000);}},5000);}
-    private void changed(){main.post(()->{sample();for(Runnable r:listeners)r.run();});}
+    public TrafficMeter(Context context,SecureStore s){store=s;connectivity=(ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);since=System.currentTimeMillis();lastKind=2;try{connectivity.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback(){public void onAvailable(Network n){changed();}public void onLost(Network n){changed();}public void onCapabilitiesChanged(Network n,NetworkCapabilities c){changed();}});}catch(Exception ignored){}main.postDelayed(new Runnable(){public void run(){started=true;sample();main.postDelayed(this,5000);}},5000);}
+    private void changed(){main.post(()->{if(!started)return;sample();for(Runnable r:listeners)r.run();});}
     public void preferencesChanged(){changed();}
     public void addListener(Runnable r){listeners.add(r);}public void removeListener(Runnable r){listeners.remove(r);}
     public int networkKind(){try{Network n=connectivity.getActiveNetwork();NetworkCapabilities c=n==null?null:connectivity.getNetworkCapabilities(n);if(c==null)return 2;if(c.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))return 0;if(c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)||c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))return 1;}catch(Exception ignored){}return 2;}
