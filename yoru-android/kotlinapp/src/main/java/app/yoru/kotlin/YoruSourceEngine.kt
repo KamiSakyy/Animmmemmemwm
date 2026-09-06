@@ -651,7 +651,36 @@ class YoruSourceEngine(private val client: OkHttpClient) {
 
     private fun animetkaAnime(j: JSONObject): AnimeItem = AnimeItem(j.optString("animetka_id", j.optString("id")), j.optString("anime_title", j.optString("title", "Аниме")), "animetka", original = j.optString("title_orig", j.optString("title_en", "")), alias = j.optString("title_en", ""), poster = safe(j.optString("anime_poster_url", j.optString("poster_url", ""))), year = j.optInt("year", 0), type = kind(j.optString("anime_kind", j.optString("kind", ""))), episodes = j.optInt("episodes_total", j.optInt("episodes", 0)), status = statusName(j.optString("all_status", j.optString("anime_status", ""))), age = j.optInt("minimal_age", 0).takeIf { it > 0 }?.let { "$it+" } ?: j.optString("rating_mpaa", ""), score = j.optDouble("shikimori_rating", j.optDouble("rating", 0.0)).takeIf { it.isFinite() } ?: 0.0, description = strip(j.optString("anime_description", j.optString("description", ""))), genres = genres(j.optJSONArray("anime_genres"), "name", "title") + genres(j.optJSONArray("all_genres"), "name", "title"), malId = j.optInt("shikimori_id", 0), kpId = j.optInt("kinopoisk_id", j.optInt("kp_id", 0)))
 
-    private fun anixAnime(j: JSONObject): AnimeItem = AnimeItem(j.optString("id", j.optString("releaseId", "")), j.optString("title_ru", j.optString("title", j.optString("name", "Аниме"))), "anixsekai", original = j.optString("title_original", j.optString("title_en", j.optString("title_alt", ""))), alias = j.optString("alias", j.optString("code", "")), poster = anixImage(j.optString("poster", j.optString("image", j.optString("image_url", j.optString("poster_url", j.optString("screenshot", ""))))), year = j.optInt("year", yearFrom(j.optString("aired_on", j.optString("season", "")))), type = kind(j.optString("type", j.optString("category", ""))), episodes = j.optInt("episodes_count", j.optInt("episodes", j.optInt("episode_count", 0))), status = statusName(j.optString("status", j.optString("publish_status", ""))), age = j.optInt("age_rating", 0).takeIf { it > 0 }?.let { "$it+" } ?: "", score = j.optDouble("grade", j.optDouble("rating", j.optDouble("score", 0.0))).takeIf { it.isFinite() } ?: 0.0, description = strip(j.optString("description", j.optString("annotation", ""))), genres = genres(j.optJSONArray("genres"), "name", "title") + genres(j.optJSONArray("categories"), "name", "title"), screenshots = listOf(anixImage(j.optString("screenshot", j.optString("frame", "")))).filter { it.isNotBlank() } + imageArray(j.optJSONArray("screenshots"), "https://api-s.anixsekai.com"), trailerUrl = safe(j.optString("trailer", j.optString("trailer_url", j.optString("youtube_url", "")))), malId = j.optInt("myanimelist_id", j.optInt("mal_id", j.optInt("malId", 0))))
+    private fun anixAnime(j: JSONObject): AnimeItem {
+        val rawPoster = j.optString("poster").ifBlank {
+            j.optString("image").ifBlank {
+                j.optString("image_url").ifBlank {
+                    j.optString("poster_url").ifBlank { j.optString("screenshot", "") }
+                }
+            }
+        }
+        val genres = genres(j.optJSONArray("genres"), "name", "title") + genres(j.optJSONArray("categories"), "name", "title")
+        val shots = listOf(anixImage(j.optString("screenshot", j.optString("frame", "")))).filter { it.isNotBlank() } + imageArray(j.optJSONArray("screenshots"), "https://api-s.anixsekai.com")
+        return AnimeItem(
+            id = j.optString("id", j.optString("releaseId", "")),
+            title = j.optString("title_ru", j.optString("title", j.optString("name", "Аниме"))),
+            source = "anixsekai",
+            original = j.optString("title_original", j.optString("title_en", j.optString("title_alt", ""))),
+            alias = j.optString("alias", j.optString("code", "")),
+            poster = anixImage(rawPoster),
+            year = j.optInt("year", yearFrom(j.optString("aired_on", j.optString("season", "")))),
+            type = kind(j.optString("type", j.optString("category", ""))),
+            episodes = j.optInt("episodes_count", j.optInt("episodes", j.optInt("episode_count", 0))),
+            status = statusName(j.optString("status", j.optString("publish_status", ""))),
+            age = j.optInt("age_rating", 0).takeIf { it > 0 }?.let { "$it+" } ?: "",
+            score = j.optDouble("grade", j.optDouble("rating", j.optDouble("score", 0.0))).takeIf { it.isFinite() } ?: 0.0,
+            description = strip(j.optString("description", j.optString("annotation", ""))),
+            genres = genres,
+            screenshots = shots,
+            trailerUrl = safe(j.optString("trailer", j.optString("trailer_url", j.optString("youtube_url", "")))),
+            malId = j.optInt("myanimelist_id", j.optInt("mal_id", j.optInt("malId", 0)))
+        )
+    }
 
     private fun kodikShell(base: AnimeItem): AnimeItem = base.copy(source = "kodik", id = (base.malId.takeIf { it > 0 } ?: base.id.toIntOrNull() ?: stableId(base.key).toIntOrNull() ?: 0).toString())
 
@@ -956,65 +985,65 @@ class YoruSourceEngine(private val client: OkHttpClient) {
         return streams
     }
 
-    private fun animetkaEpisodeUrl(link: String, episode: Int): String {
-        return runCatching {
-            val uri = Uri.parse(link)
-            if (uri.path?.startsWith("/video/") == true) link else uri.buildUpon().appendQueryParameter("episode", episode.toString()).build().toString()
-        }.getOrDefault(link)
-    }
 
-    private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String {
-        return "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
-    }
-
-    private fun chooseAnixSource(sources: JSONArray?): JSONObject? {
-        var first: JSONObject? = null
-        for (i in 0 until (sources?.length() ?: 0)) {
-            val row = sources?.optJSONObject(i) ?: continue
-            if (first == null) first = row
-            val name = row.optString("name", row.optString("title", "")).lowercase(Locale.ROOT)
-            if (row.optInt("id", 0) == 12 || name.contains("kodik")) return row
-        }
-        return first
-    }
-
-    private fun firstArray(root: JSONObject?, vararg keys: String): JSONArray? {
-        if (root == null) return null
-        for (key in keys) {
-            root.optJSONArray(key)?.let { return it }
-            val nested = root.optJSONObject(key)
-            val found = firstArray(nested, "releases", "content", "data", "list", "items", "types", "sources", "episodes")
-            if (found != null) return found
-        }
-        return null
-    }
-
-    private fun firstObject(root: JSONObject?, vararg keys: String): JSONObject? {
-        if (root == null) return null
-        for (key in keys) root.optJSONObject(key)?.let { return it }
-        return null
-    }
-
-    private fun animetkaHeaders(): Map<String, String> = mapOf(
-        "Accept" to "application/json,text/plain,*/*",
-        "Origin" to "https://animetka.com",
-        "Referer" to "https://animetka.com/",
-        "User-Agent" to chrome
-    )
-
-    private fun anixHeaders(base: String): Map<String, String> = mapOf(
-        "Accept" to "application/json",
-        "User-Agent" to anixUa,
-        "Origin" to base,
-        "Referer" to "$base/",
-        "Accept-Language" to "ru-RU,ru;q=0.9,en;q=0.5"
-    )
-
-    companion object {
-        private const val chrome = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36"
-        private const val anixUa = "Anixart/8.5.2 (Android 13; Pixel 7)"
-    }
 }
+
+private const val chrome = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36"
+private const val anixUa = "Anixart/8.5.2 (Android 13; Pixel 7)"
+
+private fun animetkaEpisodeUrl(link: String, episode: Int): String {
+    return runCatching {
+        val uri = Uri.parse(link)
+        if (uri.path?.startsWith("/video/") == true) link else uri.buildUpon().appendQueryParameter("episode", episode.toString()).build().toString()
+    }.getOrDefault(link)
+}
+
+private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String {
+    return "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
+}
+
+private fun chooseAnixSource(sources: JSONArray?): JSONObject? {
+    var first: JSONObject? = null
+    for (i in 0 until (sources?.length() ?: 0)) {
+        val row = sources?.optJSONObject(i) ?: continue
+        if (first == null) first = row
+        val name = row.optString("name", row.optString("title", "")).lowercase(Locale.ROOT)
+        if (row.optInt("id", 0) == 12 || name.contains("kodik")) return row
+    }
+    return first
+}
+
+private fun firstArray(root: JSONObject?, vararg keys: String): JSONArray? {
+    if (root == null) return null
+    for (key in keys) {
+        root.optJSONArray(key)?.let { return it }
+        val nested = root.optJSONObject(key)
+        val found = firstArray(nested, "releases", "content", "data", "list", "items", "types", "sources", "episodes")
+        if (found != null) return found
+    }
+    return null
+}
+
+private fun firstObject(root: JSONObject?, vararg keys: String): JSONObject? {
+    if (root == null) return null
+    for (key in keys) root.optJSONObject(key)?.let { return it }
+    return null
+}
+
+private fun animetkaHeaders(): Map<String, String> = mapOf(
+    "Accept" to "application/json,text/plain,*/*",
+    "Origin" to "https://animetka.com",
+    "Referer" to "https://animetka.com/",
+    "User-Agent" to chrome
+)
+
+private fun anixHeaders(base: String): Map<String, String> = mapOf(
+    "Accept" to "application/json",
+    "User-Agent" to anixUa,
+    "Origin" to base,
+    "Referer" to "$base/",
+    "Accept-Language" to "ru-RU,ru;q=0.9,en;q=0.5"
+)
 
 private fun <T> JSONArray?.items(limit: Int, mapper: (JSONObject) -> T?): List<T> {
     val out = ArrayList<T>()
