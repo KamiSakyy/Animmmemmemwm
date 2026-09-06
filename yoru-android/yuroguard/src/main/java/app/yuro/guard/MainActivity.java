@@ -44,7 +44,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
-    private static final int REQ_VPN = 701;
+    private static final int REQ_VPN_CONNECT = 701;
+    private static final int REQ_VPN_GRANT = 702;
     private static final int BG = 0xff100d18;
     private static final int BG2 = 0xff15101f;
     private static final int CARD = 0xff1d1728;
@@ -63,6 +64,7 @@ public class MainActivity extends Activity {
     private ListView currentList;
     private TextView metricTotal, metricSpeed, metricMobile, metricWifi, heroSub;
     private int tab = 0;
+    private int renderedTab = -1;
     private String appQuery = "";
     private String period = "minute";
     private int reportNet = NetDb.NET_ALL;
@@ -123,7 +125,8 @@ public class MainActivity extends Activity {
 
     private void rememberScroll() {
         try {
-            if (currentScroll != null) scrollY[Math.max(0, Math.min(3, tab))] = currentScroll.getScrollY();
+            int slot = renderedTab >= 0 ? renderedTab : tab;
+            if (currentScroll != null) scrollY[Math.max(0, Math.min(3, slot))] = currentScroll.getScrollY();
             if (currentList != null) {
                 listPos = currentList.getFirstVisiblePosition();
                 View first = currentList.getChildAt(0);
@@ -147,8 +150,24 @@ public class MainActivity extends Activity {
         if (content == null) return;
         rememberScroll();
         content.removeAllViews(); currentScroll = null; currentList = null; metricTotal = metricSpeed = metricMobile = metricWifi = heroSub = null;
-        if (tab == 1) appsScreen(); else if (tab == 2) reportScreen(); else if (tab == 3) browserScreen(); else dashboard();
+        try {
+            if (tab == 1) appsScreen(); else if (tab == 2) reportScreen(); else if (tab == 3) browserScreen(); else dashboard();
+        } catch (Throwable e) {
+            content.removeAllViews(); currentScroll = null; currentList = null;
+            errorScreen(tab == 2 ? "Отчёт" : tab == 3 ? "Браузер" : "Экран", e);
+        }
+        renderedTab = tab;
         renderNav(); restoreScroll(); saveUiState();
+    }
+
+    private void errorScreen(String title, Throwable e) {
+        LinearLayout col = scroll();
+        header(col, title, "Экран защищён от вылета: YURO не перекинет тебя в другой раздел");
+        LinearLayout c = card();
+        c.addView(text("Раздел восстановлен", 20, true, TEXT)); space(c, 8);
+        c.addView(text("Поймана внутренняя ошибка данных/Android API. Нажми обновить — отчёт пересоберётся безопасно.", 12, false, MUTED)); space(c, 12);
+        c.addView(button("Обновить этот экран", true, this::render), new LinearLayout.LayoutParams(-1, dp(48)));
+        col.addView(c);
     }
 
     private void dashboard() {
@@ -159,13 +178,14 @@ public class MainActivity extends Activity {
         modes(col);
         speedCard(col);
         mediaShieldCard(col);
+        dpiBypassCard(col);
         totals(col);
         permissionCenter(col);
         infoCard(col, "Работает всегда", "Счётчик теперь отдельный от VPN: foreground-мониторинг считает TrafficStats постоянно, а при Usage Access добавляет точные Android NetworkStatsManager бакеты мобильной сети и Wi‑Fi по UID. VPN нужен только для блокировок и лимитов.");
     }
 
     private void hero(LinearLayout col) {
-        boolean vpn = GuardPrefs.enabled(this) || GuardVpnService.isAlive();
+        boolean vpn = GuardVpnService.isAlive();
         boolean mon = GuardPrefs.monitorEnabled(this) || MonitorService.isAlive();
         LinearLayout card = card();
         GradientDrawable grad = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xff432066, 0xff171121, 0xff0d3141}); grad.setCornerRadius(dp(28)); card.setBackground(grad);
@@ -247,6 +267,23 @@ public class MainActivity extends Activity {
         return r;
     }
 
+    private void dpiBypassCard(LinearLayout col) {
+        LinearLayout c = card();
+        LinearLayout head = row(); head.setGravity(Gravity.CENTER_VERTICAL);
+        YuroIcon icon = new YuroIcon(this, YuroIcon.DPI); icon.setColor(CYAN); head.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+        LinearLayout titleBox = column(); titleBox.setPadding(dp(10),0,0,0); titleBox.addView(text("DPI обход", 18, true, TEXT)); titleBox.addView(text("отдельный профиль, включается только вручную", 10, false, MUTED)); head.addView(titleBox, new LinearLayout.LayoutParams(0,-2,1));
+        c.addView(head); space(c, 10);
+        c.addView(text("На Android без root YURO использует видимые признаки: DNS, TLS SNI, HTTP Host/URL, QUIC UDP/443 и CDN-домены. Чужой VPN не трогаем до кнопки подключения.", 12, false, MUTED)); space(c, 10);
+        c.addView(toggleRow("Профиль DPI обхода", GuardPrefs.dpiBypass(this), "подготовить SNI/HTTP/DNS desync-профиль и усиленный журнал", on -> { GuardPrefs.dpiBypass(this,on); GuardPrefs.dpiLogging(this,true); refreshGuard(); }));
+        c.addView(toggleRow("Блокировать QUIC UDP/443", GuardPrefs.dpiQuicBlock(this), "заставляет сервисы чаще уходить в TCP/TLS, где виден SNI", on -> { GuardPrefs.dpiQuicBlock(this,on); refreshGuard(); }));
+        LinearLayout buttons = row();
+        buttons.addView(button(GuardPrefs.dpiBypass(this) ? "DPI профиль ON" : "Включить DPI профиль", true, () -> { GuardPrefs.dpiBypass(this, !GuardPrefs.dpiBypass(this)); GuardPrefs.dpiLogging(this, true); refreshGuard(); render(); }), new LinearLayout.LayoutParams(0, dp(48), 1));
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, dp(48), 1); bp.leftMargin = dp(8);
+        buttons.addView(button("Подключить VPN", false, () -> { GuardPrefs.dpiBypass(this, true); prepareVpn(); }), bp);
+        c.addView(buttons);
+        col.addView(c, mlp(-1, -2, 0, 14, 0, 0));
+    }
+
     private void totals(LinearLayout col) {
         NetDb.Totals t = db.totals(); section(col, "Live-отчёт");
         LinearLayout a = row();
@@ -278,7 +315,7 @@ public class MainActivity extends Activity {
         c.addView(permissionRow("Usage Access", NetDb.hasUsageAccess(this), "точный мобильный/Wi‑Fi отчёт по приложениям", () -> startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))));
         c.addView(permissionRow("Без экономии батареи", batteryOk(), "чтобы счётчик не засыпал", this::openBattery));
         c.addView(permissionRow("Уведомление", notificationOk(), "показывает постоянную работу сервиса", () -> { if (Build.VERSION.SDK_INT >= 33) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 9); else toast("Уже доступно"); }));
-        c.addView(permissionRow("VPN-разрешение", VpnService.prepare(this) == null, "нужно для firewall и лимитов", this::prepareVpnOnly));
+        c.addView(permissionRow("VPN-разрешение", GuardPrefs.vpnPermissionSeen(this) || GuardVpnService.isAlive(), "не проверяется при входе, чтобы не трогать другой VPN", this::prepareVpnOnly));
         col.addView(c);
     }
 
@@ -379,15 +416,21 @@ public class MainActivity extends Activity {
     private void startMonitorIfNeeded() { if (GuardPrefs.monitorEnabled(this)) startMonitor(); }
     private void startMonitor() { GuardPrefs.monitorEnabled(this, true); try { Intent i = new Intent(this, MonitorService.class).setAction(MonitorService.ACTION_START); if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i); } catch (Throwable ignored) {} }
     private void stopMonitor() { GuardPrefs.monitorEnabled(this, false); try { startService(new Intent(this, MonitorService.class).setAction(MonitorService.ACTION_STOP)); } catch (Throwable ignored) {} }
-    private void prepareVpnOnly() { Intent prep = VpnService.prepare(this); if (prep != null) startActivityForResult(prep, REQ_VPN); else toast("VPN уже разрешён"); }
-    private void prepareVpn() { Intent prep = VpnService.prepare(this); if (prep != null) startActivityForResult(prep, REQ_VPN); else startGuard(); }
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) { super.onActivityResult(requestCode, resultCode, data); if (requestCode == REQ_VPN && resultCode == RESULT_OK) startGuard(); }
+    private void prepareVpnOnly() { Intent prep = VpnService.prepare(this); if (prep != null) startActivityForResult(prep, REQ_VPN_GRANT); else { GuardPrefs.vpnPermissionSeen(this, true); toast("VPN-разрешение уже есть"); } }
+    private void prepareVpn() { Intent prep = VpnService.prepare(this); if (prep != null) startActivityForResult(prep, REQ_VPN_CONNECT); else { GuardPrefs.vpnPermissionSeen(this, true); startGuard(); } }
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) { super.onActivityResult(requestCode, resultCode, data); if (requestCode == REQ_VPN_CONNECT && resultCode == RESULT_OK) { GuardPrefs.vpnPermissionSeen(this, true); startGuard(); } else if (requestCode == REQ_VPN_GRANT && resultCode == RESULT_OK) { GuardPrefs.vpnPermissionSeen(this, true); toast("VPN-разрешение сохранено. Подключение только по кнопке."); render(); } }
     private void startGuard() { GuardPrefs.enabled(this, true); Intent i = new Intent(this, GuardVpnService.class).setAction(GuardVpnService.ACTION_START); if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i); toast("VPN-контроль включён"); render(); }
     private void stopGuard() { GuardPrefs.enabled(this, false); startService(new Intent(this, GuardVpnService.class).setAction(GuardVpnService.ACTION_STOP)); toast("VPN-контроль остановлен"); render(); }
     private void refreshGuard() { if (!GuardPrefs.enabled(this)) return; Intent i = new Intent(this, GuardVpnService.class).setAction(GuardVpnService.ACTION_REFRESH); if (Build.VERSION.SDK_INT >= 26) startForegroundService(i); else startService(i); }
 
-    private void renderNav() { nav.removeAllViews(); nav.addView(navButton("Защита",0), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton("Приложения",1), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton("Отчёт",2), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton("Браузер",3), new LinearLayout.LayoutParams(0,-1,1)); }
-    private TextView navButton(String s, int idx) { TextView v = text(s, 12, tab == idx, tab == idx ? Color.WHITE : MUTED); v.setGravity(Gravity.CENTER); v.setBackground(shape(tab == idx ? PURPLE : 0x00101010, 18)); v.setOnClickListener(x -> { tab = idx; render(); }); return v; }
+    private void renderNav() { nav.removeAllViews(); nav.addView(navButton(YuroIcon.SHIELD,0,"Защита"), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton(YuroIcon.APPS,1,"Приложения"), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton(YuroIcon.CHART,2,"Отчёт"), new LinearLayout.LayoutParams(0,-1,1)); nav.addView(navButton(YuroIcon.BROWSER,3,"Браузер"), new LinearLayout.LayoutParams(0,-1,1)); }
+    private View navButton(int iconType, int idx, String desc) {
+        FrameLayout box = new FrameLayout(this); box.setContentDescription(desc); box.setPadding(dp(10), dp(6), dp(10), dp(6)); box.setBackground(shape(tab == idx ? PURPLE : 0x00101010, 20));
+        YuroIcon icon = new YuroIcon(this, iconType); icon.setColor(tab == idx ? Color.WHITE : MUTED);
+        FrameLayout.LayoutParams ip = new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER); box.addView(icon, ip);
+        box.setOnClickListener(x -> { tab = idx; render(); });
+        return box;
+    }
 
     private class AppAdapter extends BaseAdapter {
         private final ArrayList<AppEntry> rows = new ArrayList<>();

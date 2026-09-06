@@ -15,10 +15,7 @@ public class BootReceiver extends BroadcastReceiver {
                     Intent m = new Intent(context, MonitorService.class).setAction(MonitorService.ACTION_START);
                     if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(m); else context.startService(m);
                 }
-                if (GuardPrefs.enabled(context)) {
-                    Intent g = new Intent(context, GuardVpnService.class).setAction(GuardVpnService.ACTION_START);
-                    if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(g); else context.startService(g);
-                }
+                // VPN intentionally never auto-starts: Android can keep only one VPN, so YURO connects only after explicit user tap.
             } catch (Throwable ignored) {}
         }
     }

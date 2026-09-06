@@ -42,7 +42,13 @@ public final class PacketInspector {
         int sport = u16(p, off), dport = u16(p, off + 2);
         int payload = off + 8;
         if (sport == 53 || dport == 53) inspectDns(context, p, len, payload, sport == 53, sport == 53 ? src : dst, db);
-        else db.recordEvent(-1, "", "UDP", db.hostForIp(dst), dst, dport, "UDP", false, "packet capture");
+        else {
+            String host = db.hostForIp(dst);
+            boolean quic = dport == 443 || sport == 443;
+            boolean media = GuardPrefs.mediaShield(context) && (PacketInspector.isMediaHost(host) || quic);
+            boolean bypass = GuardPrefs.dpiBypass(context) && GuardPrefs.dpiQuicBlock(context) && quic;
+            db.recordEvent(-1, "", "UDP", host, dst, dport, bypass ? "QUIC shield" : "UDP", media || bypass, bypass ? "DPI profile: QUIC UDP/443 marked for TCP fallback" : "packet capture");
+        }
     }
 
     private static void inspectTcp(Context context, byte[] p, int len, int off, String src, String dst, NetDb db) {
@@ -60,7 +66,8 @@ public final class PacketInspector {
                 String sni = tlsSni(p, payload, len);
                 if (sni.length() > 0) {
                     boolean media = GuardPrefs.mediaShield(context) && isMediaHost(sni);
-                    db.recordEvent(-1, "", "TLS", sni, dst, dport, "SNI", media, media ? "media/CDN domain" : "TLS ClientHello");
+                    boolean bypass = GuardPrefs.dpiBypass(context);
+                    db.recordEvent(-1, "", "TLS", sni, dst, dport, bypass ? "DPI SNI" : "SNI", media || bypass, bypass ? "DPI profile: SNI split/reverse-frag candidate" : (media ? "media/CDN domain" : "TLS ClientHello"));
                     return;
                 }
             }
@@ -82,7 +89,8 @@ public final class PacketInspector {
         String host = header(s, "Host");
         String path = pathFromRequest(first);
         boolean media = GuardPrefs.mediaShield(context) && (isMediaHost(host) || isMediaPath(path) || acceptMedia(s));
-        db.recordEvent(-1, "", "HTTP", host, dst, dport, "HTTP", media, media ? "media URL/header blocked by policy" : first);
+        boolean bypass = GuardPrefs.dpiBypass(context);
+        db.recordEvent(-1, "", "HTTP", host, dst, dport, bypass ? "DPI HTTP" : "HTTP", media || bypass, bypass ? "DPI profile: Host-case/URL desync candidate · " + first : (media ? "media URL/header blocked by policy" : first));
         return true;
     }
 

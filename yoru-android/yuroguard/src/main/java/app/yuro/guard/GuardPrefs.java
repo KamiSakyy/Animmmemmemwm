@@ -50,6 +50,15 @@ public final class GuardPrefs {
     public static boolean strictTextMode(Context c) { return sp(c).getBoolean("strict_text_mode", true); }
     public static void strictTextMode(Context c, boolean v) { sp(c).edit().putBoolean("strict_text_mode", v).apply(); }
 
+    public static boolean vpnPermissionSeen(Context c) { return sp(c).getBoolean("vpn_permission_seen", false); }
+    public static void vpnPermissionSeen(Context c, boolean v) { sp(c).edit().putBoolean("vpn_permission_seen", v).apply(); }
+
+    public static boolean dpiBypass(Context c) { return sp(c).getBoolean("dpi_bypass", false); }
+    public static void dpiBypass(Context c, boolean v) { sp(c).edit().putBoolean("dpi_bypass", v).apply(); }
+
+    public static boolean dpiQuicBlock(Context c) { return sp(c).getBoolean("dpi_quic_block", true); }
+    public static void dpiQuicBlock(Context c, boolean v) { sp(c).edit().putBoolean("dpi_quic_block", v).apply(); }
+
     public static long capBytes(Context c) { return sp(c).getLong("cap_bytes", 200L * 1024L); }
     public static void capBytes(Context c, long v) { sp(c).edit().putLong("cap_bytes", Math.max(8 * 1024L, v)).apply(); }
 
