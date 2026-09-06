@@ -2,7 +2,7 @@
 
 Текущие Android-продукты в ветке:
 
-1. **YORU Android Java 4.12.10** (`app.yoru.mobile`) — основное anime-приложение.
+1. **YORU Android Java 4.12.11** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.5.0** (`app.yuro.guard`) — отдельное приложение для мониторинга трафика, локального Android VPN-firewall, VPN-only DPI-lite профиля, рейтинга потребления и экономного WebView-браузера.
 
 ## YURO Guard 1.5.0
@@ -17,12 +17,12 @@ Source handoff: `handoff/YURO-Guard-1.5.0-source-handoff.zip`.
 
 Ключ 1.5.0: proxy/SOCKS5 полностью удалён. Telegram Rescue переведён на **YURO VPN-only**: внутренний TUN bridge для выбранных Telegram-приложений, DNS/UDP/TCP forwarding, QUIC UDP/443 block и adaptive TCP/TLS first-flight split в рамках Android `VpnService`. Главная и отчёт получили рейтинг “кто больше потребил”, топ-приложения, live totals/rates и более аккуратный YURO dark UI. Открытие приложения не запрашивает VPN и не отключает другой VPN; Android VPN permission/start вызывается только по кнопке подключения.
 
-## YORU Android Java 4.12.10
+## YORU Android Java 4.12.11
 
 Исходники: `yoru-android/app`. Kotlin-модуль не участвует в активной сборке YORU; Gradle собирает `:app`. Forge/toolchain в этой линии не используется.
 
-Готовый release APK: `apk-output/YORU-4.12.10-release.apk`.
-SHA256 APK: `64749e41e8e098cb8be64033a9fa32ec7bdf4d8b1ba9b9552b21e2b70a2aa434`.
-Source handoff YORU: `handoff/YORU-4.12.10-source-handoff.zip`.
+Готовый release APK: `apk-output/YORU-4.12.11-release.apk`.
+SHA256 APK: `ac213aa3125b1ce29cc0d73ce73bcbba8717fad4e230337fb567608e2e6babe5`.
+Source handoff YORU: `handoff/YORU-4.12.11-source-handoff.zip`.
 
-Ключ YORU 4.12.10: ускорен cold start и исправлены cache bottleneck'и — SecureStore preload в фоне, startup schedule/warmup без UI-блокировок, YoruCache без общего synchronized-монитора, throttled SQLite trim, cached todayScheduleCount, ConcurrentHashMap для HTTP/stream cache, SHA-256 cache keys и лимит raw memory cache 50KB. Улучшения 4.12.9 и фоновая схема уведомлений 4.12.8 сохранены.
+Ключ YORU 4.12.11: оптимизирован календарь — режим `Все` рисует первые 5 событий и плавно добавляет следующие 5 при прокрутке/кнопке, добавлены footer `показано X из Y`, счётчики фильтров/дней, `К ближайшей`, long-press добавление в коллекцию, non-blocking cache read и ещё календарные UX/performance улучшения. Оптимизации cold start/cache 4.12.10, bounded executors 4.12.9 и фоновые уведомления 4.12.8 сохранены.
