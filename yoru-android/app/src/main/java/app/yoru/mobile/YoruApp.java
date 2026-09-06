@@ -17,7 +17,7 @@ public final class YoruApp extends Application {
     public MediaCache mediaCache;
     private DownloadHub downloads;
     public volatile int activePlayers;
-    private static ExecutorService ioPool(){int n=Math.max(4,Math.min(6,Runtime.getRuntime().availableProcessors()+1));return Executors.newFixedThreadPool(n,r->{Thread t=new Thread(r,"yoru-io");t.setPriority(Thread.NORM_PRIORITY-1);return t;});}
+    private static ExecutorService ioPool(){int cores=Math.max(4,Runtime.getRuntime().availableProcessors());int n=Math.max(8,Math.min(12,cores*2));return Executors.newFixedThreadPool(n,r->{Thread t=new Thread(r,"yoru-io-turbo");t.setPriority(Thread.NORM_PRIORITY);return t;});}
     public synchronized DownloadHub downloads(){if(downloads==null)downloads=new DownloadHub(this,mediaCache);return downloads;}
     public boolean savingMobile(){return store.dataSaver()&&traffic.mobile();}
     public boolean autoNextAllowed(){return store.autoNext()&&!savingMobile();}
