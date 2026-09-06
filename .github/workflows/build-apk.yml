@@ -10,6 +10,8 @@ on:
       - arena/01a07147-animmmemmemwm
     paths:
       - 'yoru-android/app/**'
+      - 'yoru-android/kotlinapp/**'
+      - 'yoru-android/settings.gradle'
       - 'yoru-android/build.gradle'
       - 'yoru-android/gradle.properties'
       - 'yoru-android/gradle/**'
@@ -58,7 +60,7 @@ jobs:
       - name: Build release APK
         run: |
           set +e
-          ./gradlew --no-daemon :app:assembleRelease 2>&1 | tee ../build-release.log
+          ./gradlew --no-daemon :app:assembleRelease :kotlinapp:assembleRelease 2>&1 | tee ../build-release.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
             {
@@ -75,16 +77,20 @@ jobs:
         working-directory: .
         run: |
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.9.0-release.apk apk-output/YORU-4.9.0-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.9.0-release.apk
-          sha256sum apk-output/YORU-4.9.0-release.apk > apk-output/YORU-4.9.0-release.apk.sha256
+          rm -f apk-output/YORU-4.10.0-release.apk apk-output/YORU-4.10.0-release.apk.sha256 apk-output/YORU-Kotlin-1.0.0-release.apk apk-output/YORU-Kotlin-1.0.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.10.0-release.apk
+          cp yoru-android/kotlinapp/build/outputs/apk/release/kotlinapp-release.apk apk-output/YORU-Kotlin-1.0.0-release.apk
+          sha256sum apk-output/YORU-4.10.0-release.apk > apk-output/YORU-4.10.0-release.apk.sha256
+          sha256sum apk-output/YORU-Kotlin-1.0.0-release.apk > apk-output/YORU-Kotlin-1.0.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.9.0-release.apk apk-output/YORU-4.9.0-release.apk.sha256
-          git commit -m "Add built YORU 4.9.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.10.0-release.apk apk-output/YORU-4.10.0-release.apk.sha256 apk-output/YORU-Kotlin-1.0.0-release.apk apk-output/YORU-Kotlin-1.0.0-release.apk.sha256
+          git commit -m "Add built YORU 4.10.0 and Kotlin release APKs [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.9.0-release-apk
-          path: apk-output/YORU-4.9.0-release.apk
+          name: yoru-4.10.0-and-kotlin-release-apks
+          path: |
+            apk-output/YORU-4.10.0-release.apk
+            apk-output/YORU-Kotlin-1.0.0-release.apk
