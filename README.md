@@ -5,17 +5,17 @@
 1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.0.0** (`app.yuro.guard`) — отдельное внеплановое приложение для мониторинга трафика, локального VPN-firewall, лимитов и встроенного браузера.
 
-## YURO Guard 1.2.0
+## YURO Guard 1.3.0
 
 Исходники: `yoru-android/yuroguard`.
 Workflow сборки: `.github/workflows/build-yuroguard-apk.yml`.
 
-Готовый release APK: `apk-output/YURO-Guard-1.2.0-release.apk`.
-SHA256 APK: `0d062eceb579d9e1e865b034b08fb49a6c371ec953e873a0a20b6fc3dbcdc0d6`.
-Инструкция: `handoff/YURO_GUARD_1.2.0_BUILD.ru.md`.
-Source handoff: `handoff/YURO-Guard-1.2.0-source-handoff.zip`.
+Готовый release APK: `apk-output/YURO-Guard-1.3.0-release.apk`.
+SHA256 APK: `4bc2e1b6858132203130a578a92a2877ce2878e1a4ff188b7aa2eef958af91ba`.
+Инструкция: `handoff/YURO_GUARD_1.3.0_BUILD.ru.md`.
+Source handoff: `handoff/YURO-Guard-1.3.0-source-handoff.zip`.
 
-Ключ 1.2.0: исправлены мерцание и скачки — таймер больше не пересоздаёт весь экран, обновляются только live-метрики. Добавлен Media Shield/только текст, строгий браузерный блок медиа по URL и `Accept`, DPI-lite парсер VPN TUN-пакетов: DNS, HTTP Host/URL, TLS SNI, TCP/UDP, DNS-cache, `/proc/net` сопоставление UID→IP/порт и журнал направлений.
+Ключ 1.3.0: icon-only навигация с кастомными YURO-иконками, исправлен отчёт/защита от вылета и перехода в браузер, исправлено сохранение scroll/tab, YURO VPN больше не трогает другой VPN при входе и не автоподключается после boot/update, добавлен отдельный DPI-обход профиль с QUIC/SNI/HTTP/DNS событиями и ручной кнопкой подключения.
 
 ## YORU Android Java 4.12.7
 
