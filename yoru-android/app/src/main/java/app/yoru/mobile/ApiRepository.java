@@ -9,6 +9,7 @@ import org.json.*;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
@@ -33,9 +34,11 @@ public final class ApiRepository {
     private static final String SH_FIELDS="id malId name russian english kind rating score status episodes episodesAired nextEpisodeAt airedOn{year date} poster{mainUrl originalUrl} genres{id russian name} studios{name}";
     private static final long DAY_MS=24L*60*60*1000;
     private final Context context;
-    private final Map<String,Cache> cache=Collections.synchronizedMap(new LinkedHashMap<String,Cache>(96,.75f,true){protected boolean removeEldestEntry(Map.Entry<String,Cache> e){return size()>96;}});
-    private final Map<String,StreamCache> streamCache=Collections.synchronizedMap(new LinkedHashMap<String,StreamCache>(64,.75f,true){protected boolean removeEldestEntry(Map.Entry<String,StreamCache> e){return size()>64;}});
-    private final Map<String,Anime> known=Collections.synchronizedMap(new LinkedHashMap<>());
+    private static final int MEMORY_CACHE_LIMIT=96,STREAM_CACHE_LIMIT=64,MEMORY_CACHE_MAX_TEXT=50_000;
+    private final ConcurrentHashMap<String,Cache> cache=new ConcurrentHashMap<>(128);
+    private final ConcurrentHashMap<String,StreamCache> streamCache=new ConcurrentHashMap<>(96);
+    private final ConcurrentHashMap<String,Anime> known=new ConcurrentHashMap<>();
+    private volatile long lastMemoryTrim,lastStreamTrim;
     private final YoruShield shield;
     private final ArrayList<Anime> seed=new ArrayList<>();
     private final java.util.concurrent.ConcurrentHashMap<String,Long> counts=new java.util.concurrent.ConcurrentHashMap<>();
@@ -55,18 +58,23 @@ public final class ApiRepository {
     public void clearMemory(){cache.clear();streamCache.clear();}
     public JSONObject sourceDiagnostics(){JSONObject out=new JSONObject();try{out.put("routes",YoruApp.app().store.sourceSnapshot());out.put("memoryCache",cache.size());out.put("streamCache",streamCache.size());out.put("known",known.size());out.put("calendarToday",YoruApp.app().calendarTodayCount);}catch(Exception ignored){}return out;}
     public List<Anime> seed(){ensureBoot();return new ArrayList<>(seed);}
-    public Anime remember(Anime a){if(Anime.valid(a)){known.put(a.key(),a);if(known.size()>1800){synchronized(known){String first=known.keySet().iterator().next();known.remove(first);}}}return a;}
+    public Anime remember(Anime a){if(Anime.valid(a)){known.put(a.key(),a);if(known.size()>1800){Iterator<String> it=known.keySet().iterator();if(it.hasNext())known.remove(it.next());}}return a;}
     public Anime known(String key){ensureBoot();return known.get(key);}
-    public TreeMap<Integer,String> resolveStreams(String input)throws Exception{String key=embed(input);if(key.isEmpty())key=safeUrl(input);if(key.isEmpty())throw new IOException("Просмотр не передал данные");StreamCache hit=streamCache.get(key);if(hit!=null&&System.currentTimeMillis()-hit.at<20*60*1000)return new TreeMap<>(hit.streams);TreeMap<Integer,String> streams=VideoResolver.resolve(this,key);if(!streams.isEmpty())streamCache.put(key,new StreamCache(streams));return new TreeMap<>(streams);}
+    public TreeMap<Integer,String> resolveStreams(String input)throws Exception{String key=embed(input);if(key.isEmpty())key=safeUrl(input);if(key.isEmpty())throw new IOException("Просмотр не передал данные");long now=System.currentTimeMillis();StreamCache hit=streamCache.get(key);if(hit!=null){if(now-hit.at<20*60*1000)return new TreeMap<>(hit.streams);streamCache.remove(key,hit);}TreeMap<Integer,String> streams=VideoResolver.resolve(this,key);if(!streams.isEmpty()){streamCache.put(key,new StreamCache(streams));trimStreamCache();}return new TreeMap<>(streams);}
     static String readStream(InputStream in,int max)throws IOException{try(InputStream input=in;ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=input.read(b))!=-1){if(out.size()+n>max)throw new IOException("Слишком большой ответ каталога");out.write(b,0,n);}return out.toString("UTF-8");}}
     public static String safeUrl(String value){if(value==null||value.trim().isEmpty())return "";value=value.trim().replace(" ","%20").replace("\\/","/").replace("&amp;","&");if(value.startsWith("//"))value="https:"+value;try{Uri u=Uri.parse(value);String h=u.getHost();if(h==null)return "";h=h.toLowerCase(Locale.ROOT);if("http".equals(u.getScheme())&&(h.equals("video.animetop.info")||h.equals("media.animetop.info")||h.equals("static.openni.ru")))u=u.buildUpon().scheme("https").build();String scheme=u.getScheme();if(!("https".equals(scheme)||"http".equals(scheme))||u.getUserInfo()!=null||(!h.contains("."))||h.equals("localhost")||h.endsWith(".local")||h.matches("^(127|10|0|192\\.168|169\\.254)\\..*")||h.matches("^172\\.(1[6-9]|2[0-9]|3[01])\\..*"))return "";return u.toString();}catch(Exception e){return "";}}
     String request(String url,String method,String body,boolean form)throws Exception{return request(url,method,body,form,null);}
     String request(String url,String method,String body,boolean form,Map<String,String> headers)throws Exception{
-        String ck=method+" "+url+" "+(body==null?"":body)+" "+(headers==null?"":headers.toString());long ttl=cacheTtl(url,body);Cache hit=cache.get(ck);if(hit!=null&&System.currentTimeMillis()-hit.at<ttl)return hit.text;
-        Exception last=null;ArrayList<String> attempts=shield.routes(url);for(String start:attempts){try{String text=requestNetwork(start,method,body,form,headers);if(text.length()<450000)cache.put(ck,new Cache(text));shield.ok(start);return text;}catch(Exception e){last=e;shield.fail(start);}}
+        String ck=cacheKey(method,url,body,headers);long now=System.currentTimeMillis(),ttl=cacheTtl(url,body);Cache hit=cache.get(ck);if(hit!=null){if(now-hit.at<ttl)return hit.text;cache.remove(ck,hit);}
+        Exception last=null;ArrayList<String> attempts=shield.routes(url);for(String start:attempts){try{String text=requestNetwork(start,method,body,form,headers);if(text.length()<MEMORY_CACHE_MAX_TEXT){cache.put(ck,new Cache(text));trimMemoryCache();}shield.ok(start);return text;}catch(Exception e){last=e;shield.fail(start);}}
         if(last!=null)throw last;throw new IOException("Каталог не ответил");
     }
     private static long cacheTtl(String url,String body){String v=(url+" "+(body==null?"":body)).toLowerCase(Locale.ROOT);if(v.contains("nextepisodeat")||v.contains("episodesaired")||v.contains("/api/animes/"))return 8*60*1000L;if(v.contains("graphql")||v.contains("/anime"))return 3*60*1000L;return 90000L;}
+    private static String cacheKey(String method,String url,String body,Map<String,String> headers){try{MessageDigest md=MessageDigest.getInstance("SHA-256");digest(md,method);digest(md,url);digest(md,body);if(headers!=null&&!headers.isEmpty()){ArrayList<String> keys=new ArrayList<>(headers.keySet());Collections.sort(keys);for(String k:keys){digest(md,k);digest(md,headers.get(k));}}return hex(md.digest());}catch(Exception e){return Integer.toHexString(Objects.hash(method,url,body,headers));}}
+    private static void digest(MessageDigest md,String value){if(value!=null)md.update(value.getBytes(StandardCharsets.UTF_8));md.update((byte)0);}
+    private static String hex(byte[] bytes){char[] table="0123456789abcdef".toCharArray(),out=new char[bytes.length*2];for(int i=0;i<bytes.length;i++){int v=bytes[i]&255;out[i*2]=table[v>>>4];out[i*2+1]=table[v&15];}return new String(out);}
+    private void trimMemoryCache(){int size=cache.size();if(size<=MEMORY_CACHE_LIMIT)return;long now=System.currentTimeMillis();if(now-lastMemoryTrim<1000L&&size<MEMORY_CACHE_LIMIT*2)return;lastMemoryTrim=now;ArrayList<Map.Entry<String,Cache>> rows=new ArrayList<>(cache.entrySet());rows.sort((a,b)->Long.compare(a.getValue().at,b.getValue().at));for(int i=0;i<rows.size()-MEMORY_CACHE_LIMIT;i++){Map.Entry<String,Cache> e=rows.get(i);cache.remove(e.getKey(),e.getValue());}}
+    private void trimStreamCache(){int size=streamCache.size();if(size<=STREAM_CACHE_LIMIT)return;long now=System.currentTimeMillis();if(now-lastStreamTrim<1000L&&size<STREAM_CACHE_LIMIT*2)return;lastStreamTrim=now;ArrayList<Map.Entry<String,StreamCache>> rows=new ArrayList<>(streamCache.entrySet());rows.sort((a,b)->Long.compare(a.getValue().at,b.getValue().at));for(int i=0;i<rows.size()-STREAM_CACHE_LIMIT;i++){Map.Entry<String,StreamCache> e=rows.get(i);streamCache.remove(e.getKey(),e.getValue());}}
     private String requestNetwork(String url,String method,String body,boolean form,Map<String,String> headers)throws Exception{
         String current=url;String currentMethod=method,currentBody=body;
         for(int redirect=0;redirect<5;redirect++){
