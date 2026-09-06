@@ -10,7 +10,6 @@ on:
       - arena/01a07147-animmmemmemwm
     paths:
       - 'yoru-android/forge/**'
-      - 'yoru-android/settings.gradle'
       - '.github/workflows/build-forge-apk.yml'
 
 jobs:

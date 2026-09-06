@@ -93,3 +93,4 @@ git diff --check
 - Kotlin app реализует каталог/поиск/карточку/полный список серий/выбор качества/плеер/fullscreen/smart-fill через AniLibria API.
 - `.github/workflows/build-apk.yml` теперь собирает `:app:assembleRelease` и `:kotlinapp:assembleRelease` и сохраняет два APK.
 - Основной app поднят до 4.10.0/41; Kotlin app — 1.0.0-kotlin/1.
+- Для сборки тяжёлого Kotlin/Compose APK Gradle heap увеличен до 4G, metaspace до 1G, workers=1; lint release у kotlinapp отключён.
