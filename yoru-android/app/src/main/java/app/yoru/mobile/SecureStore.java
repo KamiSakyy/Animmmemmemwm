@@ -49,8 +49,8 @@ public final class SecureStore {
     public synchronized void voicePreference(String value){try{settings.put("voicePreference",value==null?"":value.trim());if(voicePreference().isEmpty())settings.put("onlyPreferredVoice",false);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean onlyPreferredVoice(){return settings.optBoolean("onlyPreferredVoice",false)&&!voicePreference().isEmpty();}
     public synchronized void onlyPreferredVoice(boolean value){try{settings.put("onlyPreferredVoice",value&&!voicePreference().isEmpty());write("settings",settings);}catch(Exception ignored){}}
-    public synchronized int downloadResolution(){return Math.max(480,settings.optInt("quality",720));}
-    public synchronized void downloadResolution(int value){try{settings.put("quality",Math.max(480,Math.min(1080,value)));write("settings",settings);}catch(Exception ignored){}}
+    public synchronized int downloadResolution(){return Math.max(360,settings.optInt("quality",720));}
+    public synchronized void downloadResolution(int value){try{settings.put("quality",Math.max(360,Math.min(1080,value)));write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean privateMode(){return settings.optBoolean("privateMode",false);}
     public synchronized boolean spoilerSafe(){return settings.optBoolean("spoilerSafe",false);}
     public synchronized boolean hideSeen(){return settings.optBoolean("hideSeen",false);}
