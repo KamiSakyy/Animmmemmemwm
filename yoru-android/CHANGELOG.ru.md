@@ -5,6 +5,7 @@
 - Добавлен отдельный модуль `kotlinapp`: полностью отдельное приложение `YORU Kotlin` на Kotlin.
 - `YORU Kotlin` сделан на тяжёлой современной связке: Jetpack Compose Material 3, Navigation Compose, ViewModel, Coroutines, OkHttp, Coil и Media3/ExoPlayer.
 - Kotlin-приложение имеет отдельный `applicationId app.yoru.kotlin`, поэтому устанавливается рядом с обычным YORU.
+- Для тяжёлого Kotlin/Compose/Media3 стека включён multidex.
 - В Kotlin-приложении есть каталог, поиск, карточка, полный список серий, выбор качества, встроенный плеер, fullscreen и smart-fill.
 - Kotlin-плеер тоже использует только круглый индикатор загрузки без надписей.
 - Release workflow теперь собирает два APK: `YORU-4.10.0-release.apk` и `YORU-Kotlin-1.0.0-release.apk`.

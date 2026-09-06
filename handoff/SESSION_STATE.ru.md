@@ -89,7 +89,7 @@ git diff --check
 
 - Основной Java YORU: loading overlay в `PlayerActivity` теперь только круглый `ProgressBar`, без длинных надписей.
 - Добавлен отдельный модуль `yoru-android/kotlinapp` с `applicationId app.yoru.kotlin` и названием `YORU Kotlin`.
-- Kotlin app построен на Compose Material 3 + Navigation + ViewModel + Coroutines + OkHttp + Coil + Media3/ExoPlayer.
+- Kotlin app построен на Compose Material 3 + Navigation + ViewModel + Coroutines + OkHttp + Coil + Media3/ExoPlayer; для тяжёлого стека включён multidex.
 - Kotlin app реализует каталог/поиск/карточку/полный список серий/выбор качества/плеер/fullscreen/smart-fill через AniLibria API.
 - `.github/workflows/build-apk.yml` теперь собирает `:app:assembleRelease` и `:kotlinapp:assembleRelease` и сохраняет два APK.
 - Основной app поднят до 4.10.0/41; Kotlin app — 1.0.0-kotlin/1.

@@ -13,6 +13,7 @@ android {
   targetSdk 36
   versionCode 1
   versionName '1.0.0-kotlin'
+  multiDexEnabled true
  }
  signingConfigs { release {
   if (ownerFile.exists()) {
