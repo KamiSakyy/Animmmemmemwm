@@ -925,10 +925,12 @@ class YoruSourceEngine(private val client: OkHttpClient) {
         return ""
     }
 
-    private fun unescape(value: String): String = value
-        .replace("&amp;", "&")
-        .replace("&#039;", "'")
-        .replace("&quot;", "\"")
+    private fun unescape(value: String): String {
+        return value
+            .replace("&amp;", "&")
+            .replace("&#039;", "'")
+            .replace("&quot;", 34.toChar().toString())
+    }
 
     private fun mediaLinks(html: String): List<String> {
         val pattern = Regex("""https?:\?/\?/[^"'<>\s]+?(?:\.m3u8|\.mp4|\.mpd)[^"'<>\s]*""", RegexOption.IGNORE_CASE)
@@ -942,8 +944,10 @@ class YoruSourceEngine(private val client: OkHttpClient) {
     private fun qualityOf(url: String): Int = Regex("""(?:^|[^0-9])([1-9][0-9]{2,3})p?(?:[^0-9]|$)""")
         .find(url)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 
-    private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> =
-        streams.toSortedMap(compareBy<Int> { abs(it - preferred) }.thenByDescending { it })
+    private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> {
+        val comparator = compareBy<Int> { abs(it - preferred) }.thenByDescending { it }
+        return streams.toSortedMap(comparator)
+    }
 
     private fun animetkaEpisodeUrl(link: String, episode: Int): String {
         return runCatching {
@@ -952,8 +956,9 @@ class YoruSourceEngine(private val client: OkHttpClient) {
         }.getOrDefault(link)
     }
 
-    private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String =
-        "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
+    private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String {
+        return "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
+    }
 
     private fun chooseAnixSource(sources: JSONArray?): JSONObject? {
         var first: JSONObject? = null
