@@ -1,60 +1,27 @@
-# YORU Kotlin — как собрать release APK
+# YORU Android Java 4.11.0 — сборка Release APK
 
-## Быстрый путь через GitHub Actions
-
-1. В этой Arena-сессии работать только в ветке `arena/01a07147-animmmemmemwm`.
-2. Workflow: `.github/workflows/build-apk.yml`.
-3. Текущий продукт — Kotlin-приложение `app.yoru.kotlin`; Java YORU остаётся архивной базой/референсом.
-4. Release APK собирается командой:
-
-```bash
-cd yoru-android
-./gradlew --no-daemon :kotlinapp:assembleRelease
-```
-
-5. Workflow копирует итог в:
-
-```text
-apk-output/YORU-Kotlin-1.2.0-release.apk
-apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
-```
-
-6. Debug APK не нужен. Приватные ключи/токены не спрашивать и не писать в чат.
+Текущий продукт: стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin-модуль удалён из проекта и не участвует в сборке. Forge в этом релизе не используется.
 
 ## Локальная сборка
 
-Нужны JDK 17, Android SDK и Gradle wrapper проекта.
-
 ```bash
 cd yoru-android
-./gradlew --no-daemon :kotlinapp:assembleRelease
+./gradlew --no-daemon :app:assembleRelease
 ```
 
-Готовый локальный файл до копирования:
+Итоговый APK:
 
 ```text
-yoru-android/kotlinapp/build/outputs/apk/release/kotlinapp-release.apk
+yoru-android/app/build/outputs/apk/release/app-release.apk
 ```
 
-## Проверки перед APK
+В этой песочнице Java/JDK может отсутствовать. Если `java` не найден, используйте GitHub Actions на ветке `arena/01a07147-animmmemmemwm`: workflow собирает только `:app:assembleRelease` и сохраняет `apk-output/YORU-4.11.0-release.apk`.
 
-```bash
-git diff --check
-cd yoru-android
-./gradlew --no-daemon :kotlinapp:assembleRelease
-```
+## Важные правила продукта
 
-В текущем sandbox локальный JDK может отсутствовать; тогда проверять через GitHub Actions и после успеха подтягивать APK:
-
-```bash
-git pull --rebase origin arena/01a07147-animmmemmemwm
-sha256sum -c apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
-```
-
-## Что нельзя ломать
-
-- Не возвращать Forge/toolchain без явной просьбы пользователя.
-- Не показывать технические route/source/player-имена как “озвучку”.
-- Озвучка — только реальные команды: AniLibria.TV, AniDUB, AniMaunt, AnimeVost, AniStar & DEEP, Beyond:Studio, Dream Cast, AniMedia и т.п.
-- Не добавлять VPN/VLESS/Xray/proxy/private keys/MP4-конвертацию.
+- Активная база — Java YORU 4.10.0, релиз обновлён до 4.11.0.
+- Kotlin не возвращать без прямой команды пользователя.
 - Не возвращать Clips, “Ещё”, AniList как пользовательский источник, TSM, AnimeGO, JutSu, SameBand, SovetRomantica, Yummy Legacy.
+- “Озвучка” — только реальные команды перевода/дубляжа: AniDUB, AniLibria.TV, AniMaunt, AnimeVost, AniStar & DEEP, Beyond:Studio, Dream Cast, AniMedia и похожие реальные лейблы.
+- YORU/Yummy/Kodik/AnixSekai/внутренние маршруты — не озвучки и не должны так показываться.
+- Приоритет скорости: не сканировать лишние голоса, сначала брать выбранную/последнюю реальную озвучку, на мобильной сети снижать качество и фоновые проверки.

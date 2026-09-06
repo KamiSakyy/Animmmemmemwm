@@ -9,13 +9,14 @@ on:
     branches:
       - arena/01a07147-animmmemmemwm
     paths:
-      - 'yoru-android/kotlinapp/**'
+      - 'yoru-android/app/**'
       - 'yoru-android/settings.gradle'
       - 'yoru-android/build.gradle'
       - 'yoru-android/gradle.properties'
       - 'yoru-android/gradle/**'
       - 'yoru-android/gradlew'
       - 'yoru-android/gradlew.bat'
+      - '.github/workflows/build-apk.yml'
 
 jobs:
   android-apk:
@@ -56,20 +57,20 @@ jobs:
       - name: Restore release signing files
         working-directory: .
         run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Build release APK
+      - name: Build Java release APK
         run: |
           set +e
-          ./gradlew --no-daemon :kotlinapp:assembleRelease 2>&1 | tee ../build-release.log
+          ./gradlew --no-daemon :app:assembleRelease 2>&1 | tee ../build-release.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
             {
-              echo "### Release build failed"
+              echo "### Java release build failed"
               echo '```'
               tail -120 ../build-release.log
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             message=$(tail -40 ../build-release.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
-            echo "::error title=Gradle release build failed::$message"
+            echo "::error title=Gradle Java release build failed::$message"
             exit "$code"
           fi
       - name: Save APK into branch
@@ -77,17 +78,17 @@ jobs:
         run: |
           git pull --rebase origin arena/01a07147-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-Kotlin-1.2.0-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
-          cp yoru-android/kotlinapp/build/outputs/apk/release/kotlinapp-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk
-          sha256sum apk-output/YORU-Kotlin-1.2.0-release.apk > apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
+          rm -f apk-output/YORU-4.11.0-release.apk apk-output/YORU-4.11.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.11.0-release.apk
+          sha256sum apk-output/YORU-4.11.0-release.apk > apk-output/YORU-4.11.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-Kotlin-1.2.0-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
-          git commit -m "Add built YORU Kotlin 1.2.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.11.0-release.apk apk-output/YORU-4.11.0-release.apk.sha256
+          git commit -m "Add built YORU 4.11.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-kotlin-1.2.0-release-apk
+          name: yoru-4.11.0-release-apk
           path: |
-            apk-output/YORU-Kotlin-1.2.0-release.apk
+            apk-output/YORU-4.11.0-release.apk
