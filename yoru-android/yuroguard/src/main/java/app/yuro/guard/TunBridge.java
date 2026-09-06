@@ -151,7 +151,8 @@ public class TunBridge {
     }
 
     private void remove(String key) {
-        TcpConn c = conns.remove(key);
+        TcpConn c;
+        synchronized (tcp) { c = tcp.remove(key); }
         if (c != null) try { c.remote.close(); } catch (Throwable ignored) {}
     }
 
