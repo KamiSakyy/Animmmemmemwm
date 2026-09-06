@@ -3,19 +3,19 @@
 Текущие Android-продукты в ветке:
 
 1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
-2. **YURO Guard 1.0.0** (`app.yuro.guard`) — отдельное внеплановое приложение для мониторинга трафика, локального VPN-firewall, лимитов и встроенного браузера.
+2. **YURO Guard 1.5.0** (`app.yuro.guard`) — отдельное приложение для мониторинга трафика, локального Android VPN-firewall, VPN-only DPI-lite профиля, рейтинга потребления и экономного WebView-браузера.
 
-## YURO Guard 1.4.0
+## YURO Guard 1.5.0
 
 Исходники: `yoru-android/yuroguard`.
 Workflow сборки: `.github/workflows/build-yuroguard-apk.yml`.
 
-Готовый release APK: `apk-output/YURO-Guard-1.4.0-release.apk`.
-SHA256 APK: `7223276eb004bf6df857d2cc6d76082df21715b74096f7547bf4ad682753526e`.
-Инструкция: `handoff/YURO_GUARD_1.4.0_BUILD.ru.md`.
-Source handoff: `handoff/YURO-Guard-1.4.0-source-handoff.zip`.
+Готовый release APK: `apk-output/YURO-Guard-1.5.0-release.apk`.
+SHA256 APK: `e04af0c6d573b40a4bffcaf70e45c2ffdc4c4a6baf2c996ba033545d8039b71f`.
+Инструкция: `handoff/YURO_GUARD_1.5.0_BUILD.ru.md`.
+Source handoff: `handoff/YURO-Guard-1.5.0-source-handoff.zip`.
 
-Ключ 1.4.0: Telegram Rescue / Auto DPI. Добавлен локальный SOCKS5 proxy `127.0.0.1:10808`, который не отключает другой VPN, кнопка `Авто Telegram` открывает Telegram proxy deep-link, автоподбор проверяет Telegram DC и выбирает уровень aggressive split, proxy делает adaptive first-flight splitting/SNI split/micro split и пишет соединения/стратегии в журнал.
+Ключ 1.5.0: proxy/SOCKS5 полностью удалён. Telegram Rescue переведён на **YURO VPN-only**: внутренний TUN bridge для выбранных Telegram-приложений, DNS/UDP/TCP forwarding, QUIC UDP/443 block и adaptive TCP/TLS first-flight split в рамках Android `VpnService`. Главная и отчёт получили рейтинг “кто больше потребил”, топ-приложения, live totals/rates и более аккуратный YURO dark UI. Открытие приложения не запрашивает VPN и не отключает другой VPN; Android VPN permission/start вызывается только по кнопке подключения.
 
 ## YORU Android Java 4.12.7
 
