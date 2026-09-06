@@ -150,6 +150,11 @@ public class TunBridge {
         } catch (Throwable ignored) {} finally { remove(c.key); }
     }
 
+    private void remove(String key) {
+        TcpConn c = conns.remove(key);
+        if (c != null) try { c.remote.close(); } catch (Throwable ignored) {}
+    }
+
     private void handleUdp(byte[] p, int len, int ihl) {
         if (len < ihl + 8) return;
         int srcPort = u16(p, ihl), dstPort = u16(p, ihl + 2);
