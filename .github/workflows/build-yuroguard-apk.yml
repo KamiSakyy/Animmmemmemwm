@@ -78,17 +78,17 @@ jobs:
         run: |
           git pull --rebase origin arena/01a07147-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YURO-Guard-1.1.0-release.apk apk-output/YURO-Guard-1.1.0-release.apk.sha256
-          cp yoru-android/yuroguard/build/outputs/apk/release/yuroguard-release.apk apk-output/YURO-Guard-1.1.0-release.apk
-          sha256sum apk-output/YURO-Guard-1.1.0-release.apk > apk-output/YURO-Guard-1.1.0-release.apk.sha256
+          rm -f apk-output/YURO-Guard-1.2.0-release.apk apk-output/YURO-Guard-1.2.0-release.apk.sha256
+          cp yoru-android/yuroguard/build/outputs/apk/release/yuroguard-release.apk apk-output/YURO-Guard-1.2.0-release.apk
+          sha256sum apk-output/YURO-Guard-1.2.0-release.apk > apk-output/YURO-Guard-1.2.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YURO-Guard-1.1.0-release.apk apk-output/YURO-Guard-1.1.0-release.apk.sha256
-          git commit -m "Add built YURO Guard 1.1.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YURO-Guard-1.2.0-release.apk apk-output/YURO-Guard-1.2.0-release.apk.sha256
+          git commit -m "Add built YURO Guard 1.2.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yuro-guard-1.1.0-release-apk
+          name: yuro-guard-1.2.0-release-apk
           path: |
-            apk-output/YURO-Guard-1.1.0-release.apk
+            apk-output/YURO-Guard-1.2.0-release.apk

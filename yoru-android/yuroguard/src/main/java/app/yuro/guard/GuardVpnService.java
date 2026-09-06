@@ -167,6 +167,7 @@ public class GuardVpnService extends VpnService {
                 while (!stopped.get() && vpn == fd) {
                     int n = in.read(buf);
                     if (n < 0) break;
+                    PacketInspector.inspect(this, buf, n, db);
                 }
             } catch (Throwable ignored) {}
         }, "yuro-guard-vpn-drop");

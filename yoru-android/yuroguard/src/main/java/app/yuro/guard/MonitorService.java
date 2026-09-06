@@ -77,6 +77,8 @@ public class MonitorService extends Service {
                     db.syncPackages(this, false);
                     db.sampleAll(this);
                     db.samplePreciseNetworks(this);
+                    long now = System.currentTimeMillis();
+                    if (now - db.metaLong("last_proc_scan", 0) > 7000L) { ProcNetScanner.scan(this, db); db.putMeta("last_proc_scan", String.valueOf(now)); }
                     nap(2000L);
                 } catch (Throwable ignored) {
                     nap(3500L);

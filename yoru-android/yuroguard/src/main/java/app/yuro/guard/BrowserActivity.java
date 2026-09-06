@@ -134,7 +134,7 @@ public class BrowserActivity extends Activity {
     @SuppressLint("SetJavaScriptEnabled") private WebView createWeb(final Tab tab) {
         WebView web = new WebView(this); web.setBackgroundColor(0xff0c0912); web.setVerticalScrollBarEnabled(false); web.setHorizontalScrollBarEnabled(false);
         WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true); s.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); s.setLoadsImagesAutomatically(false); s.setBlockNetworkImage(true);
+        s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setDatabaseEnabled(true); s.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); s.setLoadsImagesAutomatically(!GuardPrefs.strictTextMode(this)); s.setBlockNetworkImage(GuardPrefs.strictTextMode(this));
         s.setMediaPlaybackRequiresUserGesture(true); s.setSupportZoom(true); s.setBuiltInZoomControls(true); s.setDisplayZoomControls(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
         if (Build.VERSION.SDK_INT >= 21) s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         if (Build.VERSION.SDK_INT >= 26) web.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
@@ -145,7 +145,7 @@ public class BrowserActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { Uri u = request == null ? null : request.getUrl(); if (u == null) return false; String scheme = u.getScheme(); return !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)); }
             @Override public void onPageFinished(WebView view, String url) { tab.url = url == null ? tab.url : url; tab.title = view.getTitle() == null ? host(tab.url) : view.getTitle(); address.setText(tab.url); if (tab.scrollY > 0) view.postDelayed(() -> view.scrollTo(0, tab.scrollY), 250); renderTabs(); saveTabs(); }
-            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) { if (request == null || request.getUrl() == null) return null; String u = request.getUrl().toString().toLowerCase(Locale.ROOT); if (blocked(u)) return empty(); return null; }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) { if (request == null || request.getUrl() == null) return null; String u = request.getUrl().toString().toLowerCase(Locale.ROOT); String accept = request.getRequestHeaders() == null ? "" : String.valueOf(request.getRequestHeaders().get("Accept")).toLowerCase(Locale.ROOT); if (blocked(u, accept)) return empty(); return null; }
         });
         web.setWebChromeClient(new WebChromeClient() { @Override public void onProgressChanged(WebView view, int newProgress) { progress.setProgress(newProgress); progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE); } });
         web.loadUrl(tab.url); return web;
@@ -170,7 +170,7 @@ public class BrowserActivity extends Activity {
     private String shortTitle(String title, String url) { String s = title == null || title.trim().isEmpty() ? host(url) : title.trim(); return s.length() > 22 ? s.substring(0, 22) + "…" : s; }
     private String clean(String s) { return s == null ? "" : s; }
 
-    private boolean blocked(String u) { return isImage(u) || isMedia(u) || isFont(u) || isTracker(u); }
+    private boolean blocked(String u, String accept) { if (!GuardPrefs.strictTextMode(this)) return isTracker(u); return isImage(u) || isMedia(u) || isFont(u) || isTracker(u) || accept.startsWith("image/") || accept.startsWith("video/") || accept.startsWith("audio/") || accept.contains("image/") || accept.contains("video/") || accept.contains("audio/"); }
     private boolean isImage(String u) { return u.endsWith(".gif") || u.endsWith(".avif") || u.endsWith(".webp") || u.endsWith(".jpg") || u.endsWith(".jpeg") || u.endsWith(".png") || u.endsWith(".svg") || u.contains("/image/") || u.contains("/img/"); }
     private boolean isMedia(String u) { return u.endsWith(".mp4") || u.endsWith(".webm") || u.endsWith(".m4v") || u.endsWith(".mov") || u.endsWith(".mp3") || u.endsWith(".m3u8") || u.endsWith(".ts"); }
     private boolean isFont(String u) { return u.endsWith(".woff") || u.endsWith(".woff2") || u.endsWith(".ttf") || u.endsWith(".otf"); }

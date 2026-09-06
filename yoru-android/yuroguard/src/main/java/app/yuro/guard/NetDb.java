@@ -48,6 +48,11 @@ public class NetDb extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE IF NOT EXISTS net_samples(uid INTEGER, minute INTEGER, net INTEGER, rx INTEGER, tx INTEGER, PRIMARY KEY(uid, minute, net))");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_net_samples_time ON net_samples(minute, net)");
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_net_samples_uid ON net_samples(uid, net)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS dns_cache(ip TEXT PRIMARY KEY, host TEXT, updated INTEGER)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_dns_cache_host ON dns_cache(host)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS net_events(id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER, uid INTEGER, pkg TEXT, proto TEXT, host TEXT, ip TEXT, port INTEGER, kind TEXT, blocked INTEGER, note TEXT)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_net_events_time ON net_events(time DESC)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_net_events_uid ON net_events(uid,time DESC)");
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { onCreate(db); }
@@ -393,10 +398,54 @@ public class NetDb extends SQLiteOpenHelper {
             db.delete("uid_totals", null, null);
             db.delete("samples", null, null);
             db.delete("net_samples", null, null);
+            db.delete("dns_cache", null, null);
+            db.delete("net_events", null, null);
             db.delete("meta", null, null);
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
         ensureBaselines();
+    }
+
+    public synchronized void rememberDns(String ip, String host) {
+        if (ip == null || host == null || ip.length() == 0 || host.length() == 0) return;
+        ContentValues cv = new ContentValues(); cv.put("ip", ip); cv.put("host", host); cv.put("updated", System.currentTimeMillis());
+        getWritableDatabase().insertWithOnConflict("dns_cache", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    public synchronized String hostForIp(String ip) {
+        if (ip == null || ip.length() == 0) return "";
+        Cursor c = getReadableDatabase().rawQuery("SELECT host FROM dns_cache WHERE ip=?", new String[]{ip});
+        try { return c.moveToFirst() ? c.getString(0) : ""; }
+        finally { c.close(); }
+    }
+
+    public synchronized String packageForUid(int uid) {
+        Cursor c = getReadableDatabase().rawQuery("SELECT label,pkg FROM packages WHERE uid=? ORDER BY system ASC, lower(label) ASC LIMIT 1", new String[]{String.valueOf(uid)});
+        try { if (c.moveToFirst()) { String label = c.getString(0); String pkg = c.getString(1); return (label == null || label.length()==0 ? pkg : label) + " (" + pkg + ")"; } return ""; }
+        finally { c.close(); }
+    }
+
+    public synchronized void recordEvent(int uid, String pkg, String proto, String host, String ip, int port, String kind, boolean blocked, String note) {
+        if (proto == null) proto = ""; if (host == null) host = ""; if (ip == null) ip = ""; if (kind == null) kind = ""; if (note == null) note = "";
+        long now = System.currentTimeMillis();
+        String resolvedPkg = pkg == null || pkg.length() == 0 ? (uid >= 0 ? packageForUid(uid) : "") : pkg;
+        Cursor dupe = getReadableDatabase().rawQuery("SELECT id FROM net_events WHERE time>? AND uid=? AND proto=? AND host=? AND ip=? AND port=? AND kind=? LIMIT 1", new String[]{String.valueOf(now - 45_000L), String.valueOf(uid), proto, host, ip, String.valueOf(port), kind});
+        try { if (dupe.moveToFirst()) return; } finally { dupe.close(); }
+        ContentValues cv = new ContentValues(); cv.put("time", now); cv.put("uid", uid); cv.put("pkg", resolvedPkg); cv.put("proto", proto); cv.put("host", host); cv.put("ip", ip); cv.put("port", port); cv.put("kind", kind); cv.put("blocked", blocked ? 1 : 0); cv.put("note", note);
+        SQLiteDatabase db = getWritableDatabase(); db.insert("net_events", null, cv);
+        db.execSQL("DELETE FROM net_events WHERE id NOT IN (SELECT id FROM net_events ORDER BY time DESC LIMIT 5000)");
+        db.execSQL("DELETE FROM dns_cache WHERE updated < " + (now - 7L*24L*3600L*1000L));
+    }
+
+    public synchronized List<EventRow> recentEvents(int limit) {
+        ArrayList<EventRow> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery("SELECT time,uid,pkg,proto,host,ip,port,kind,blocked,note FROM net_events ORDER BY time DESC LIMIT ?", new String[]{String.valueOf(Math.max(1, limit))});
+        try {
+            while (c.moveToNext()) {
+                EventRow e = new EventRow(); e.time = c.getLong(0); e.uid = c.getInt(1); e.pkg = c.getString(2); e.proto = c.getString(3); e.host = c.getString(4); e.ip = c.getString(5); e.port = c.getInt(6); e.kind = c.getString(7); e.blocked = c.getInt(8) == 1; e.note = c.getString(9); out.add(e);
+            }
+        } finally { c.close(); }
+        return out;
     }
 
     public static boolean hasUsageAccess(Context context) {
@@ -407,6 +456,8 @@ public class NetDb extends SQLiteOpenHelper {
             return mode == AppOpsManager.MODE_ALLOWED;
         } catch (Throwable e) { return false; }
     }
+
+    public static class EventRow { public long time; public int uid; public String pkg, proto, host, ip, kind, note; public int port; public boolean blocked; }
 
     public static class Totals {
         public long deviceRx, deviceTx;

@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
     private LinearLayout nav;
     private ScrollView currentScroll;
     private ListView currentList;
+    private TextView metricTotal, metricSpeed, metricMobile, metricWifi, heroSub;
     private int tab = 0;
     private String appQuery = "";
     private String period = "minute";
@@ -75,7 +76,7 @@ public class MainActivity extends Activity {
         @Override public void run() {
             io.execute(() -> {
                 try { db.sampleAll(MainActivity.this); db.samplePreciseNetworks(MainActivity.this); } catch (Throwable ignored) {}
-                ui.post(() -> { if (!isFinishing() && (tab == 0 || tab == 2)) render(); });
+                ui.post(() -> { if (!isFinishing()) updateLiveMetrics(); });
             });
             ui.postDelayed(this, 3000L);
         }
@@ -145,7 +146,7 @@ public class MainActivity extends Activity {
     private void render() {
         if (content == null) return;
         rememberScroll();
-        content.removeAllViews(); currentScroll = null; currentList = null;
+        content.removeAllViews(); currentScroll = null; currentList = null; metricTotal = metricSpeed = metricMobile = metricWifi = heroSub = null;
         if (tab == 1) appsScreen(); else if (tab == 2) reportScreen(); else if (tab == 3) browserScreen(); else dashboard();
         renderNav(); restoreScroll(); saveUiState();
     }
@@ -157,6 +158,7 @@ public class MainActivity extends Activity {
         monitorCard(col);
         modes(col);
         speedCard(col);
+        mediaShieldCard(col);
         totals(col);
         permissionCenter(col);
         infoCard(col, "Работает всегда", "Счётчик теперь отдельный от VPN: foreground-мониторинг считает TrafficStats постоянно, а при Usage Access добавляет точные Android NetworkStatsManager бакеты мобильной сети и Wi‑Fi по UID. VPN нужен только для блокировок и лимитов.");
@@ -169,7 +171,8 @@ public class MainActivity extends Activity {
         GradientDrawable grad = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xff432066, 0xff171121, 0xff0d3141}); grad.setCornerRadius(dp(28)); card.setBackground(grad);
         card.addView(label(vpn ? "VPN FIREWALL ONLINE" : "YURO NETWORK COMMAND")); space(card, 12);
         card.addView(text(vpn ? "Интернет под жёстким контролем" : "Защита и точный счёт в один экран", 26, true, TEXT)); space(card, 9);
-        card.addView(text((mon ? "Постоянный счётчик активен" : "Счётчик на паузе") + " · " + GuardPrefs.modeTitle(GuardPrefs.mode(this)) + " · выбрано " + GuardPrefs.selected(this).size(), 13, false, 0xffeadcf8));
+        heroSub = text((mon ? "Постоянный счётчик активен" : "Счётчик на паузе") + " · " + GuardPrefs.modeTitle(GuardPrefs.mode(this)) + " · выбрано " + GuardPrefs.selected(this).size(), 13, false, 0xffeadcf8);
+        card.addView(heroSub);
         space(card, 18);
         LinearLayout actions = row();
         actions.addView(button(vpn ? "Остановить VPN" : "Включить VPN", !vpn, () -> { if (vpn) stopGuard(); else prepareVpn(); }), new LinearLayout.LayoutParams(0, dp(52), 1));
@@ -226,18 +229,48 @@ public class MainActivity extends Activity {
     private void applyCap(EditText kb) { try { GuardPrefs.capBytes(this, Long.parseLong(kb.getText().toString().trim()) * 1024L); refreshGuard(); toast("Лимит применён"); render(); } catch (Exception e) { toast("Введите число"); } }
     private TextView smallPreset(String title, long bytes) { return chip(title, GuardPrefs.capBytes(this) == bytes, () -> { GuardPrefs.capBytes(this, bytes); refreshGuard(); render(); }); }
 
+    private void mediaShieldCard(LinearLayout col) {
+        LinearLayout c = card();
+        c.addView(text("Media Shield / Только текст", 18, true, TEXT)); space(c, 8);
+        c.addView(text("Браузер грузит текст и документы, а картинки/видео/аудио/гифки/шрифты/трекеры режет до сети. VPN-парсер дополнительно видит DNS, HTTP Host/URL и TLS SNI без расшифровки HTTPS.", 12, false, MUTED)); space(c, 10);
+        c.addView(toggleRow("Максимальная экономия браузера", GuardPrefs.strictTextMode(this), "оставляет текст, HTML/JSON/CSS/JS и блокирует тяжёлые медиа", on -> { GuardPrefs.strictTextMode(this,on); GuardPrefs.browserBlockImages(this,on); GuardPrefs.browserSaver(this,on); }));
+        c.addView(toggleRow("VPN Media Shield / DPI-lite", GuardPrefs.mediaShield(this), "логирует и помечает image/video/audio/CDN/трекеры по DNS/SNI/HTTP", on -> { GuardPrefs.mediaShield(this,on); refreshGuard(); }));
+        c.addView(toggleRow("Журнал направлений", GuardPrefs.dpiLogging(this), "сохраняет куда приложения подключались: IP, порт, домен, протокол", on -> GuardPrefs.dpiLogging(this,on)));
+        col.addView(c, mlp(-1, -2, 0, 14, 0, 0));
+    }
+
+    private interface BoolSet { void set(boolean on); }
+    private View toggleRow(String title, boolean checked, String sub, BoolSet set) {
+        LinearLayout r = row(); r.setGravity(Gravity.CENTER_VERTICAL); r.setPadding(0, dp(6), 0, dp(6));
+        LinearLayout txt = column(); txt.addView(text(title, 14, true, TEXT)); txt.addView(text(sub, 10, false, MUTED)); r.addView(txt, new LinearLayout.LayoutParams(0, -2, 1));
+        CheckBox cb = new CheckBox(this); cb.setButtonTintList(android.content.res.ColorStateList.valueOf(PURPLE)); cb.setChecked(checked); cb.setOnCheckedChangeListener((v,on)->{ set.set(on); saveUiState(); }); r.addView(cb);
+        return r;
+    }
+
     private void totals(LinearLayout col) {
         NetDb.Totals t = db.totals(); section(col, "Live-отчёт");
         LinearLayout a = row();
-        a.addView(metric("Всего устройство", fmt(t.deviceRx + t.deviceTx), "с начала YURO Guard"), new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1); p.leftMargin = dp(10); a.addView(metric("Сейчас", rate(t.speedRx + t.speedTx), "текущая UID-скорость", CYAN), p); col.addView(a);
+        LinearLayout m1 = metric("Всего устройство", fmt(t.deviceRx + t.deviceTx), "с начала YURO Guard"); metricTotal = metricMid(m1); a.addView(m1, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1); p.leftMargin = dp(10); LinearLayout m2 = metric("Сейчас", rate(t.speedRx + t.speedTx), "текущая UID-скорость", CYAN); metricSpeed = metricMid(m2); a.addView(m2, p); col.addView(a);
         LinearLayout b = row();
-        b.addView(metric("Мобильный точный", fmt((t.mobileRx + t.mobileTx) > 0 ? t.mobileRx + t.mobileTx : t.mobileDeviceRx + t.mobileDeviceTx), NetDb.hasUsageAccess(this) ? "NetworkStatsManager" : "нужен Usage Access", GREEN), new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams p2 = new LinearLayout.LayoutParams(0, -2, 1); p2.leftMargin = dp(10); b.addView(metric("Wi‑Fi точный", fmt(t.wifiRx + t.wifiTx), NetDb.hasUsageAccess(this) ? "NetworkStatsManager" : "нужен Usage Access", PURPLE), p2); col.addView(b, mlp(-1, -2, 0, 10, 0, 0));
+        LinearLayout m3 = metric("Мобильный точный", fmt((t.mobileRx + t.mobileTx) > 0 ? t.mobileRx + t.mobileTx : t.mobileDeviceRx + t.mobileDeviceTx), NetDb.hasUsageAccess(this) ? "NetworkStatsManager" : "нужен Usage Access", GREEN); metricMobile = metricMid(m3); b.addView(m3, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams p2 = new LinearLayout.LayoutParams(0, -2, 1); p2.leftMargin = dp(10); LinearLayout m4 = metric("Wi‑Fi точный", fmt(t.wifiRx + t.wifiTx), NetDb.hasUsageAccess(this) ? "NetworkStatsManager" : "нужен Usage Access", PURPLE); metricWifi = metricMid(m4); b.addView(m4, p2); col.addView(b, mlp(-1, -2, 0, 10, 0, 0));
     }
 
     private LinearLayout metric(String top, String mid, String bottom) { return metric(top, mid, bottom, PURPLE); }
     private LinearLayout metric(String top, String mid, String bottom, int accent) { LinearLayout c = card(); c.setPadding(dp(14), dp(14), dp(14), dp(14)); c.addView(text(top, 11, true, MUTED)); space(c, 8); c.addView(text(mid, 20, true, accent)); space(c, 6); c.addView(text(bottom, 10, false, MUTED)); return c; }
+    private TextView metricMid(LinearLayout m) { try { return (TextView)m.getChildAt(2); } catch (Throwable e) { return null; } }
+    private void updateLiveMetrics() {
+        try {
+            if (metricTotal == null && metricSpeed == null && metricMobile == null && metricWifi == null && heroSub == null) return;
+            NetDb.Totals t = db.totals();
+            if (metricTotal != null) metricTotal.setText(fmt(t.deviceRx + t.deviceTx));
+            if (metricSpeed != null) metricSpeed.setText(rate(t.speedRx + t.speedTx));
+            if (metricMobile != null) metricMobile.setText(fmt((t.mobileRx + t.mobileTx) > 0 ? t.mobileRx + t.mobileTx : t.mobileDeviceRx + t.mobileDeviceTx));
+            if (metricWifi != null) metricWifi.setText(fmt(t.wifiRx + t.wifiTx));
+            if (heroSub != null) heroSub.setText(((GuardPrefs.monitorEnabled(this) || MonitorService.isAlive()) ? "Постоянный счётчик активен" : "Счётчик на паузе") + " · " + GuardPrefs.modeTitle(GuardPrefs.mode(this)) + " · выбрано " + GuardPrefs.selected(this).size());
+        } catch (Throwable ignored) {}
+    }
 
     private void permissionCenter(LinearLayout col) {
         section(col, "Центр точности");
@@ -294,6 +327,10 @@ public class MainActivity extends Activity {
         List<AppEntry> top = db.appsByNet(this, GuardPrefs.includeSystem(this), "", reportNet, 40); int shown = 0;
         for (AppEntry e : top) { long value = reportNet == NetDb.NET_MOBILE ? e.mobileTotal() : e.total(); if (value <= 0) continue; col.addView(appStatRow(e, reportNet)); shown++; if (shown >= 30) break; }
         if (shown == 0) col.addView(empty("Статистика приложений ещё набирается или нужен Usage Access для точного источника."));
+        section(col, "Куда идёт трафик / DPI-lite");
+        List<NetDb.EventRow> events = db.recentEvents(35);
+        if (events.isEmpty()) col.addView(empty("Журнал направлений ещё пуст. Включи VPN-контроль или оставь постоянный мониторинг активным: будут DNS/SNI/HTTP/proc-net события."));
+        else for (NetDb.EventRow ev : events) col.addView(eventRow(ev));
         col.addView(button("Сбросить отчёт и начать заново", false, () -> { db.reset(); toast("Отчёт сброшен"); render(); }), mlp(-1, dp(50), 0, 18, 0, 20));
     }
 
@@ -313,6 +350,17 @@ public class MainActivity extends Activity {
         ImageView icon = new ImageView(this); if (e.icon != null) icon.setImageDrawable(e.icon); c.addView(icon, new LinearLayout.LayoutParams(dp(42), dp(42)));
         LinearLayout texts = column(); texts.setPadding(dp(10), 0, dp(8), 0); TextView name = text(e.label, 14, true, TEXT); name.setSingleLine(true); texts.addView(name); texts.addView(text((e.system ? "Системное · " : "") + e.pkg, 10, false, MUTED)); c.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
         long value = net == NetDb.NET_MOBILE ? e.mobileTotal() : e.total(); TextView val = text(fmt(value), 13, true, PURPLE); val.setGravity(Gravity.RIGHT); c.addView(val);
+        c.setLayoutParams(mlp(-1, -2, 0, 0, 0, 8)); return c;
+    }
+
+    private View eventRow(NetDb.EventRow ev) {
+        LinearLayout c = card(); c.setPadding(dp(13), dp(10), dp(13), dp(10));
+        LinearLayout top = row(); top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView k = text(ev.kind + (ev.blocked ? " · media" : ""), 12, true, ev.blocked ? RED : CYAN); top.addView(k, new LinearLayout.LayoutParams(0, -2, 1));
+        top.addView(text(new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date(ev.time)), 10, false, MUTED)); c.addView(top); space(c, 4);
+        String host = ev.host == null || ev.host.length() == 0 ? ev.ip : ev.host;
+        c.addView(text((ev.pkg == null || ev.pkg.length()==0 ? "uid " + ev.uid : ev.pkg) + " → " + host + (ev.port > 0 ? ":" + ev.port : ""), 12, true, TEXT));
+        if (ev.note != null && ev.note.length() > 0) c.addView(text(ev.note, 10, false, MUTED));
         c.setLayoutParams(mlp(-1, -2, 0, 0, 0, 8)); return c;
     }
 

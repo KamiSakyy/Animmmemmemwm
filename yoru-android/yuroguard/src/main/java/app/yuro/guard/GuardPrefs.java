@@ -41,6 +41,15 @@ public final class GuardPrefs {
     public static boolean browserBlockImages(Context c) { return sp(c).getBoolean("browser_block_images", true); }
     public static void browserBlockImages(Context c, boolean v) { sp(c).edit().putBoolean("browser_block_images", v).apply(); }
 
+    public static boolean mediaShield(Context c) { return sp(c).getBoolean("media_shield", true); }
+    public static void mediaShield(Context c, boolean v) { sp(c).edit().putBoolean("media_shield", v).apply(); }
+
+    public static boolean dpiLogging(Context c) { return sp(c).getBoolean("dpi_logging", true); }
+    public static void dpiLogging(Context c, boolean v) { sp(c).edit().putBoolean("dpi_logging", v).apply(); }
+
+    public static boolean strictTextMode(Context c) { return sp(c).getBoolean("strict_text_mode", true); }
+    public static void strictTextMode(Context c, boolean v) { sp(c).edit().putBoolean("strict_text_mode", v).apply(); }
+
     public static long capBytes(Context c) { return sp(c).getLong("cap_bytes", 200L * 1024L); }
     public static void capBytes(Context c, long v) { sp(c).edit().putLong("cap_bytes", Math.max(8 * 1024L, v)).apply(); }
 
