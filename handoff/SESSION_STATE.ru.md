@@ -114,3 +114,19 @@ git diff --check
 - APK SHA256: `1af9661d308bda25536e4e5fd6015b7a727dd6eb15a5c4aa6487eb1e1b04efd7`.
 - Source ZIP: `handoff/YORU-Kotlin-1.1.0-source-handoff.zip`.
 - Source ZIP SHA256: `54817cebb4d86c7e9ef09da7df87aeb27083d5f32765ed0009903ae8d2f9d60d`.
+
+## YORU Kotlin 1.2.0 — полный Kotlin source engine
+
+- Пользователь отверг 1.1.0 как неполный перенос; в 1.2.0 Kotlin-приложение получило полноценный multi-source слой вместо одного AniLibria path.
+- Добавлены Kotlin-файлы `YoruSourceEngine.kt` и `YoruVideoResolver.kt`.
+- В Kotlin перенесены основные Java YORU идеи: скрытая YORU-оболочка, source discovery, merge серий по номеру, ranking вариантов, real-voice normalization, lazy iframe/HLS resolving, traffic-saving timeouts/cache.
+- Активные внутренние маршруты Kotlin 1.2.0: `yoru`, `yummy`, `anilibria`, `animevost`, `animelib`, `animelib4k`, `animedia`, `animetka`, `anidub`, `kodik`, `anixsekai`, `shikimori`.
+- UI больше не использует буквенные вкладки: нижняя навигация переведена на Material icons (`Home`, `Explore`, `Favorite`, `Download`, `DateRange`).
+- Плеер получил выбор реальной озвучки из episode variants и тихий resolver перед запуском Media3/ExoPlayer; технические YORU/Yummy/Kodik route labels не выводятся как озвучка.
+- Карточки/история/избранное/загрузки используют скрытые ключи `source:id`, чтобы не терять маршруты между экранами.
+- Release version: `versionCode 4`, `versionName 1.2.0-kotlin`.
+- Successful GitHub Actions Android run: `34036615607`, status success.
+- Release APK: `apk-output/YORU-Kotlin-1.2.0-release.apk`.
+- APK SHA256: `ff142a1c6b4c781d8702b81a1935e7435534c963d4ef51b89fc13fd85e09af07`.
+- Source ZIP: `handoff/YORU-Kotlin-1.2.0-source-handoff.zip`.
+- Source ZIP SHA256: `88e83ccf4e3aa8eaf00781df1c40fe0a54bc38c395e6254684f7654a4f895e74`.
