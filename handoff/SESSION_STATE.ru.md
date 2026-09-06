@@ -11,3 +11,8 @@
 - `.github/workflows/build-apk.yml` — release-only APK build.
 
 Не раскрывать пользователю внутренние детали маршрутов. В чате объяснять изменения простыми словами на русском.
+
+
+## YORU Forge
+
+Начат отдельный модуль `yoru-android/forge` с приложением `app.yoru.forge`. Версия 0.1.0 — редактор исходников через Storage Access Framework, сохранение файлов, экспорт zip и кнопки открытия GitHub Actions. Сборка Forge идёт отдельным workflow `.github/workflows/build-forge-apk.yml`. Следующие важные этапы: поиск по файлам, создание файлов, просмотр логов workflow, безопасный GitHub connect на устройстве и скачивание последнего APK прямо из Forge.

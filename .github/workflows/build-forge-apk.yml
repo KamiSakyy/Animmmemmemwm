@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build YORU Forge APK
 
 permissions:
   contents: write
@@ -9,15 +9,12 @@ on:
     branches:
       - arena/01a07147-animmmemmemwm
     paths:
-      - 'yoru-android/app/**'
-      - 'yoru-android/build.gradle'
-      - 'yoru-android/gradle.properties'
-      - 'yoru-android/gradle/**'
-      - 'yoru-android/gradlew'
-      - 'yoru-android/gradlew.bat'
+      - 'yoru-android/forge/**'
+      - 'yoru-android/settings.gradle'
+      - '.github/workflows/build-forge-apk.yml'
 
 jobs:
-  android-apk:
+  forge-apk:
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -55,36 +52,36 @@ jobs:
       - name: Restore release signing files
         working-directory: .
         run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Build release APK
+      - name: Build Forge release APK
         run: |
           set +e
-          ./gradlew --no-daemon :app:assembleRelease 2>&1 | tee ../build-release.log
+          ./gradlew --no-daemon :forge:assembleRelease 2>&1 | tee ../build-forge-release.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
             {
-              echo "### Release build failed"
+              echo "### Forge release build failed"
               echo '```'
-              tail -120 ../build-release.log
+              tail -120 ../build-forge-release.log
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            message=$(tail -40 ../build-release.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
-            echo "::error title=Gradle release build failed::$message"
+            message=$(tail -40 ../build-forge-release.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error title=Forge Gradle release build failed::$message"
             exit "$code"
           fi
-      - name: Save APK into branch
+      - name: Save Forge APK into branch
         working-directory: .
         run: |
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.5.2-release.apk apk-output/YORU-4.5.2-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.5.2-release.apk
-          sha256sum apk-output/YORU-4.5.2-release.apk > apk-output/YORU-4.5.2-release.apk.sha256
+          rm -f apk-output/YORU-Forge-0.1.0-release.apk apk-output/YORU-Forge-0.1.0-release.apk.sha256
+          cp yoru-android/forge/build/outputs/apk/release/forge-release.apk apk-output/YORU-Forge-0.1.0-release.apk
+          sha256sum apk-output/YORU-Forge-0.1.0-release.apk > apk-output/YORU-Forge-0.1.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.5.2-release.apk apk-output/YORU-4.5.2-release.apk.sha256
-          git commit -m "Add built YORU 4.5.2 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-Forge-0.1.0-release.apk apk-output/YORU-Forge-0.1.0-release.apk.sha256
+          git commit -m "Add built YORU Forge 0.1.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
-      - name: Upload APK
+      - name: Upload Forge APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.5.2-release-apk
-          path: apk-output/YORU-4.5.2-release.apk
+          name: yoru-forge-0.1.0-release-apk
+          path: apk-output/YORU-Forge-0.1.0-release.apk

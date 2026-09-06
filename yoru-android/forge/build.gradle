@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+
+def owner = new Properties()
+def ownerFile = rootProject.file('owner-signing/signing.properties')
+if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
+def certHash = rootProject.file('owner-signing/certificate-sha256.txt').exists() ? rootProject.file('owner-signing/certificate-sha256.txt').text.trim() : ''
+
+android {
+ namespace 'app.yoru.forge'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'app.yoru.forge'
+  minSdk 26
+  targetSdk 36
+  versionCode 1
+  versionName '0.1.0'
+  buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
+ }
+ signingConfigs { release {
+  if (ownerFile.exists()) {
+   storeFile rootProject.file('owner-signing/yoru-release.jks')
+   storePassword owner.getProperty('storePassword')
+   keyAlias owner.getProperty('keyAlias')
+   keyPassword owner.getProperty('keyPassword')
+  }
+  enableV1Signing false
+  enableV2Signing true
+  enableV3Signing true
+ } }
+ buildTypes {
+  release { minifyEnabled true; shrinkResources true; debuggable false; signingConfig signingConfigs.release; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt') }
+  debug { applicationIdSuffix '.debug' }
+ }
+ buildFeatures { buildConfig true }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] } }
+}
