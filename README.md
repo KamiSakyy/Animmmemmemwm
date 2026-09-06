@@ -5,17 +5,17 @@
 1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.0.0** (`app.yuro.guard`) — отдельное внеплановое приложение для мониторинга трафика, локального VPN-firewall, лимитов и встроенного браузера.
 
-## YURO Guard 1.1.0
+## YURO Guard 1.2.0
 
 Исходники: `yoru-android/yuroguard`.
 Workflow сборки: `.github/workflows/build-yuroguard-apk.yml`.
 
-Готовый release APK: `apk-output/YURO-Guard-1.1.0-release.apk`.
-SHA256 APK: `756bc013ac02c88c6696134e1b8ca817005327bd648d6a3db726a075b72aa554`.
-Инструкция: `handoff/YURO_GUARD_1.1.0_BUILD.ru.md`.
-Source handoff: `handoff/YURO-Guard-1.1.0-source-handoff.zip`.
+Готовый release APK: `apk-output/YURO-Guard-1.2.0-release.apk`.
+SHA256 APK: `0d062eceb579d9e1e865b034b08fb49a6c371ec953e873a0a20b6fc3dbcdc0d6`.
+Инструкция: `handoff/YURO_GUARD_1.2.0_BUILD.ru.md`.
+Source handoff: `handoff/YURO-Guard-1.2.0-source-handoff.zip`.
 
-Ключ 1.1.0: отдельный постоянный foreground-мониторинг трафика даже без VPN, точные `NetworkStatsManager` бакеты мобильной сети/Wi‑Fi при Usage Access, центр спец-разрешений, сохранение состояния/скролла, профессиональные live-карточки, и PRO-браузер с вкладками, кэшем, сохранением URL/скролла и максимальной экономией: картинки/гифки/видео/шрифты/трекеры блокируются.
+Ключ 1.2.0: исправлены мерцание и скачки — таймер больше не пересоздаёт весь экран, обновляются только live-метрики. Добавлен Media Shield/только текст, строгий браузерный блок медиа по URL и `Accept`, DPI-lite парсер VPN TUN-пакетов: DNS, HTTP Host/URL, TLS SNI, TCP/UDP, DNS-cache, `/proc/net` сопоставление UID→IP/порт и журнал направлений.
 
 ## YORU Android Java 4.12.7
 
