@@ -1,6 +1,6 @@
-# YORU Android Java 4.12.6 — сборка Release APK
+# YORU Android Java 4.12.7 — сборка Release APK
 
-Текущий продукт: стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не участвует в активной сборке. Forge/toolchain в этом релизе не используется. C++/NDK в 4.12.6 не добавлялись.
+Текущий продукт: стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не участвует в активной сборке. Forge/toolchain в этом релизе не используется. C++/NDK в 4.12.7 не добавлялись.
 
 ## Локальная сборка
 
@@ -15,38 +15,38 @@ cd yoru-android
 yoru-android/app/build/outputs/apk/release/app-release.apk
 ```
 
-В Arena-песочнице Java/JDK может отсутствовать. Если `java` не найден, используйте GitHub Actions на ветке `arena/01a07147-animmmemmemwm`: workflow собирает только `:app:assembleRelease` и сохраняет `apk-output/YORU-4.12.6-release.apk`.
+В Arena-песочнице Java/JDK может отсутствовать. Если `java` не найден, используйте GitHub Actions на ветке `arena/01a07147-animmmemmemwm`: workflow собирает только `:app:assembleRelease` и сохраняет `apk-output/YORU-4.12.7-release.apk`.
 
-## Проверенный release 4.12.6
+## Проверенный release 4.12.7
 
-- APK: `apk-output/YORU-4.12.6-release.apk`
-- SHA256: `eadeaa777b22cde1507ccc4ed11176ba5c379b8546254bb22e3c8d93a0bc3ae8`
-- GitHub Actions run: `34049085497`
-- Source commit: `1e958c6`
-- APK commit: `964994c`
-- Версия приложения: `versionName 4.12.6`, `versionCode 49`
+- APK: `apk-output/YORU-4.12.7-release.apk`
+- SHA256: `d898d9265998d503f67d4530420db91c4812f1a2a7dc3734f1c04e717e5231ec`
+- GitHub Actions run: `34050519015`
+- Source commits: `95cc581`, `44004aa`
+- APK commit: `27d13d7`
+- Версия приложения: `versionName 4.12.7`, `versionCode 50`
 
-## Срочно исправлено в 4.12.6
+## Срочно исправлено в 4.12.7
 
-- Полностью убран стартовый loading/shell экран `YORU / Открываем без ожидания…`.
-- `MainActivity.onCreate()` снова вызывает настоящий `render()` сразу, без промежуточной заставки.
-- Главная больше не обязана синхронно читать seed/store до первого содержимого: тяжёлые подборки подставляются фоном.
-- В нижней навигации кнопка всегда называется просто `Календарь`, без `· N`, цифр или бейджа.
-- Календарь по умолчанию показывает весь список событий за период, а не только выбранный день.
-- Добавлен верхний день-фильтр `Все · N`; отдельные дни остались быстрыми фильтрами.
-- При переключении фильтров календарь возвращается к `Все`, чтобы пользователь сразу видел все аниме.
-- Из календаря убраны лишние loading-фразы; если кэш есть — список появляется сразу, если нет — нет отдельной заставки.
+- Календарь больше не `ScrollView` с вложенным списком: теперь это один полноэкранный `RecyclerView`, поэтому события не обрезаются до 2 карточек.
+- По умолчанию календарь открывается в режиме `Все` и показывает весь поток событий за 28 дней через прокрутку; чипы дней фильтруют только после нажатия.
+- Расписание расширено по источнику данных: больше страниц ongoing/anons и fallback до 120 тайтлов; тайтлы без точной даты получают аккуратные слоты `Скоро`.
+- Видимые системные полосы прокрутки скрыты.
+- Главная восстановлена с красивым anime hero/poster и без технического текста про изменения приложения.
+- Загрузки показывают preview/poster-карточку для скачанных эпизодов, сохраняя background download service.
+- Нижняя навигация остаётся строго `Календарь` без цифр/бейджей.
+- Стартовый loading/shell экран не возвращался.
 
-## Сохранено из 4.12.5/4.12.4
+## Сохранено из прошлых hotfix
 
-- `CalendarScreen` остаётся единым вертикальным `ScrollView`; события внутри `RecyclerView` с `nestedScrolling=false`, чтобы скролл не ломался.
+- `MainActivity.onCreate()` сразу вызывает настоящий `render()`.
 - SQLite `YoruCache` остаётся bounded: TTL/лимиты/trim для details/schedule/franchise/offline/progress.
 - Screen-cache вкладок, fast offline-index, RecyclerView серий, franchise-cache/filter/order, max hidden routes/threads сохранены.
 - Плеер не режет качество/буфер под mobile/data-saver default и заранее pre-check следующей серии.
 
 ## Важные правила продукта
 
-- Активная база — Java YORU 4.12.6, `versionCode 49`.
+- Активная база — Java YORU 4.12.7, `versionCode 50`.
 - Kotlin не возвращать без прямой команды пользователя.
 - Не возвращать Clips, “Ещё”, AniList как пользовательский источник, TSM, AnimeGO, JutSu, SameBand, SovetRomantica, Yummy Legacy.
 - Не добавлять VPN/VLESS/Xray/proxy/private tokens/API keys и MP4-конвертацию.
