@@ -1,3 +1,19 @@
+# 4.12.10
+
+- Версия Android-пакета поднята до `versionName 4.12.10`, `versionCode 53`.
+- Cold start облегчен: `SecureStore` не грузит AndroidKeyStore в конструкторе, а preload запускается в фоне сразу после создания приложения.
+- `afterFirstFrame()` больше не вызывает `store.lastEpisodeCheckAt()` на главном потоке; планирование фоновых проверок ушло в background executor.
+- `warmStartup()` больше не парсит расписание/SQLite на UI: `todayScheduleCount()`, `api.seed()`, календарный refresh и cache trim выполняются в фоне.
+- `YoruCache` перестал блокировать все cache-операции одним `synchronized` монитором; синхронизация оставлена SQLite-слою.
+- SQLite trim больше не выполняется на каждую запись: добавлен throttled trim примерно раз в 5 минут на таблицу плюс ручной `trimNow()`.
+- `todayScheduleCount()` получил короткий in-memory cache на день, чтобы не перечитывать и не парсить весь schedule JSON при частых вызовах.
+- HTTP memory-cache в `ApiRepository` переведён с `Collections.synchronizedMap`/LRU-монитора на bounded `ConcurrentHashMap`.
+- Stream-cache также переведён на concurrent map с безопасной очисткой старых записей.
+- Длинные cache keys из method/url/body/headers заменены на стабильный SHA-256 ключ.
+- Лимит in-memory raw response cache снижен с 450KB до 50KB на запись, чтобы снизить давление на GC.
+- Для Android 12+ добавлен YORU launch splash через platform `windowSplashScreen*` attrs, без новой библиотеки и без изменения основных экранов.
+- UI/функции не урезались: каталог, календарь, коллекция, загрузки, плеер, реальные озвучки и фоновые уведомления сохранены.
+
 # 4.12.9
 
 - Версия Android-пакета поднята до `versionName 4.12.9`, `versionCode 52`.

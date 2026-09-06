@@ -1,12 +1,15 @@
-# YORU Android Java 4.12.9
+# YORU Android Java 4.12.10
 
 YORU — стабильное Java-приложение `app.yoru.mobile` для поиска, карточек, просмотра, загрузок, коллекции и уведомлений о новых сериях. Текущий активный продукт — Java. Kotlin-модуль удалён из Gradle и из активных исходников ветки.
 
-## Главное в 4.12.9
+## Главное в 4.12.10
 
-- Проведён независимый performance-pass по лагам: ограничены thread pool'ы, снижены сетевые/image timeout'ы, добавлена отмена устаревших catalog/search задач и lifecycle cleanup.
-- Постеры грузятся через bounded queue с дедупликацией одинаковых URL: один сетевой запрос обновляет все ожидающие карточки и не создаёт шторм потоков.
-- Рекомендации/подборки меньше пересчитывают одни и те же статистики: добавлен короткий in-memory cache и быстрые score-map для сортировок.
+- Ускорен cold start: `SecureStore` остаётся ленивым, но KeyStore/JSON preload запускается в фоне; `afterFirstFrame` больше не дёргает `store.lastEpisodeCheckAt()` на UI-потоке.
+- `warmStartup()` теперь быстро возвращает управление UI: `todayScheduleCount()`, `api.seed()`, календарный refresh и SQLite trim уходят в background executors.
+- Починен кэш без удаления кэша: `YoruCache` больше не блокирует все методы одним монитором, SQLite trim выполняется throttled, `todayScheduleCount()` кэшируется в памяти.
+- HTTP/stream memory-cache в `ApiRepository` переведён с `synchronizedMap` на bounded `ConcurrentHashMap`, длинные request keys заменены на SHA-256, raw response memory limit снижен до 50KB.
+- Android 12+ получает branded launch splash YORU через platform attrs вместо пустого чёрного preview.
+- Сохранены улучшения 4.12.9: bounded executors, меньшие network/image timeout'ы, image URL dedupe, отмена устаревших search/catalog задач и оптимизации `YoruBrain`.
 - Фоновые уведомления 4.12.8 сохранены: JobScheduler + AlarmManager fallback, восстановление после перезагрузки/обновления и статус последней проверки в профиле.
 
 - Календарь переделан в один полноэкранный `RecyclerView`: шапка, дни, фильтры и события прокручиваются вместе, без вложенного списка, который мог показывать только 2 карточки.
@@ -17,7 +20,7 @@ YORU — стабильное Java-приложение `app.yoru.mobile` для
 - Загрузки показывают крупные preview/poster-карточки для скачанных эпизодов.
 - Нижняя навигация сохраняет кнопку строго `Календарь` без цифр/бейджей.
 - Стартовый loading/shell экран не используется.
-- Java-only сборка сохранена: активный модуль только `:app`, версия `4.12.9` / `52`.
+- Java-only сборка сохранена: активный модуль только `:app`, версия `4.12.10` / `53`.
 
 ## Сборка
 
@@ -34,8 +37,8 @@ yoru-android/app/build/outputs/apk/release/app-release.apk
 
 В Arena-песочнице локального JDK может не быть. Ветка содержит workflow `.github/workflows/build-apk.yml`, который собирает release APK на GitHub Actions.
 
-Проверенный APK: `apk-output/YORU-4.12.9-release.apk`.
-SHA256: `4f3e805ab38b2cbbbb90d28fbc86e5a8373f5664c2f0e5172d410440742f4875`.
+Проверенный APK: `apk-output/YORU-4.12.10-release.apk`.
+SHA256: `64749e41e8e098cb8be64033a9fa32ec7bdf4d8b1ba9b9552b21e2b70a2aa434`.
 
 ## Правила продолжения
 
