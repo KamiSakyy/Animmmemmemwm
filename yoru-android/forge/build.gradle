@@ -32,6 +32,7 @@ android {
   debug { applicationIdSuffix '.debug' }
  }
  buildFeatures { buildConfig true }
+ lint { disable 'ExpiredTargetSdkVersion' }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
  packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] } }
 }
