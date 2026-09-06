@@ -1,34 +1,43 @@
 # Памятка будущему агенту YORU
 
-Текущий продукт: Java Android `app.yoru.mobile` в `yoru-android/app`, актуальная линия 4.12.4. Kotlin удалён из активной сборки и не должен возвращаться без прямой команды пользователя.
-
-# YORU — гайд для будущего агента
+Текущий продукт: Java Android `app.yoru.mobile` в `yoru-android/app`, актуальная линия 4.12.5. Kotlin удалён из активной сборки и не должен возвращаться без прямой команды пользователя.
 
 Говорить с пользователем на русском. Пользователь хочет видеть этапы и проценты: коротко писать, что делается, без молчания на долгих шагах.
 
+## Срочное исправление 4.12.5
+
+После 4.12.4 пользователь сообщил, что в календаре интерфейс “уехал”, скролл не работает и аниме не видно. Причина: календарь был переделан в `LinearLayout + RecyclerView` с нижним `RecyclerView` высотой `0dp weight=1`; на части экранов шапка/hero/фильтры съедали высоту и жесты/viewport работали плохо.
+
+Что сделано в 4.12.5:
+
+- `CalendarScreen` теперь наследуется от `ScrollView`.
+- Внутри один `LinearLayout box`: шапка, hero, дни, фильтры, status и `RecyclerView` событий прокручиваются вместе.
+- У `RecyclerView` календаря отключён `nestedScrolling`, высота `wrap_content`, `overScroll` выключен — жесты не конфликтуют с экраном.
+- Убран принудительный `recycler.scrollToPosition(0)` из adapter update, чтобы календарь не прыгал и не “уезжал”.
+- При выборе дня/фильтра скролл мягко прыгает к событиям, а не в пустой нижний viewport.
+- Календарь всё ещё читает SQLite/legacy cache сразу, а сетевое обновление идёт в `discovery` executor.
+
+Также по жалобе на долгий чёрный старт и задержки:
+
+- `MainActivity.onCreate()` больше не строит полный home до первого кадра: сначала показывает мгновенный YORU shell, потом запускает `render()` через `content.post`.
+- `Ui.text()` больше не будит `SecureStore` ради шрифта/масштаба до готовности хранилища.
+- `SecureStore` теперь lazy: AndroidKeyStore и decrypt JSON не выполняются в конструкторе.
+- `ApiRepository` теперь lazy: `boot.json/counts.json` не читаются в `Application.onCreate()`.
+- `TrafficMeter` не читает encrypted traffic-store на старте.
+- Убраны startup `postDelayed` цепочки из `YoruApp`; задачи уходят в background executor без блокировки UI.
+- Touch-анимации сокращены до 45/60 мс.
+
+Не возвращать календарь к `LinearLayout` с внутренним `RecyclerView` высотой `0dp weight=1`, если экран сам не является полноценным RecyclerView с header item. Иначе снова появится проблема “аниме не видно/скролл уехал”.
+
 ## Важное исправление 4.12.4
 
-После жалобы пользователя на долгий чёрный экран запуска, медленное переключение панелей/вкладок и медленный Calendar → `Избранное` сделан крупный Java-only performance update:
-
-- `Ui.base()` больше не стартует с `alpha=0`: убран лишний fade-from-black.
-- `MainActivity.onResume()` не делает повторный первый render сразу после `onCreate()`.
-- Startup-heavy задачи (`AppSecurity`, WebView debug flag, update check, protection refresh, warm cache) отложены после первого кадра.
-- Добавлен `YoruCache` на SQLite: `details`, `schedule`, `franchise`, `offline`, `progress` с TTL/лимитами/trim. Не превращать его в бесконечный stale-cache.
-- `CalendarScreen` теперь `LinearLayout + RecyclerView`, отдаёт сохранённое расписание сразу и тихо обновляет сеть.
-- `DetailsActivity` использует `RecyclerView` для списка серий и отменяет старые detail/offline задачи при закрытии.
-- `MainActivity` кэширует экраны главной/каталога/коллекции/календаря и отменяет устаревшие background/UI задачи при переключении.
-- `DownloadHub` получил fast offline-index (`refreshIndexAsync`, `completedEpisodes`, `findCompleted`), чтобы UI не ходил в DownloadIndex на каждую строку.
-- `ApiRepository.quickDetails()` и `prefetchQuickDetails()` пишут/читают SQLite; видимые карточки предзагружают описания.
-- Franchise расширен: direct related + Shikimori franchise cache, стабильный порядок, фильтры `Сезоны/Фильмы/OVA/Спешлы`, кнопка `Смотреть по порядку франшизу`.
-- Hidden source discovery не режется по найденным 3/5 вариантам; сбор идёт по максимуму маршрутов в рамках дедлайна.
-- Плеер больше не режет качество/буферы по mobile/data-saver default и заранее проверяет streams следующей серии.
-- Постеры грузятся отдельным image-pool; disk-cache остаётся ограниченным.
+4.12.4 добавил крупный Java-only performance update: SQLite `YoruCache`, screen-cache вкладок, RecyclerView серий, fast offline-index, franchise-cache/filter/order, max hidden routes/threads. 4.12.5 исправил календарный layout/regression и усилил cold-start.
 
 Если дальше править скорость: не возвращать full scans в render, не делать DownloadManager/SQLite/network на UI thread, не запускать repeated details по избранному календарю. Cache — только bounded/TTL/trim.
 
 ## Важное исправление 4.12.3
 
-В 4.12.3 были сделаны: Calendar buckets по фильтрам/дням, кэш экземпляра `CalendarScreen`, двухступенчатая загрузка `DetailsActivity` через `quickDetails()`, вынос DownloadManager из UI-render, Shikimori franchise lookup, снятие лимита на связанные элементы в UI и turbo IO/discovery. 4.12.4 расширил это до SQLite/RecyclerView/screen-cache/offline-index.
+В 4.12.3 были сделаны: Calendar buckets по фильтрам/дням, кэш экземпляра `CalendarScreen`, двухступенчатая загрузка `DetailsActivity` через `quickDetails()`, вынос DownloadManager из UI-render, Shikimori franchise lookup, снятие лимита на связанные элементы в UI и turbo IO/discovery.
 
 ## Важное исправление 4.12.2
 
@@ -52,35 +61,11 @@ YORU — удобное Android-приложение для просмотра �
 
 ## Озвучки
 
-Нельзя считать внутренние маршруты озвучками.
+Нельзя считать внутренние маршруты озвучками. Озвучки — только реальные названия голосов/команд, которые пришли у конкретного аниме/серии: AniDUB, AniLibria.TV / AniLiberty, AniMaunt, AnimeVost, AniStar & DEEP, Beyond:Studio, Dream Cast, AniMedia, StudioBand, JAM, SHIZA Project и другие реальные названия.
 
-Не являются озвучками:
+Пользователю не показывать технические маршруты. YORU/Yummy/Kodik/AnixSekai/внутренние маршруты не должны называться озвучками.
 
-- бренд приложения и автоматический слой;
-- внутренние резервные маршруты;
-- названия технических плееров и провайдеров;
-- названия потоковых форматов, ссылок, iframe/player/provider/source.
-
-Озвучки — это реальные названия голосов/команд, которые пришли у конкретного аниме/серии, например:
-
-- AniDUB;
-- AniLibria.TV / AniLiberty;
-- AniMaunt;
-- AnimeVost;
-- AniStar & DEEP;
-- Beyond:Studio;
-- Dream Cast;
-- AniMedia;
-- StudioBand;
-- JAM;
-- SHIZA Project;
-- другие реальные названия, если они доступны у серии.
-
-Для каждого аниме и каждой серии список должен строиться динамически: показывать только доступные реальные озвучки. Если выбран режим «Показывать только выбранную озвучку», остальные голоса скрываются в плеере и загрузках, но скрытый fallback обязан найти рабочий вариант, если выбранной озвучки нет.
-
-## Маршруты
-
-Пользователю не показывать технические маршруты. YORU — основной скрытый автоматический слой. Резервные маршруты могут дополнять под капотом, но не должны называться озвучками.
+## Маршруты и производительность
 
 Пользователь явно попросил максимум мощности, потоков и маршрутов без дефолтного ограничения под слабые телефоны. Не возвращать mobile/data-saver урезание discovery/качества как default. При этом не делать бесконечные сетевые циклы: использовать дедлайны, cancellation и cache TTL.
 
@@ -92,12 +77,7 @@ YORU — удобное Android-приложение для просмотра �
 
 ## Скачивание
 
-Перед скачиванием показывать фильтры:
-
-- доступные озвучки конкретной серии;
-- 360p / 480p / 720p / 1080p / лучшее доступное.
-
-Выбранная озвучка и разрешение — быстрый приоритет. Если выбранного варианта нет, скрытый fallback обязан найти доступный реальный голос/качество. Не ломать background download service.
+Перед скачиванием показывать фильтры: доступные озвучки конкретной серии и 360p / 480p / 720p / 1080p / лучшее доступное. Выбранная озвучка и разрешение — быстрый приоритет; если выбранного варианта нет, скрытый fallback обязан найти доступный реальный голос/качество. Не ломать background download service.
 
 ## Что не возвращать
 
@@ -108,8 +88,8 @@ YORU — удобное Android-приложение для просмотра �
 ## Рабочий процесс
 
 1. Изучить код перед правками.
-2. Сделать изменения в исходниках Java app.
-3. Проверить Java parse насколько возможно и `git diff --check`.
+2. Сделать изменения в Java app.
+3. Проверить `git diff --check` и очевидные Java compile-smells.
 4. Проверить, что в пользовательских текстах нет старых запрещённых названий и что маршруты не называются озвучками.
 5. Bump версии и собрать один release APK через GitHub Actions.
 6. Проверить `sha256sum -c` для APK.

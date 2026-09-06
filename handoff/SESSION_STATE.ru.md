@@ -1,46 +1,54 @@
-# YORU Android Java 4.12.4 — актуальное состояние
+# YORU Android Java 4.12.5 — актуальное состояние
 
 Дата: 2026-09-06. Ветка: `arena/01a07147-animmmemmemwm`.
 
 ## Активное направление
 
-Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: активная сборка включает только `:app`. Forge/toolchain в релизе 4.12.4 не используется.
+Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: активная сборка включает только `:app`. Forge/toolchain в релизе 4.12.5 не используется.
 
-## Итог 4.12.4
+## Итог 4.12.5
 
-- Версия: `versionName 4.12.4`, `versionCode 47`.
-- Release APK: `apk-output/YORU-4.12.4-release.apk`.
-- APK SHA256: `71d3d3bb92df4858ec62b2f5ed5867ac55c820701fa34ff0db3c721ff3dde24c`.
-- Успешный GitHub Actions run: `34046274405`.
-- Source commit перед APK: `a4e35e9` (`Fix calendar cache lambda capture`).
-- APK commit: `c641f3c` (`Add built YORU 4.12.4 release APK [skip ci]`).
+- Версия: `versionName 4.12.5`, `versionCode 48`.
+- Release APK: `apk-output/YORU-4.12.5-release.apk`.
+- APK SHA256: `970d31677e4973d952dd26f7e65cf03825dfde7d9d22c7c025ffa89f9a35932b`.
+- Успешный GitHub Actions run: `34047539871`.
+- Source commit перед APK: `422052a` (`Fix calendar scroll and remove startup waits`).
+- APK commit: `92e1e20` (`Add built YORU 4.12.5 release APK [skip ci]`).
 
-## Исправлено после 4.12.3
+## Срочно исправлено после 4.12.4
 
-- Убран лишний стартовый fade-from-black в `Ui.base()`.
-- `MainActivity` больше не делает повторный первый render из `onResume()` сразу после `onCreate()`.
-- Тяжёлые startup-задачи перенесены после первого кадра: проверка подлинности, WebView-флаг, update-check, protection refresh и warm-cache.
-- Добавлен `YoruCache.java`: SQLite fast-cache для `details`, `schedule`, `franchise`, `offline`, `progress` с TTL/лимитами/trim.
+- Исправлен календарь: интерфейс больше не “уезжает”, события/аниме видны, вертикальный scroll работает по всему экрану.
+- `CalendarScreen` теперь наследуется от `ScrollView`; внутри единый `LinearLayout box` с шапкой, днями, фильтрами, status и списком событий.
+- События календаря остаются на `RecyclerView`, но `nestedScrolling=false`, `wrap_content`, без внутреннего конфликтующего viewport.
+- Убран принудительный `recycler.scrollToPosition(0)` при обновлении адаптера, чтобы календарь не прыгал.
+- Сетевое обновление календаря перенесено в `discovery` executor; SQLite/legacy cache показывается сразу.
+- Старт ускорен: `MainActivity` сначала показывает мгновенный shell, полный render уходит в следующий UI-pass.
+- `YoruApp` больше не держит искусственные startup waits `350/700/12000/18000`.
+- `ApiRepository` не читает `boot.json/counts.json` в `Application.onCreate()`; загрузка lazy/background.
+- `SecureStore` не открывает AndroidKeyStore и не decrypt JSON в конструкторе; хранилище lazy.
+- `Ui.text()` до готовности `SecureStore` не вызывает font/settings и не блокирует первый кадр.
+- `TrafficMeter` не читает encrypted traffic-store на старте.
+- Touch-анимации сокращены до 45/60 мс.
+- `autoNextAllowed()` больше не режется через mobile/data-saver.
+
+## Сохранено из 4.12.4
+
+- `YoruCache.java`: SQLite fast-cache для `details`, `schedule`, `franchise`, `offline`, `progress` с TTL/лимитами/trim.
 - `ApiRepository.quickDetails()` читает/пишет SQLite и unified identity cache по MAL/Anilist/KP/source key.
-- `ApiRepository.prefetchQuickDetails()` используется для видимых карточек и стартового warmup.
-- `CalendarScreen` переведён на `RecyclerView`, читает SQLite schedule cache до сети и тихо обновляет расписание избранного.
-- `DetailsActivity` переведён на `RecyclerView` для списка серий, сохраняет быстрые офлайн-статусы отдельно и отменяет старые detail/download задачи при уходе.
-- `MainActivity` получил screen-cache для `Главная`/`Каталог`/`Коллекция`/`Календарь`, cache key и cancellation старых task/future.
-- Добавлен быстрый offline-index в `DownloadHub`: UI больше не должен сканировать `DownloadIndex` на каждую строку серии.
-- Франшиза получила SQLite-cache, stable sort, фильтры `Все/Сезоны/Фильмы/OVA/Спешлы`, кнопку `Смотреть по порядку франшизу` и кнопку продолжения к следующему тайтлу.
-- Hidden discovery теперь использует максимум маршрутов в рамках дедлайна, без раннего stop по количеству найденных 3/5 вариантов.
-- Плеер больше не режет качество/буфер под mobile/data-saver default и заранее pre-check следующей серии.
-- `ImageLoader` получил расширенный image-pool; poster disk-cache остаётся ограниченным.
-- Добавлен скрытый `sourceDiagnostics()` без пользовательского вывода технических маршрутов.
+- Screen-cache для `Главная`/`Каталог`/`Коллекция`/`Календарь`.
+- `DetailsActivity` использует `RecyclerView` для списка серий и отменяет старые detail/download задачи.
+- `DownloadHub` имеет fast offline-index, чтобы UI не сканировал `DownloadIndex` на каждую строку серии.
+- Франшиза: SQLite-cache, stable sort, фильтры `Все/Сезоны/Фильмы/OVA/Спешлы`, кнопка `Смотреть по порядку франшизу`.
+- Hidden discovery использует максимум маршрутов в рамках дедлайна, без раннего stop по количеству найденных вариантов.
+- Плеер не режет качество/буфер под mobile/data-saver default и заранее pre-check следующей серии.
+- `ImageLoader` использует расширенный image-pool; poster disk-cache ограничен.
 
 ## Проверки
 
-- `git diff --check`: OK перед коммитами.
+- `git diff --check`: OK перед коммитом.
 - Локальная Gradle-сборка в Arena невозможна из-за отсутствия `java/JAVA_HOME`.
-- CI compile error #1 был исправлен: Java 11 regex escaping.
-- CI compile error #2 был исправлен: effectively-final lambda capture в `CalendarScreen`.
-- GitHub Actions `34046274405`: success, шаг `Build Java release APK` прошёл.
-- `sha256sum -c apk-output/YORU-4.12.4-release.apk.sha256`: OK.
+- GitHub Actions `34047539871`: success, шаг `Build Java release APK` прошёл.
+- `sha256sum -c apk-output/YORU-4.12.5-release.apk.sha256`: OK.
 
 ## Жёсткие правила будущего продолжения
 
