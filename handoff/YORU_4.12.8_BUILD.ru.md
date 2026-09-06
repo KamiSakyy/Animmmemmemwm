@@ -8,7 +8,7 @@
 - VersionCode: `51`
 - Release APK: `apk-output/YORU-4.12.8-release.apk`
 - SHA256 APK: `88b1df66997c5e909e6c6235e481cb2da8a67b88ff140811677d3f937d99fd87`
-- SHA256 source ZIP: `fbb835ab0ddc2a48e0d6883503097975aab39dd19daad3b86812e8965e806346`
+- SHA256 source ZIP: `6c3e4fb3e4f4492b7482d03d91c4e9419a75c1529f301ca8a83feef8099aa74c`
 - GitHub Actions run: `34057250189` — success
 - Source commit: `5cec6ad Upgrade YORU background episode checks`
 - APK commit из CI: `0613f59 Add built YORU 4.12.8 release APK [skip ci]`
