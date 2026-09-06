@@ -2,7 +2,7 @@
 
 Текущие Android-продукты в ветке:
 
-1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
+1. **YORU Android Java 4.12.8** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.5.0** (`app.yuro.guard`) — отдельное приложение для мониторинга трафика, локального Android VPN-firewall, VPN-only DPI-lite профиля, рейтинга потребления и экономного WebView-браузера.
 
 ## YURO Guard 1.5.0
@@ -17,12 +17,12 @@ Source handoff: `handoff/YURO-Guard-1.5.0-source-handoff.zip`.
 
 Ключ 1.5.0: proxy/SOCKS5 полностью удалён. Telegram Rescue переведён на **YURO VPN-only**: внутренний TUN bridge для выбранных Telegram-приложений, DNS/UDP/TCP forwarding, QUIC UDP/443 block и adaptive TCP/TLS first-flight split в рамках Android `VpnService`. Главная и отчёт получили рейтинг “кто больше потребил”, топ-приложения, live totals/rates и более аккуратный YURO dark UI. Открытие приложения не запрашивает VPN и не отключает другой VPN; Android VPN permission/start вызывается только по кнопке подключения.
 
-## YORU Android Java 4.12.7
+## YORU Android Java 4.12.8
 
 Исходники: `yoru-android/app`. Kotlin-модуль не участвует в активной сборке YORU; Gradle собирает `:app`. Forge/toolchain в этой линии не используется.
 
-Готовый release APK: `apk-output/YORU-4.12.7-release.apk`.
-SHA256 APK текущего пересобранного файла: `8c6f03f105787293169b5127c1ab32c317894e8f4200a20c0f3bbb854516d8a9`.
-Source handoff YORU: `handoff/YORU-4.12.7-source-handoff.zip`.
+Готовый release APK: `apk-output/YORU-4.12.8-release.apk`.
+SHA256 APK: `88b1df66997c5e909e6c6235e481cb2da8a67b88ff140811677d3f937d99fd87`.
+Source handoff YORU: `handoff/YORU-4.12.8-source-handoff.zip`.
 
-Ключ YORU 4.12.7: календарь переделан в один полноэкранный `RecyclerView` и по умолчанию показывает весь поток событий за 28 дней через прокрутку; искусственный выбор одного дня убран; видимые системные полосы прокрутки скрыты; главная снова с красивым anime hero/poster без технического текста; загрузки получили крупные preview/poster-карточки для скачанных эпизодов.
+Ключ YORU 4.12.8: исправлена фоновая работа уведомлений о новых сериях — добавлен persisted JobScheduler, AlarmManager fallback, восстановление после перезагрузки/обновления, автономная проверка без зависимости от открытия приложения и статус последней проверки в профиле. Основа 4.12.7 сохранена: полноэкранный календарь RecyclerView, красивый home hero и preview загрузок.
