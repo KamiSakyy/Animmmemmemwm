@@ -16,7 +16,7 @@ final class YummyParser {
     }
     private static int voicePriority(String name){String v=(name==null?"":name).toLowerCase(Locale.ROOT);return v.contains("animevost")?0:v.contains("anilibria")?1:v.contains("studio band")?2:5;}
     private static int playerPriority(String name){String v=(name==null?"":name).toLowerCase(Locale.ROOT);if(v.contains("cvh")||v.contains("cdnvideohub"))return 0;if(v.contains("kodik"))return 1;if(v.contains("aksor"))return 2;if(v.contains("vk")||v.contains("вконт"))return 3;if(v.contains("rutube"))return 4;if(v.contains("zedfilm")||v.contains("hlamer"))return 5;if(v.contains("alloha"))return 6;if(v.contains("sibnet"))return 7;return 20;}
-    private static String cleanPlayer(String name){String v=name==null?"":name.trim();return v.equalsIgnoreCase("null")?"":v;}
+    private static String cleanPlayer(String name){String v=name==null?"":name.trim();String l=v.toLowerCase(Locale.ROOT);if(v.equalsIgnoreCase("null"))return "";if(l.contains("kodik")||l.contains("aniqit"))return "YORU Prime";if(l.contains("cvh")||l.contains("cdnvideohub")||l.contains("yummy")||l.contains("yani"))return "YORU Max";return v;}
     private static String text(JsonReader r)throws IOException{if(r.peek()==JsonToken.NULL){r.nextNull();return "";}if(r.peek()==JsonToken.BOOLEAN)return String.valueOf(r.nextBoolean());return r.nextString();}
     private static int integer(JsonReader r)throws IOException{try{return (int)Math.max(0,Double.parseDouble(text(r)));}catch(NumberFormatException e){return 0;}}
 }
