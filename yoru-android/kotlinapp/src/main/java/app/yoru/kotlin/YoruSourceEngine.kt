@@ -947,8 +947,10 @@ class YoruSourceEngine(private val client: OkHttpClient) {
     }
 
     private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> {
-        val comparator = compareBy<Int> { abs(it - preferred) }.thenByDescending { it }
-        return streams.toSortedMap(comparator)
+        if (streams.isEmpty()) return emptyMap()
+        val out = linkedMapOf<Int, String>()
+        streams.entries.sortedBy { abs(it.key - preferred) }.forEach { out[it.key] = it.value }
+        return out
     }
 
     private fun animetkaEpisodeUrl(link: String, episode: Int): String {
