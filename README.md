@@ -5,16 +5,17 @@
 1. **YORU Android Java 4.12.7** (`app.yoru.mobile`) — основное anime-приложение.
 2. **YURO Guard 1.0.0** (`app.yuro.guard`) — отдельное внеплановое приложение для мониторинга трафика, локального VPN-firewall, лимитов и встроенного браузера.
 
-## YURO Guard 1.0.0
+## YURO Guard 1.1.0
 
 Исходники: `yoru-android/yuroguard`.
 Workflow сборки: `.github/workflows/build-yuroguard-apk.yml`.
 
-Готовый release APK: `apk-output/YURO-Guard-1.0.0-release.apk`.
-SHA256 APK: `7e9ae8d4cefabc58c2b2e08c9976f0b509cbb8610b567592c30d2cbbf485c588`.
-Инструкция: `handoff/YURO_GUARD_1.0.0_BUILD.ru.md`.
+Готовый release APK: `apk-output/YURO-Guard-1.1.0-release.apk`.
+SHA256 APK: `756bc013ac02c88c6696134e1b8ca817005327bd648d6a3db726a075b72aa554`.
+Инструкция: `handoff/YURO_GUARD_1.1.0_BUILD.ru.md`.
+Source handoff: `handoff/YURO-Guard-1.1.0-source-handoff.zip`.
 
-Ключ: локальный `VpnService` без внешнего сервера, режимы “только выбранные онлайн”, “блок выбранных”, лимит выбранных/всех через VPN pause-shaper, детальный SQLite-отчёт с запуска приложения, системные приложения по галочке, мобильная статистика через Usage Access/NetworkStatsManager, встроенный тёмный Chromium WebView-браузер с arena.ai и Яндекс-поиском.
+Ключ 1.1.0: отдельный постоянный foreground-мониторинг трафика даже без VPN, точные `NetworkStatsManager` бакеты мобильной сети/Wi‑Fi при Usage Access, центр спец-разрешений, сохранение состояния/скролла, профессиональные live-карточки, и PRO-браузер с вкладками, кэшем, сохранением URL/скролла и максимальной экономией: картинки/гифки/видео/шрифты/трекеры блокируются.
 
 ## YORU Android Java 4.12.7
 
