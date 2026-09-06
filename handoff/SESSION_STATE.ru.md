@@ -1,60 +1,59 @@
-# YORU Android Java 4.12.5 — актуальное состояние
+# YORU Android Java 4.12.6 — актуальное состояние
 
 Дата: 2026-09-06. Ветка: `arena/01a07147-animmmemmemwm`.
 
 ## Активное направление
 
-Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: активная сборка включает только `:app`. Forge/toolchain в релизе 4.12.5 не используется.
+Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: активная сборка включает только `:app`. Forge/toolchain в релизе 4.12.6 не используется.
 
-## Итог 4.12.5
+## Итог 4.12.6
 
-- Версия: `versionName 4.12.5`, `versionCode 48`.
-- Release APK: `apk-output/YORU-4.12.5-release.apk`.
-- APK SHA256: `970d31677e4973d952dd26f7e65cf03825dfde7d9d22c7c025ffa89f9a35932b`.
-- Успешный GitHub Actions run: `34047539871`.
-- Source commit перед APK: `422052a` (`Fix calendar scroll and remove startup waits`).
-- APK commit: `92e1e20` (`Add built YORU 4.12.5 release APK [skip ci]`).
+- Версия: `versionName 4.12.6`, `versionCode 49`.
+- Release APK: `apk-output/YORU-4.12.6-release.apk`.
+- APK SHA256: `eadeaa777b22cde1507ccc4ed11176ba5c379b8546254bb22e3c8d93a0bc3ae8`.
+- Успешный GitHub Actions run: `34049085497`.
+- Source commit перед APK: `1e958c6` (`Remove startup shell and show full calendar list`).
+- APK commit: `964994c` (`Add built YORU 4.12.6 release APK [skip ci]`).
 
-## Срочно исправлено после 4.12.4
+## Срочно исправлено после 4.12.5
 
-- Исправлен календарь: интерфейс больше не “уезжает”, события/аниме видны, вертикальный scroll работает по всему экрану.
-- `CalendarScreen` теперь наследуется от `ScrollView`; внутри единый `LinearLayout box` с шапкой, днями, фильтрами, status и списком событий.
-- События календаря остаются на `RecyclerView`, но `nestedScrolling=false`, `wrap_content`, без внутреннего конфликтующего viewport.
-- Убран принудительный `recycler.scrollToPosition(0)` при обновлении адаптера, чтобы календарь не прыгал.
-- Сетевое обновление календаря перенесено в `discovery` executor; SQLite/legacy cache показывается сразу.
-- Старт ускорен: `MainActivity` сначала показывает мгновенный shell, полный render уходит в следующий UI-pass.
-- `YoruApp` больше не держит искусственные startup waits `350/700/12000/18000`.
-- `ApiRepository` не читает `boot.json/counts.json` в `Application.onCreate()`; загрузка lazy/background.
-- `SecureStore` не открывает AndroidKeyStore и не decrypt JSON в конструкторе; хранилище lazy.
-- `Ui.text()` до готовности `SecureStore` не вызывает font/settings и не блокирует первый кадр.
-- `TrafficMeter` не читает encrypted traffic-store на старте.
-- Touch-анимации сокращены до 45/60 мс.
-- `autoNextAllowed()` больше не режется через mobile/data-saver.
+- Полностью убран стартовый загрузочный экран/shell и текст `Открываем без ожидания…`.
+- `MainActivity.onCreate()` вызывает настоящий `render()` сразу, без промежуточной заставки.
+- Главная облегчена: первые блоки строятся без обязательного синхронного seed/store чтения, рекомендации подставляются фоном.
+- В нижней навигации кнопка всегда просто `Календарь`, без счётчика/цифры/бейджа.
+- Календарь по умолчанию показывает весь список событий за период, а не только выбранный день.
+- Добавлен режим `Все · N`; отдельные дни работают как фильтры.
+- При смене основного фильтра календарь возвращается к `Все`, чтобы пользователь сразу видел все аниме.
+- `dayItems(-1)` собирает события всех дней и сортирует по времени.
+- Из календаря убраны лишние loading-фразы.
 
-## Сохранено из 4.12.4
+## Сохранено из 4.12.5/4.12.4
 
+- `CalendarScreen` остаётся единым вертикальным `ScrollView`; события внутри `RecyclerView` с `nestedScrolling=false`, чтобы скролл не ломался.
 - `YoruCache.java`: SQLite fast-cache для `details`, `schedule`, `franchise`, `offline`, `progress` с TTL/лимитами/trim.
-- `ApiRepository.quickDetails()` читает/пишет SQLite и unified identity cache по MAL/Anilist/KP/source key.
 - Screen-cache для `Главная`/`Каталог`/`Коллекция`/`Календарь`.
 - `DetailsActivity` использует `RecyclerView` для списка серий и отменяет старые detail/download задачи.
 - `DownloadHub` имеет fast offline-index, чтобы UI не сканировал `DownloadIndex` на каждую строку серии.
 - Франшиза: SQLite-cache, stable sort, фильтры `Все/Сезоны/Фильмы/OVA/Спешлы`, кнопка `Смотреть по порядку франшизу`.
 - Hidden discovery использует максимум маршрутов в рамках дедлайна, без раннего stop по количеству найденных вариантов.
 - Плеер не режет качество/буфер под mobile/data-saver default и заранее pre-check следующей серии.
-- `ImageLoader` использует расширенный image-pool; poster disk-cache ограничен.
+- `SecureStore`, `ApiRepository`, `TrafficMeter` остаются lazy, чтобы не держать холодный старт.
 
 ## Проверки
 
 - `git diff --check`: OK перед коммитом.
 - Локальная Gradle-сборка в Arena невозможна из-за отсутствия `java/JAVA_HOME`.
-- GitHub Actions `34047539871`: success, шаг `Build Java release APK` прошёл.
-- `sha256sum -c apk-output/YORU-4.12.5-release.apk.sha256`: OK.
+- GitHub Actions `34049085497`: success, шаг `Build Java release APK` прошёл.
+- `sha256sum -c apk-output/YORU-4.12.6-release.apk.sha256`: OK.
 
 ## Жёсткие правила будущего продолжения
 
 - Работать только с Java Android `app.yoru.mobile`, пока пользователь явно не поменяет направление.
 - Не возвращать Kotlin, Forge/toolchain, Clips, “Ещё”, AniList как пользовательский источник, TSM, AnimeGO, JutSu, SameBand, SovetRomantica, Yummy Legacy.
 - Не добавлять VPN/VLESS/Xray/proxy/private tokens/API keys и MP4-конвертацию.
+- Не возвращать стартовый loading/shell экран и startup-заглушки.
+- Не добавлять цифры/бейджи в нижнюю кнопку `Календарь`.
+- Календарь по умолчанию должен показывать весь список событий, не один выбранный день.
 - “Озвучка” — только реальная команда перевода/дубляжа; технический маршрут не должен называться озвучкой.
 - Выбранная/дефолтная озвучка — предпочтение для скорости, но отсутствие этой озвучки не должно ломать playback/download.
 - Будущие серии должны быть визуально непроигрываемыми и показывать дату выхода/уточнение, а не обычную обложку.
