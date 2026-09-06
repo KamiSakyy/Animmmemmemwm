@@ -46,9 +46,9 @@ public final class SecureStore {
     public synchronized void playbackSpeed(float speed){try{float v=Math.max(0.75f,Math.min(2.0f,speed));settings.put("playbackSpeed",v);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean takeUpdatePulse(){try{long now=System.currentTimeMillis(),last=settings.optLong("lastUpdatePulse",0);if(now-last<3*60*1000L)return false;settings.put("lastUpdatePulse",now);write("settings",settings);return true;}catch(Exception e){return false;}}
     public synchronized String voicePreference(){return settings.optString("voicePreference","");}
-    public synchronized void voicePreference(String value){settings.put("voicePreference",value==null?"":value.trim());if(voicePreference().isEmpty())settings.put("onlyPreferredVoice",false);write("settings",settings);}
+    public synchronized void voicePreference(String value){try{settings.put("voicePreference",value==null?"":value.trim());if(voicePreference().isEmpty())settings.put("onlyPreferredVoice",false);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean onlyPreferredVoice(){return settings.optBoolean("onlyPreferredVoice",false)&&!voicePreference().isEmpty();}
-    public synchronized void onlyPreferredVoice(boolean value){settings.put("onlyPreferredVoice",value&&!voicePreference().isEmpty());write("settings",settings);}
+    public synchronized void onlyPreferredVoice(boolean value){try{settings.put("onlyPreferredVoice",value&&!voicePreference().isEmpty());write("settings",settings);}catch(Exception ignored){}}
     public synchronized int downloadResolution(){return Math.max(480,settings.optInt("quality",720));}
     public synchronized void downloadResolution(int value){try{settings.put("quality",Math.max(480,Math.min(1080,value)));write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean privateMode(){return settings.optBoolean("privateMode",false);}
