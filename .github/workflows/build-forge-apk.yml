@@ -72,16 +72,16 @@ jobs:
         working-directory: .
         run: |
           mkdir -p apk-output
-          rm -f apk-output/YORU-Forge-0.1.0-release.apk apk-output/YORU-Forge-0.1.0-release.apk.sha256
-          cp yoru-android/forge/build/outputs/apk/release/forge-release.apk apk-output/YORU-Forge-0.1.0-release.apk
-          sha256sum apk-output/YORU-Forge-0.1.0-release.apk > apk-output/YORU-Forge-0.1.0-release.apk.sha256
+          rm -f apk-output/YORU-Forge-0.2.0-release.apk apk-output/YORU-Forge-0.2.0-release.apk.sha256
+          cp yoru-android/forge/build/outputs/apk/release/forge-release.apk apk-output/YORU-Forge-0.2.0-release.apk
+          sha256sum apk-output/YORU-Forge-0.2.0-release.apk > apk-output/YORU-Forge-0.2.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-Forge-0.1.0-release.apk apk-output/YORU-Forge-0.1.0-release.apk.sha256
-          git commit -m "Add built YORU Forge 0.1.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-Forge-0.2.0-release.apk apk-output/YORU-Forge-0.2.0-release.apk.sha256
+          git commit -m "Add built YORU Forge 0.2.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload Forge APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-forge-0.1.0-release-apk
-          path: apk-output/YORU-Forge-0.1.0-release.apk
+          name: yoru-forge-0.2.0-release-apk
+          path: apk-output/YORU-Forge-0.2.0-release.apk

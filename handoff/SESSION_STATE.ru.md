@@ -15,4 +15,4 @@
 
 ## YORU Forge
 
-Начат отдельный модуль `yoru-android/forge` с приложением `app.yoru.forge`. Версия 0.1.0 — редактор исходников через Storage Access Framework, сохранение файлов, экспорт zip и кнопки открытия GitHub Actions. Сборка Forge идёт отдельным workflow `.github/workflows/build-forge-apk.yml`. Следующие важные этапы: поиск по файлам, создание файлов, просмотр логов workflow, безопасный GitHub connect на устройстве и скачивание последнего APK прямо из Forge.
+Начат отдельный модуль `yoru-android/forge` с приложением `app.yoru.forge`. Версия 0.2.0 — редактор исходников через Storage Access Framework, сохранение файлов, экспорт zip, импорт локального toolchain pack и оффлайн build pipeline на устройстве. В интерфейсе Forge больше нет облачной сборки как основного пути. Сборка самого Forge в репозитории пока идёт отдельным workflow `.github/workflows/build-forge-apk.yml` только для выпуска APK. Следующие важные этапы: собрать/доставить минимальный Android-compatible toolchain pack, поиск по файлам, создание файлов, подсветка синтаксиса, улучшенная поддержка AAR-зависимостей и профили подписи APK.

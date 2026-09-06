@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
- <uses-permission android:name="android.permission.INTERNET" />
- <application android:label="YORU Forge" android:icon="@drawable/ic_forge" android:roundIcon="@drawable/ic_forge" android:theme="@style/ForgeTheme" android:allowBackup="false" android:fullBackupContent="false" android:supportsRtl="false">
+ <application android:label="YORU Forge" android:extractNativeLibs="true" android:icon="@drawable/ic_forge" android:roundIcon="@drawable/ic_forge" android:theme="@style/ForgeTheme" android:allowBackup="false" android:fullBackupContent="false" android:supportsRtl="false">
   <activity android:name=".ForgeActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
    <intent-filter>
     <action android:name="android.intent.action.MAIN" />
