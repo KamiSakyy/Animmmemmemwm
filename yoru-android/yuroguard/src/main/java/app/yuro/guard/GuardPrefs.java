@@ -35,6 +35,12 @@ public final class GuardPrefs {
     public static boolean browserSaver(Context c) { return sp(c).getBoolean("browser_saver", true); }
     public static void browserSaver(Context c, boolean v) { sp(c).edit().putBoolean("browser_saver", v).apply(); }
 
+    public static boolean monitorEnabled(Context c) { return sp(c).getBoolean("monitor_enabled", true); }
+    public static void monitorEnabled(Context c, boolean v) { sp(c).edit().putBoolean("monitor_enabled", v).apply(); }
+
+    public static boolean browserBlockImages(Context c) { return sp(c).getBoolean("browser_block_images", true); }
+    public static void browserBlockImages(Context c, boolean v) { sp(c).edit().putBoolean("browser_block_images", v).apply(); }
+
     public static long capBytes(Context c) { return sp(c).getLong("cap_bytes", 200L * 1024L); }
     public static void capBytes(Context c, long v) { sp(c).edit().putLong("cap_bytes", Math.max(8 * 1024L, v)).apply(); }
 
