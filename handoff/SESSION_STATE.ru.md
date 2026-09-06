@@ -1,40 +1,41 @@
-# YORU Android Java 4.11.0 — актуальное состояние
+# YORU Android Java 4.12.0 — актуальное состояние
 
 Дата: 2026-09-06. Ветка: `arena/01a07147-animmmemmemwm`.
 
 ## Активное направление
 
-Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. База продолжена от последнего Java-релиза 4.10.0. Kotlin больше не является активным направлением: модуль `yoru-android/kotlinapp` удалён, `settings.gradle` включает только `:app`, workflow собирает только Java APK.
+Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: модуль `yoru-android/kotlinapp` удалён, `settings.gradle` включает только `:app`, корневые Kotlin Gradle-плагины удалены, workflow собирает только Java APK.
 
-## Итог 4.11.0
+## Итог 4.12.0
 
-- Версия: `versionName 4.11.0`, `versionCode 42`.
-- Release APK: `apk-output/YORU-4.11.0-release.apk`.
-- APK SHA256: `b8b0098c8c6fbfe118169d98aa2f6785b0bf2d1fa9bc2857f408efd48737df49`.
-- Успешный GitHub Actions run: `34038631842`.
-- Source commit: `f91a5cf` (`Return YORU Java 4.11.0`).
-- APK commit: `b88b981` (`Add built YORU 4.11.0 release APK [skip ci]`).
+- Версия: `versionName 4.12.0`, `versionCode 43`.
+- Release APK: `apk-output/YORU-4.12.0-release.apk`.
+- APK SHA256: `2e6f7e4ab6cd91d004dec539bc0f8689990a868dd00d2cff12a83c406ef706b3`.
+- Успешный GitHub Actions run: `34040316252`.
+- Source commit: `5315bdf` (`Release YORU Java 4.12.0 scheduling and fallback`).
+- APK commit: `f157fa0` (`Add built YORU 4.12.0 release APK [skip ci]`).
 
-## Что изменено
+## Что изменено в 4.12.0
 
-- Kotlin удалён из исходников и CI, старые Kotlin APK/source handoff удалены из активной ветки.
-- `settings.gradle` теперь Java-only: только `include ':app'`.
-- `.github/workflows/build-apk.yml` собирает `:app:assembleRelease` и сохраняет `YORU-4.11.0-release.apk`.
-- Технические пользовательские строки `YORU Source`/`YORU Auto` заменены на простой `YORU`.
-- `AniDUB` приведён к корректному виду как реальная озвучка.
-- `music` больше не показывается как `Клип`, чтобы не возвращать rejected Clips-семантику.
-- Если выбрана реальная озвучка, она становится строгим быстрым путём: без повторного диалога и без перебора чужих голосов.
-- `SourceEngine` получил voice-aware boost для AniDUB/AniLibria.TV/AnimeVost/AniMedia и похожих реальных озвучек.
-- `ApiRepository.yoruFoundSources()` уменьшает количество маршрутов на слабой сети и при выбранной озвучке.
-- `PlayerActivity` добавил timeline/SeekBar поверх нативного видео и отключает prewarm следующей серии без выбранной реальной озвучки.
-- `DownloadActions` показывает понятные варианты качества/озвучки/размера и Wi‑Fi-only формулировку без внутренних маршрутов.
+- `Anime` получил отдельные поля `episodesAired` и `nextEpisodeAt`, сериализацию в JSON и отображение `cardMeta()`.
+- Shikimori GraphQL fields расширены до `episodesAired nextEpisodeAt`; детали дополнительно обогащают тайтл через `enrichSchedule()`.
+- YORU-каталог использует Shikimori как быстрый метаданный слой, поэтому карточки видят статус, total/aired и дату следующей серии.
+- Карточки показывают `Онгоинг/Закончен/Анонс` и `Вышло X из Y`.
+- Экран тайтла показывает статус, количество вышедших/плановых серий и `следующая: дата`, если есть точный `nextEpisodeAt`.
+- `appendFutureEpisodes()` добавляет future-заглушки для невышедших эпизодов; первая получает точную дату из `nextEpisodeAt`, остальные показывают `Дата уточняется`.
+- Future-серии не открываются и не скачиваются; в превью вместо обложки показывается дата/ожидание.
+- `loadYoruEpisode()` больше не считает выбранную озвучку жёстким финальным фильтром: если совпадений нет, собирает доступные голоса и отключает strict onlyPreferred для этой попытки.
+- `PlayerActivity` делает fallback при пустых voiceGroups, rescue-playback пробует любой доступный рабочий вариант после выбранного голоса, future-серии пропускаются в next/prewarm.
+- `DownloadActions` и `ApiRepository.downloadOptions()` делают fallback на доступные варианты, если выбранной озвучки нет, и не предлагают future-серии.
+- Anix/Sekai route сортирует выбранный голос первым, но не отбрасывает остальные голоса полностью.
+- Пользовательские технические подписи `YORU Prime/Reserve/Max` очищены до `YORU`; real voice labels остаются реальными командами.
 
 ## Проверки
 
-- `git diff --check` перед коммитом: OK.
+- `git diff --check`: OK.
 - Локальная Gradle-сборка в Arena невозможна из-за отсутствия `java/JAVA_HOME`.
-- GitHub Actions `34038631842`: success, шаг `Build Java release APK` прошёл.
-- `sha256sum -c apk-output/YORU-4.11.0-release.apk.sha256`: OK.
+- GitHub Actions `34040316252`: success, шаг `Build Java release APK` прошёл.
+- `sha256sum -c apk-output/YORU-4.12.0-release.apk.sha256`: OK.
 
 ## Жёсткие правила будущего продолжения
 
@@ -42,4 +43,6 @@
 - Не возвращать Kotlin, Forge/toolchain, Clips, “Ещё”, AniList как пользовательский источник, TSM, AnimeGO, JutSu, SameBand, SovetRomantica, Yummy Legacy.
 - Не добавлять VPN/VLESS/Xray/proxy/private tokens/API keys и MP4-конвертацию.
 - “Озвучка” — только реальная команда перевода/дубляжа; технический маршрут не должен называться озвучкой.
+- Выбранная/дефолтная озвучка — предпочтение для скорости, но отсутствие этой озвучки не должно ломать playback/download.
+- Будущие серии должны быть визуально непроигрываемыми и показывать дату выхода/уточнение, а не обычную обложку.
 - Приоритет: скорость, слабая сеть, экономия трафика, один нативный YORU Player, понятные загрузки и минимум лишних экранов.
