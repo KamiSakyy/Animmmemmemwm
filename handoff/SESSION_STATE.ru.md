@@ -1,4 +1,4 @@
-# YORU Android Java 4.12.1 — актуальное состояние
+# YORU Android Java 4.12.2 — актуальное состояние
 
 Дата: 2026-09-06. Ветка: `arena/01a07147-animmmemmemwm`.
 
@@ -6,34 +6,42 @@
 
 Текущий продукт — стабильное Java-приложение `app.yoru.mobile` в `yoru-android/app`. Kotlin не является активным направлением: модуль `yoru-android/kotlinapp` удалён, `settings.gradle` включает только `:app`, корневые Kotlin Gradle-плагины удалены, workflow собирает только Java APK.
 
-## Итог 4.12.1
+## Итог 4.12.2
 
-- Версия: `versionName 4.12.1`, `versionCode 44`.
-- Release APK: `apk-output/YORU-4.12.1-release.apk`.
-- APK SHA256: `54013987f9d409ed3a621375db822805bb0483931575b97b3c6bf9068d46c269`.
-- Успешный GitHub Actions run: `34041378861`.
-- Source commit: `1f81b2f` (`Fix calendar favorites and future episode dates`).
-- APK commit: `44fcc99` (`Add built YORU 4.12.1 release APK [skip ci]`).
+- Версия: `versionName 4.12.2`, `versionCode 45`.
+- Release APK: `apk-output/YORU-4.12.2-release.apk`.
+- APK SHA256: `06499a0ff23bca093255471aa7392c9fbd7d469e82f1b81d1211762a07321008`.
+- Успешный GitHub Actions run: `34042510777`.
+- Source commit: `0acf1ae` (`Optimize Java calendar and episode loading`).
+- APK commit: `3a46fef` (`Add built YORU 4.12.2 release APK [skip ci]`).
 
-## Исправлено после 4.12.0
+## Исправлено после 4.12.1
 
-- Future-серии теперь определяются по `episodesAired`, даже если источник заранее создал технические строки серий выше вышедшего числа.
-- `appendFutureEpisodes()` принудительно помечает все серии выше `episodesAired` как future, очищает их streams/variants/poster и задаёт дату выхода.
-- `DetailsActivity` имеет дополнительную UI-защиту: если `episode.number > anime.episodesAired`, показывается дата/уточнение, а не `Видео-превью`.
-- `applyEpisodeVisuals()` больше не подставляет визуалы future-сериям.
-- `CalendarScreen` вызывает `airingSchedule(21, favorites)` и отдельно получает расписание избранных тайтлов.
-- `ApiRepository` добавил `appendFavoriteAirings()`, batch-запрос Shikimori по MAL/Shikimori ID и поиск ID по названию для старых избранных.
-- `SecureStore.favorite()`/`bucket()`/`updateFavoriteEpisodes()` теперь находят одну и ту же карточку через ID/название, а не только exact `source:id`.
-- `SecureStore.progress()` получил такой же identity-match для фильтра `Новые для меня`.
-- `EpisodeUpdateReceiver` сравнивает released/playable серии, а не total, и чинит старый завышенный `episodesSeen`.
-- Календарь показывает 21 день и автоматически выбирает ближайший день с событием по текущему фильтру.
+- Ускорен вход в Calendar → `Избранное`: `SecureStore.favorite()` и `SecureStore.progress()` теперь используют быстрые identity-индексы вместо повторного перебора encrypted JSON.
+- `CalendarScreen` показывает сохранённый календарь сразу, а свежие даты обновляет без блокирующей перерисовки.
+- Убраны массовые анимации карточек календаря, чтобы не создавать jank при переключении дней и фильтров.
+- `ApiRepository.appendFavoriteAirings()` больше не вызывает `details()` последовательно для каждого избранного тайтла. Сначала используется known date/known ID, затем batch Shikimori, затем короткий параллельный поиск только для старых записей без ID.
+- Расширен memory-cache сетевых ответов и увеличен TTL для расписания/метаданных.
+- Общий `YoruApp.io` стал адаптивным пулом 4–6 потоков с именованными worker-потоками.
+- `DetailsActivity` перестал запрашивать `DownloadManager` для каждой серии: завершённые загрузки собираются одним проходом на render.
+- Future-заглушки для длинных онгоингов ограничены ближайшими 24 будущими эпизодами, чтобы не создавать сотни view; короткие сезоны остаются полными.
+- Убрана надпись `Загружаем список серий…` и формулировка `Список серий загружается в фоне…`.
+- Кнопка скачивания в карточке использует уже загруженный `anime.episodeList`, поэтому выбор серии открывается сразу, если список есть.
+- Фоновое скачивание серий не менялось.
+
+## Сохранено из 4.12.1
+
+- Future-серии выше `episodesAired` показывают дату/уточнение, а не `Видео-превью` и не playable UI.
+- Календарь `Избранное` узнаёт сохранённые тайтлы между источниками через ID/название.
+- Уведомления о новых сериях сравнивают released/playable серии, а не плановый total.
+- Выбранная/дефолтная озвучка остаётся быстрым предпочтением, но hidden fallback обязан найти рабочую реальную озвучку, если выбранной нет.
 
 ## Проверки
 
 - `git diff --check`: OK.
 - Локальная Gradle-сборка в Arena невозможна из-за отсутствия `java/JAVA_HOME`.
-- GitHub Actions `34041378861`: success, шаг `Build Java release APK` прошёл.
-- `sha256sum -c apk-output/YORU-4.12.1-release.apk.sha256`: OK.
+- GitHub Actions `34042510777`: success, шаг `Build Java release APK` прошёл.
+- `sha256sum -c apk-output/YORU-4.12.2-release.apk.sha256`: OK.
 
 ## Жёсткие правила будущего продолжения
 
@@ -43,4 +51,4 @@
 - “Озвучка” — только реальная команда перевода/дубляжа; технический маршрут не должен называться озвучкой.
 - Выбранная/дефолтная озвучка — предпочтение для скорости, но отсутствие этой озвучки не должно ломать playback/download.
 - Будущие серии должны быть визуально непроигрываемыми и показывать дату выхода/уточнение, а не обычную обложку.
-- Календарь избранного должен использовать identity-match между источниками и отдельно проверять любимые тайтлы.
+- Календарь избранного должен оставаться быстрым: не возвращать repeated JSON scans и последовательные сетевые details по каждому избранному.
