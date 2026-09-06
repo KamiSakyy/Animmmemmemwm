@@ -852,33 +852,39 @@ class YoruSourceEngine(private val client: OkHttpClient) {
         }
     }
 
-    private fun strip(value: String): String = value
-        .replace(Regex("""<[^>]+>"""), " ")
-        .replace(Regex("""\[[^]]+]"""), " ")
-        .replace(Regex("""\s+"""), " ")
-        .trim()
+    private fun strip(value: String): String {
+        return value
+            .replace(Regex("<[^>]+>"), " ")
+            .replace(Regex("\\[[^]]+]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
 
-    private fun cleanTitle(raw: String): String = strip(raw)
-        .replace('\u00a0', ' ')
-        .replace(Regex("""\s+"""), " ")
-        .replace(Regex("""(?iu)^смотреть\s+"""), "")
-        .replace(Regex("(?iu)\\s+все\\s+серии.*" + 36.toChar()), "")
-        .replace(Regex("\\s*\\[[^]]*]\\s*" + 36.toChar()), "")
-        .trim()
+    private fun cleanTitle(raw: String): String {
+        return strip(raw)
+            .replace('\u00a0', ' ')
+            .replace(Regex("\\s+"), " ")
+            .replace(Regex("(?iu)^смотреть\\s+"), "")
+            .replace(Regex("(?iu)\\s+все\\s+серии.*" + 36.toChar()), "")
+            .replace(Regex("\\s*\\[[^]]*]\\s*" + 36.toChar()), "")
+            .trim()
+    }
 
-    private fun plainName(raw: String): String = raw
-        .lowercase(Locale.ROOT)
-        .replace(Regex("""[^\p{L}\p{N}]+"""), " ")
-        .trim()
+    private fun plainName(raw: String): String {
+        return raw.lowercase(Locale.ROOT).replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
+    }
 
-    private fun numberIn(raw: String, fallback: Double): Double = Regex("""[0-9]+(?:\.[0-9]+)?""")
-        .find(raw)?.value?.toDoubleOrNull() ?: fallback
+    private fun numberIn(raw: String, fallback: Double): Double {
+        return Regex("[0-9]+(?:\\.[0-9]+)?").find(raw)?.value?.toDoubleOrNull() ?: fallback
+    }
 
-    private fun episodesIn(raw: String): Int = Regex("""(?iu)(?:из|серий:?|episodes?)\s*(\d{1,4})""")
-        .find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    private fun episodesIn(raw: String): Int {
+        return Regex("(?iu)(?:из|серий:?|episodes?)\\s*(\\d{1,4})").find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    }
 
-    private fun yearFrom(raw: String): Int = Regex("""(19|20)\d{2}""")
-        .find(raw)?.value?.toIntOrNull() ?: 0
+    private fun yearFrom(raw: String): Int {
+        return Regex("(19|20)\\d{2}").find(raw)?.value?.toIntOrNull() ?: 0
+    }
 
     private fun kind(raw: String): String = when (raw.lowercase(Locale.ROOT)) {
         "tv", "tv_short" -> "ТВ"
@@ -904,13 +910,13 @@ class YoruSourceEngine(private val client: OkHttpClient) {
     }
 
     private fun firstImage(html: String, base: String): String {
-        val raw = Regex("""<img[^>]+(?:data-src|data-original|src)=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+        val raw = Regex("<img[^>]+(?:data-src|data-original|src)=[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE)
             .find(html)?.groupValues?.getOrNull(1).orEmpty()
         return absolute(base, raw)
     }
 
     private fun heading(html: String): String {
-        val raw = Regex("""<h1[^>]*>(.*?)</h1>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val raw = Regex("<h1[^>]*>(.*?)</h1>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
             .find(html)?.groupValues?.getOrNull(1).orEmpty()
         return cleanTitle(raw)
     }
@@ -933,9 +939,9 @@ class YoruSourceEngine(private val client: OkHttpClient) {
     }
 
     private fun mediaLinks(html: String): List<String> {
-        val pattern = Regex("""https?:\?/\?/[^"'<>\s]+?(?:\.m3u8|\.mp4|\.mpd)[^"'<>\s]*""", RegexOption.IGNORE_CASE)
+        val pattern = Regex("https?:\\?//?[^\"'<>\\s]+?(?:\\.m3u8|\\.mp4|\\.mpd)[^\"'<>\\s]*", RegexOption.IGNORE_CASE)
         return pattern.findAll(html)
-            .mapNotNull { safe(it.value.replace("\/", "/")) }
+            .mapNotNull { safe(it.value.replace("\\/", "/")) }
             .distinct()
             .take(12)
             .toList()
