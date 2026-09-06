@@ -77,17 +77,17 @@ jobs:
         run: |
           git pull --rebase origin arena/01a07147-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-Kotlin-1.1.0-release.apk apk-output/YORU-Kotlin-1.1.0-release.apk.sha256
-          cp yoru-android/kotlinapp/build/outputs/apk/release/kotlinapp-release.apk apk-output/YORU-Kotlin-1.1.0-release.apk
-          sha256sum apk-output/YORU-Kotlin-1.1.0-release.apk > apk-output/YORU-Kotlin-1.1.0-release.apk.sha256
+          rm -f apk-output/YORU-Kotlin-1.2.0-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
+          cp yoru-android/kotlinapp/build/outputs/apk/release/kotlinapp-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk
+          sha256sum apk-output/YORU-Kotlin-1.2.0-release.apk > apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-Kotlin-1.1.0-release.apk apk-output/YORU-Kotlin-1.1.0-release.apk.sha256
-          git commit -m "Add built YORU Kotlin 1.1.0 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-Kotlin-1.2.0-release.apk apk-output/YORU-Kotlin-1.2.0-release.apk.sha256
+          git commit -m "Add built YORU Kotlin 1.2.0 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-kotlin-1.1.0-release-apk
+          name: yoru-kotlin-1.2.0-release-apk
           path: |
-            apk-output/YORU-Kotlin-1.1.0-release.apk
+            apk-output/YORU-Kotlin-1.2.0-release.apk

@@ -103,7 +103,7 @@ class YoruStore(context: Context) {
 
     @Synchronized fun download(id: String): DownloadRecord? = DownloadRecord.fromJson(downloads.optJSONObject(id))
 
-    @Synchronized fun downloadFor(animeId: String, episode: Double): DownloadRecord? = downloadRecords().firstOrNull { it.anime.id == animeId && kotlin.math.abs(it.episode.number - episode) < 0.001 }
+    @Synchronized fun downloadFor(animeKey: String, episode: Double): DownloadRecord? = downloadRecords().firstOrNull { it.anime.key == animeKey && kotlin.math.abs(it.episode.number - episode) < 0.001 }
 
     @Synchronized fun downloadRecords(): List<DownloadRecord> = jsonRows(downloads, "created") { DownloadRecord.fromJson(it) }
 
@@ -181,7 +181,3 @@ class YoruStore(context: Context) {
         return rows.sortedByDescending { it.first }.map { it.second }
     }
 }
-
-fun voiceChoices(): List<String> = listOf("AniLibria.TV", "AniDUB", "AniMaunt", "AnimeVost", "AniStar & DEEP", "Beyond:Studio", "Dream Cast", "AniMedia", "Субтитры")
-fun speedChoices(): List<Float> = listOf(0.75f, 1f, 1.1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f)
-fun speedLabel(value: Float): String = if (value == value.toInt().toFloat()) "${value.toInt()}×" else String.format(Locale.US, "%.2f×", value).replace(".00", "")

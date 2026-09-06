@@ -62,9 +62,12 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Forward10
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.Pause
@@ -116,6 +119,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -253,7 +257,7 @@ class YoruKotlinVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun download(anime: AnimeItem, episode: EpisodeItem, quality: Int) {
-        val key = "${anime.id}:${episode.number}"
+        val key = "${anime.key}:${episode.number}"
         if (activeDownloads.containsKey(key)) return
         if (settings.wifiDownloads && !wifi()) {
             pulse = "Загрузка ждёт Wi‑Fi"
@@ -261,7 +265,7 @@ class YoruKotlinVm(app: Application) : AndroidViewModel(app) {
         }
         activeDownloads = activeDownloads + (key to 0f)
         viewModelScope.launch {
-            val result = runCatching { repo.saveEpisode(anime, episode, quality) { p -> viewModelScope.launch { activeDownloads = activeDownloads + (key to p.coerceIn(0f, 1f)) } } }
+            val result = runCatching { repo.saveEpisode(anime, episode, quality, settings.preferredVoice) { p -> viewModelScope.launch { activeDownloads = activeDownloads + (key to p.coerceIn(0f, 1f)) } } }
             activeDownloads = activeDownloads - key
             result.onSuccess {
                 store.saveDownload(it)
@@ -352,18 +356,26 @@ private fun YoruTopBar(nav: NavHostController) {
 
 @Composable
 private fun YoruBottomBar(nav: NavHostController, route: String) {
-    val tabs = listOf("home" to "Главная", "catalog" to "Каталог", "library" to "Коллекция", "downloads" to "Загрузки", "calendar" to "Календарь")
+    val tabs = listOf(
+        YoruTab("home", "Главная", Icons.Rounded.Home),
+        YoruTab("catalog", "Каталог", Icons.Rounded.Explore),
+        YoruTab("library", "Коллекция", Icons.Rounded.Favorite),
+        YoruTab("downloads", "Загрузки", Icons.Rounded.Download),
+        YoruTab("calendar", "Календарь", Icons.Rounded.DateRange)
+    )
     NavigationBar(containerColor = surface) {
-        tabs.forEach { (target, label) ->
+        tabs.forEach { tab ->
             NavigationBarItem(
-                selected = route == target,
-                onClick = { nav.navigateRoot(target) },
-                icon = { Text(label.take(1), fontWeight = FontWeight.Black) },
-                label = { Text(label, maxLines = 1) }
+                selected = route == tab.route,
+                onClick = { nav.navigateRoot(tab.route) },
+                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                label = { Text(tab.label, maxLines = 1) }
             )
         }
     }
 }
+
+private data class YoruTab(val route: String, val label: String, val icon: ImageVector)
 
 private fun NavHostController.navigateRoot(route: String) {
     navigate(route) {
@@ -396,7 +408,7 @@ private fun HomeScreen(vm: YoruKotlinVm, nav: NavHostController) {
 private fun androidx.compose.foundation.lazy.LazyListScope.shelf(title: String, rows: List<AnimeItem>, settings: AppSettings, nav: NavHostController) {
     if (rows.isEmpty()) return
     item { SectionTitle(title) }
-    item { LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 8.dp)) { items(rows, key = { it.id }) { AnimeMiniCard(it, settings) { nav.navigate("details/${Uri.encode(it.id)}") } } } }
+    item { LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 8.dp)) { items(rows, key = { it.key }) { AnimeMiniCard(it, settings) { nav.navigate("details/${Uri.encode(it.key)}") } } } }
 }
 
 @Composable
@@ -409,7 +421,7 @@ private fun QuickStart(vm: YoruKotlinVm, nav: NavHostController, recent: List<Wa
             Text(if (last == null) "Каталог открывается сразу, видео запускается без лишних выборов." else "Продолжить: ${last.anime.displayTitle(vm.settings.originalTitles)} · серия ${numberLabel(last.episode)}", color = muted)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { if (last == null) nav.navigateRoot("catalog") else nav.navigate("player/${Uri.encode(last.anime.id)}/${Uri.encode(last.episode.toString())}") }, modifier = Modifier.weight(1f)) { Text(if (last == null) "Открыть каталог" else "Продолжить") }
+                Button(onClick = { if (last == null) nav.navigateRoot("catalog") else nav.navigate("player/${Uri.encode(last.anime.key)}/${Uri.encode(last.episode.toString())}") }, modifier = Modifier.weight(1f)) { Text(if (last == null) "Открыть каталог" else "Продолжить") }
                 OutlinedButton(onClick = { nav.navigateRoot("downloads") }, modifier = Modifier.weight(1f)) { Text("Загрузки") }
             }
         }
@@ -418,7 +430,7 @@ private fun QuickStart(vm: YoruKotlinVm, nav: NavHostController, recent: List<Wa
 
 @Composable
 private fun HeroCard(anime: AnimeItem, settings: AppSettings, nav: NavHostController) {
-    Card(Modifier.fillMaxWidth().height(330.dp).clickable { nav.navigate("details/${Uri.encode(anime.id)}") }, colors = CardDefaults.cardColors(containerColor = card), shape = RoundedCornerShape(28.dp)) {
+    Card(Modifier.fillMaxWidth().height(330.dp).clickable { nav.navigate("details/${Uri.encode(anime.key)}") }, colors = CardDefaults.cardColors(containerColor = card), shape = RoundedCornerShape(28.dp)) {
         Box(Modifier.fillMaxSize()) {
             AsyncImage(model = anime.poster, contentDescription = anime.title, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(ComposeColor(0x22120c1b), ComposeColor(0xee21162e)))))
@@ -429,7 +441,7 @@ private fun HeroCard(anime: AnimeItem, settings: AppSettings, nav: NavHostContro
                 Spacer(Modifier.height(8.dp))
                 Text(anime.meta(), color = ComposeColor(0xffdbcce7))
                 Spacer(Modifier.height(14.dp))
-                Button(onClick = { nav.navigate("details/${Uri.encode(anime.id)}") }) { Text("Начать смотреть") }
+                Button(onClick = { nav.navigate("details/${Uri.encode(anime.key)}") }) { Text("Начать смотреть") }
             }
         }
     }
@@ -452,7 +464,7 @@ private fun CatalogScreen(vm: YoruKotlinVm, nav: NavHostController) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(state.items, key = { it.id }) { anime -> AnimeCard(anime, vm.settings) { nav.navigate("details/${Uri.encode(anime.id)}") } }
+            items(state.items, key = { it.key }) { anime -> AnimeCard(anime, vm.settings) { nav.navigate("details/${Uri.encode(anime.key)}") } }
         }
     }
 }
@@ -531,10 +543,10 @@ private fun LibraryScreen(vm: YoruKotlinVm, nav: NavHostController) {
         }
         if (mode == "fav") {
             if (favorites.isEmpty()) item { EmptyCard("Коллекция пуста. Откройте карточку и добавьте тайтл.") }
-            items(favorites, key = { it.id }) { anime -> LibraryAnimeRow(anime, vm.settings, "В коллекции") { nav.navigate("details/${Uri.encode(anime.id)}") } }
+            items(favorites, key = { it.key }) { anime -> LibraryAnimeRow(anime, vm.settings, "В коллекции") { nav.navigate("details/${Uri.encode(anime.key)}") } }
         } else if (mode == "history") {
             if (recent.isEmpty()) item { EmptyCard("История появится после просмотра.") }
-            items(recent, key = { it.anime.id }) { progress -> LibraryAnimeRow(progress.anime, vm.settings, "Серия ${numberLabel(progress.episode)} · ${durationLabel(progress.position)}") { nav.navigate("player/${Uri.encode(progress.anime.id)}/${Uri.encode(progress.episode.toString())}") } }
+            items(recent, key = { it.anime.key }) { progress -> LibraryAnimeRow(progress.anime, vm.settings, "Серия ${numberLabel(progress.episode)} · ${durationLabel(progress.position)}") { nav.navigate("player/${Uri.encode(progress.anime.key)}/${Uri.encode(progress.episode.toString())}") } }
         } else {
             item { StatGrid(stats.optInt("favorites"), stats.optInt("history"), stats.optInt("downloads"), stats.optInt("minutes")) }
             item { OutlinedButton(onClick = { vm.clearHistory() }, modifier = Modifier.fillMaxWidth()) { Text("Очистить историю") } }
@@ -625,7 +637,7 @@ private fun CalendarScreen(vm: YoruKotlinVm, nav: NavHostController) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SectionTitle("Календарь выхода") }
         item { SmallNote("Лёгкий режим: показываем активные тайтлы без тяжёлой синхронизации при запуске.") }
-        items(rows, key = { it.id }) { anime -> LibraryAnimeRow(anime, vm.settings, anime.meta()) { nav.navigate("details/${Uri.encode(anime.id)}") } }
+        items(rows, key = { it.key }) { anime -> LibraryAnimeRow(anime, vm.settings, anime.meta()) { nav.navigate("details/${Uri.encode(anime.key)}") } }
     }
 }
 
@@ -724,7 +736,7 @@ private fun DetailsScreen(vm: YoruKotlinVm, nav: NavHostController, id: String) 
     var state by remember(id) { mutableStateOf(DetailState()) }
     LaunchedEffect(id) {
         state = DetailState(loading = true)
-        val result = runCatching { vm.repo.details(id) }
+        val result = runCatching { vm.repo.details(id, vm.settings) }
         state = result.fold({ DetailState(loading = false, detail = it) }, { DetailState(loading = false, error = "Карточка сейчас недоступна") })
     }
     Scaffold(containerColor = bg, topBar = { TopAppBar(title = { Text(state.detail?.anime?.displayTitle(vm.settings.originalTitles) ?: "Карточка", maxLines = 1, overflow = TextOverflow.Ellipsis) }, navigationIcon = { IconButton({ nav.popBackStack() }) { Icon(Icons.Rounded.ArrowBack, null) } }) }) { padding ->
@@ -742,9 +754,9 @@ private fun DetailsScreen(vm: YoruKotlinVm, nav: NavHostController, id: String) 
 private fun DetailContent(vm: YoruKotlinVm, nav: NavHostController, detail: AnimeDetail) {
     val anime = detail.anime
     val settings = vm.settings
-    val progress = remember(vm.tick, anime.id) { vm.store.progress(anime.id) }
+    val progress = remember(vm.tick, anime.key) { vm.store.progress(anime.key) }
     val startEpisode = progress?.episode ?: detail.episodes.firstOrNull()?.number ?: 1.0
-    val quality = chooseQuality(detail.episodes.firstOrNull { abs(it.number - startEpisode) < 0.001 }?.streams.orEmpty(), settings.quality)
+    val quality = chooseQuality(episodeQualityMap(detail.episodes.firstOrNull { abs(it.number - startEpisode) < 0.001 }), settings.quality)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { DetailHero(vm, anime) }
         item { GenreChips(anime) }
@@ -758,25 +770,25 @@ private fun DetailContent(vm: YoruKotlinVm, nav: NavHostController, detail: Anim
         items(detail.episodes, key = { it.id }) { episode -> EpisodeRow(vm, nav, anime, episode) }
         if (detail.related.isNotEmpty()) {
             item { SectionTitle("Связанные аниме и фильмы") }
-            items(detail.related, key = { it.id }) { item -> LibraryAnimeRow(item, settings, item.meta()) { nav.navigate("details/${Uri.encode(item.id)}") } }
+            items(detail.related, key = { it.key }) { item -> LibraryAnimeRow(item, settings, item.meta()) { nav.navigate("details/${Uri.encode(item.key)}") } }
         }
         if (detail.similar.isNotEmpty()) {
             item { SectionTitle("Похожее") }
-            item { LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) { items(detail.similar, key = { it.id }) { AnimeMiniCard(it, settings) { nav.navigate("details/${Uri.encode(it.id)}") } } } }
+            item { LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) { items(detail.similar, key = { it.key }) { AnimeMiniCard(it, settings) { nav.navigate("details/${Uri.encode(it.key)}") } } } }
         }
     }
 }
 
 @Composable
 private fun DetailHero(vm: YoruKotlinVm, anime: AnimeItem) {
-    val fav = remember(vm.tick, anime.id) { vm.store.favorite(anime) }
+    val fav = remember(vm.tick, anime.key) { vm.store.favorite(anime) }
     Card(colors = CardDefaults.cardColors(containerColor = card), shape = RoundedCornerShape(28.dp)) {
         Row(Modifier.padding(14.dp)) {
             AsyncImage(model = anime.poster, contentDescription = anime.title, modifier = Modifier.width(126.dp).height(184.dp).clip(RoundedCornerShape(22.dp)), contentScale = ContentScale.Crop)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SectionLabel("YORU SOURCE")
+                    SectionLabel("YORU")
                     Spacer(Modifier.weight(1f))
                     IconButton({ vm.toggleFavorite(anime) }) { Icon(if (fav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null, tint = if (fav) accent else muted) }
                 }
@@ -846,7 +858,7 @@ private fun ActionBlock(vm: YoruKotlinVm, nav: NavHostController, detail: AnimeD
     val anime = detail.anime
     val episode = detail.episodes.firstOrNull { abs(it.number - startEpisode) < 0.001 } ?: detail.episodes.firstOrNull()
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(onClick = { if (episode != null) nav.navigate("player/${Uri.encode(anime.id)}/${Uri.encode(episode.number.toString())}") }, enabled = episode != null, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { if (episode != null) nav.navigate("player/${Uri.encode(anime.key)}/${Uri.encode(episode.number.toString())}") }, enabled = episode != null, modifier = Modifier.fillMaxWidth()) {
             Text("Смотреть · ${vm.settings.preferredVoice} · ${qualityName(quality)}")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -859,13 +871,13 @@ private fun ActionBlock(vm: YoruKotlinVm, nav: NavHostController, detail: AnimeD
 @Composable
 private fun EpisodeRow(vm: YoruKotlinVm, nav: NavHostController, anime: AnimeItem, episode: EpisodeItem) {
     val settings = vm.settings
-    val quality = chooseQuality(episode.streams, settings.quality)
-    val done = remember(vm.tick, anime.id, episode.number) { vm.store.downloadFor(anime.id, episode.number) }
-    val key = "${anime.id}:${episode.number}"
+    val quality = chooseQuality(episodeQualityMap(episode), settings.quality)
+    val done = remember(vm.tick, anime.id, episode.number) { vm.store.downloadFor(anime.key, episode.number) }
+    val key = "${anime.key}:${episode.number}"
     val progress = vm.activeDownloads[key]
     Card(colors = CardDefaults.cardColors(containerColor = panel), shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { if (done != null) nav.navigate("offline/${Uri.encode(done.id)}") else nav.navigate("player/${Uri.encode(anime.id)}/${Uri.encode(episode.number.toString())}") }) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { if (done != null) nav.navigate("offline/${Uri.encode(done.id)}") else nav.navigate("player/${Uri.encode(anime.key)}/${Uri.encode(episode.number.toString())}") }) {
                 Box(Modifier.width(94.dp).height(56.dp).clip(RoundedCornerShape(13.dp)).background(surface)) {
                     AsyncImage(model = episode.poster.ifBlank { anime.poster }, contentDescription = episode.title, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     Surface(shape = CircleShape, color = ComposeColor(0x77000000), modifier = Modifier.size(34.dp).align(Alignment.Center)) { Box(contentAlignment = Alignment.Center) { Text("▶", color = text, fontWeight = FontWeight.Black) } }
@@ -874,13 +886,13 @@ private fun EpisodeRow(vm: YoruKotlinVm, nav: NavHostController, anime: AnimeIte
                 Column(Modifier.weight(1f)) {
                     Text(episode.label(settings.spoilerSafe), color = text, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(4.dp))
-                    Text("${episode.voice} · ${durationLabel(episode.duration)}", color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${episodeVoiceLabel(episode)} · ${durationLabel(episode.duration)}", color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 IconButton(onClick = { if (done != null) nav.navigate("offline/${Uri.encode(done.id)}") else vm.download(anime, episode, quality) }) { Icon(if (done != null) Icons.Rounded.PlayArrow else Icons.Rounded.Download, null, tint = accent) }
             }
             if (progress != null) Slider(value = progress, onValueChange = {}, enabled = false)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                episode.streams.keys.sorted().forEach { q -> AssistChip(onClick = {}, label = { Text(qualityName(q)) }) }
+                episodeQualityMap(episode).keys.sorted().forEach { q -> AssistChip(onClick = {}, label = { Text(qualityName(q)) }) }
                 AssistChip(onClick = {}, label = { Text(estimateSize(quality, episode.duration)) })
             }
         }
@@ -915,11 +927,11 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
             if (offlineId != null) {
                 val record = vm.store.download(offlineId) ?: error("offline")
                 AnimeDetail(record.anime, listOf(record.episode.copy(streams = mapOf(record.quality to File(record.path).toURI().toString()))))
-            } else vm.repo.details(id)
+            } else vm.repo.details(id, vm.settings)
         }
         result.onSuccess { loaded ->
             detail = loaded
-            val wanted = episodeValue.toDoubleOrNull() ?: vm.store.progress(loaded.anime.id)?.episode ?: loaded.episodes.firstOrNull()?.number ?: 1.0
+            val wanted = episodeValue.toDoubleOrNull() ?: vm.store.progress(loaded.anime.key)?.episode ?: loaded.episodes.firstOrNull()?.number ?: 1.0
             episodeIndex = loaded.episodes.indexOfFirst { abs(it.number - wanted) < 0.001 }.takeIf { it >= 0 } ?: 0
         }.onFailure { error = "Видео сейчас недоступно" }
     }
@@ -927,8 +939,38 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
     val loaded = detail
     val episodes = loaded?.episodes.orEmpty()
     val episode = episodes.getOrNull(episodeIndex)
-    LaunchedEffect(episode) { quality = chooseQuality(episode?.streams.orEmpty(), vm.settings.quality); startApplied = false }
-    val stream = episode?.streams?.get(quality) ?: episode?.streams?.entries?.sortedByDescending { it.key }?.firstOrNull()?.value
+    val variants = episode?.playableVariants().orEmpty()
+    var selectedVariant by remember(episode?.id, vm.settings.preferredVoice) { mutableStateOf<PlaybackVariant?>(null) }
+    var resolvedVariant by remember(episode?.id, vm.settings.preferredVoice) { mutableStateOf<PlaybackVariant?>(null) }
+    var resolving by remember(episode?.id, vm.settings.preferredVoice) { mutableStateOf(false) }
+
+    LaunchedEffect(episode?.id, vm.settings.preferredVoice) {
+        selectedVariant = variants.firstOrNull { voiceMatches(vm.settings.preferredVoice, it.voice) } ?: variants.firstOrNull()
+        resolvedVariant = null
+        resolving = false
+        quality = chooseQuality(selectedVariant?.streams.orEmpty().ifEmpty { episode?.streams.orEmpty() }, vm.settings.quality)
+        startApplied = false
+    }
+
+    LaunchedEffect(selectedVariant, vm.settings.quality) {
+        val variant = selectedVariant ?: return@LaunchedEffect
+        if (variant.streams.isEmpty() && variant.resolverUrl.isNotBlank()) {
+            resolving = true
+            val result = runCatching { vm.repo.resolveVariant(variant, vm.settings.quality) }
+            resolving = false
+            result.onSuccess { resolved ->
+                resolvedVariant = resolved
+                quality = chooseQuality(resolved.streams, vm.settings.quality)
+            }.onFailure { error = "Эта озвучка временно недоступна" }
+        } else {
+            resolvedVariant = variant
+            quality = chooseQuality(variant.streams.ifEmpty { episode?.streams.orEmpty() }, vm.settings.quality)
+        }
+    }
+
+    val activeVariant = resolvedVariant ?: selectedVariant
+    val activeStreams = activeVariant?.streams?.ifEmpty { episode?.streams.orEmpty() } ?: episode?.streams.orEmpty()
+    val stream = activeStreams[quality] ?: activeStreams.entries.sortedByDescending { it.key }.firstOrNull()?.value
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -945,7 +987,7 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
     LaunchedEffect(stream) {
         ready = false
         if (!stream.isNullOrBlank()) {
-            val keep = player.currentPosition.takeIf { it > 5000 && startApplied } ?: ((if (offlineId == null && loaded != null) vm.store.progress(loaded.anime.id)?.position ?: 0 else 0) * 1000L)
+            val keep = player.currentPosition.takeIf { it > 5000 && startApplied } ?: ((if (offlineId == null && loaded != null) vm.store.progress(loaded.anime.key)?.position ?: 0 else 0) * 1000L)
             player.setMediaItem(MediaItem.fromUri(stream))
             player.prepare()
             if (keep > 0) player.seekTo(keep)
@@ -995,8 +1037,8 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
             update = { it.resizeMode = if (fill) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
             modifier = Modifier.fillMaxSize()
         )
-        if (!ready && error.isBlank()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Surface(shape = CircleShape, color = ComposeColor(0xee21182d), shadowElevation = 14.dp, modifier = Modifier.size(74.dp)) { Box(contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(38.dp), strokeWidth = 3.dp, color = accent) } } }
-        if (stream.isNullOrBlank() && error.isBlank() && episode != null) Text("У серии нет прямого потока", color = text, modifier = Modifier.align(Alignment.Center))
+        if ((!ready || resolving) && error.isBlank()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Surface(shape = CircleShape, color = ComposeColor(0xee21182d), shadowElevation = 14.dp, modifier = Modifier.size(74.dp)) { Box(contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(38.dp), strokeWidth = 3.dp, color = accent) } } }
+        if (stream.isNullOrBlank() && !resolving && error.isBlank() && episode != null) Text("Эта озвучка пока без прямого потока", color = text, modifier = Modifier.align(Alignment.Center))
         if (error.isNotBlank()) Text(error, color = accent, modifier = Modifier.align(Alignment.Center))
         AnimatedVisibility(visible = seekFlash.isNotBlank(), modifier = Modifier.align(Alignment.Center)) { Surface(shape = CircleShape, color = ComposeColor(0xaa000000), modifier = Modifier.size(82.dp)) { Box(contentAlignment = Alignment.Center) { Text(seekFlash, color = text, fontWeight = FontWeight.Black) } } }
         LaunchedEffect(seekFlash) { if (seekFlash.isNotBlank()) { delay(650); seekFlash = "" } }
@@ -1006,6 +1048,8 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
                 episode = episode,
                 episodes = episodes,
                 quality = quality,
+                variants = variants,
+                activeVariant = activeVariant,
                 position = position,
                 duration = duration,
                 playing = playing,
@@ -1014,6 +1058,7 @@ private fun PlayerScreen(vm: YoruKotlinVm, nav: NavHostController, id: String, e
                 fullscreen = fullscreen,
                 onBack = { nav.popBackStack() },
                 onQuality = { quality = it },
+                onVoice = { selectedVariant = it; resolvedVariant = null; error = "" },
                 onPrev = { if (episodeIndex > 0) episodeIndex-- },
                 onNext = { if (episodeIndex + 1 < episodes.size) episodeIndex++ },
                 onPlay = { if (player.isPlaying) player.pause() else player.play() },
@@ -1035,6 +1080,8 @@ private fun PlayerOverlay(
     episode: EpisodeItem?,
     episodes: List<EpisodeItem>,
     quality: Int,
+    variants: List<PlaybackVariant>,
+    activeVariant: PlaybackVariant?,
     position: Long,
     duration: Long,
     playing: Boolean,
@@ -1043,6 +1090,7 @@ private fun PlayerOverlay(
     fullscreen: Boolean,
     onBack: () -> Unit,
     onQuality: (Int) -> Unit,
+    onVoice: (PlaybackVariant) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onPlay: () -> Unit,
@@ -1063,7 +1111,9 @@ private fun PlayerOverlay(
                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
                     if (episode != null) Text(episode.label(), color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                QualityMenu(episode?.streams?.keys?.sorted().orEmpty(), quality, onQuality)
+                QualityMenu((activeVariant?.streams?.keys?.sorted().orEmpty()).ifEmpty { episode?.streams?.keys?.sorted().orEmpty() }, quality, onQuality)
+                Spacer(Modifier.width(8.dp))
+                VoiceMenu(variants, activeVariant, onVoice)
                 Spacer(Modifier.width(8.dp))
                 GlassText("PiP", onClick = onPip)
                 Spacer(Modifier.width(8.dp))
@@ -1113,7 +1163,26 @@ private fun QualityMenu(qualities: List<Int>, quality: Int, onQuality: (Int) -> 
     var open by remember { mutableStateOf(false) }
     Box {
         Surface(shape = RoundedCornerShape(20.dp), color = ComposeColor(0xcc21182d), modifier = Modifier.height(42.dp).clickable { open = true }) { Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) { Text(qualityName(quality), fontWeight = FontWeight.Bold) } }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) { qualities.forEach { q -> DropdownMenuItem(text = { Text(qualityName(q)) }, onClick = { open = false; onQuality(q) }) } }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            val rows = qualities.ifEmpty { listOf(quality) }.distinct().sorted()
+            rows.forEach { q -> DropdownMenuItem(text = { Text(qualityName(q)) }, onClick = { open = false; onQuality(q) }) }
+        }
+    }
+}
+
+@Composable
+private fun VoiceMenu(variants: List<PlaybackVariant>, active: PlaybackVariant?, onVoice: (PlaybackVariant) -> Unit) {
+    val rows = variants.filter { realVoice(it.voice).isNotBlank() }.distinctBy { voiceKey(it.voice) }.take(10)
+    if (rows.isEmpty()) return
+    var open by remember { mutableStateOf(false) }
+    val label = realVoice(active?.voice.orEmpty()).ifBlank { realVoice(rows.first().voice) }
+    Box {
+        Surface(shape = RoundedCornerShape(20.dp), color = ComposeColor(0xcc21182d), modifier = Modifier.height(42.dp).clickable { open = true }) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) { Text(label, fontWeight = FontWeight.Bold, maxLines = 1) }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            rows.forEach { variant -> DropdownMenuItem(text = { Text(realVoice(variant.voice)) }, onClick = { open = false; onVoice(variant) }) }
+        }
     }
 }
 
@@ -1146,6 +1215,19 @@ private fun EmptyCard(value: String) { Card(colors = CardDefaults.cardColors(con
 
 @Composable
 private fun CenterSpinner() { Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = accent) } }
+
+private fun episodeQualityMap(episode: EpisodeItem?): Map<Int, String> {
+    if (episode == null) return emptyMap()
+    val out = linkedMapOf<Int, String>()
+    episode.streams.forEach { (q, u) -> if (u.isNotBlank()) out[q] = u }
+    episode.playableVariants().forEach { variant -> variant.streams.forEach { (q, u) -> if (u.isNotBlank()) out.putIfAbsent(q, u) } }
+    return out
+}
+
+private fun episodeVoiceLabel(episode: EpisodeItem): String {
+    val voices = episode.playableVariants().map { realVoice(it.voice) }.filter { it.isNotBlank() }.distinct().take(4)
+    return voices.joinToString(" · ").ifBlank { realVoice(episode.voice).ifBlank { "Озвучка будет выбрана автоматически" } }
+}
 
 private fun chooseQuality(streams: Map<Int, String>, preferred: Int): Int {
     if (streams.isEmpty()) return preferred
