@@ -833,32 +833,170 @@ class YoruSourceEngine(private val client: OkHttpClient) {
     }
 
     private fun imageFrom(j: JSONObject): String = absolute("https://api.yani.tv/", bestImage(j))
-    private fun anixImage(raw: String): String = when { raw.isBlank() -> ""; raw.startsWith("http") -> safe(raw); raw.startsWith("//") -> safe("https:$raw"); raw.startsWith("/") -> safe("https://api-s.anixsekai.com$raw"); else -> safe(raw) }
-    private fun shikiImage(raw: String): String = when { raw.startsWith("//") -> safe("https:$raw"); raw.startsWith("/") -> safe("https://shikimori.one$raw"); else -> safe(raw) }
-    private fun strip(value: String): String = value.replace(Regex("<[^>]+>"), " ").replace(Regex("\\[[^]]+]"), " ").replace(Regex("\\s+"), " ").trim()
-    private fun cleanTitle(raw: String): String = strip(raw).replace('\u00a0', ' ').replace(Regex("\\s+"), " ").replace(Regex("(?iu)^смотреть\\s+"), "").replace(Regex("(?iu)\\s+все\\s+серии.*$"), "").replace(Regex("\\s*\\[[^]]*]\\s*$"), "").trim()
-    private fun plainName(raw: String): String = raw.lowercase(Locale.ROOT).replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
-    private fun numberIn(raw: String, fallback: Double): Double = Regex("[0-9]+(?:\\.[0-9]+)?").find(raw)?.value?.toDoubleOrNull() ?: fallback
-    private fun episodesIn(raw: String): Int = Regex("(?iu)(?:из|серий:?|episodes?)\\s*(\\d{1,4})").find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
-    private fun yearFrom(raw: String): Int = Regex("(19|20)\\d{2}").find(raw)?.value?.toIntOrNull() ?: 0
-    private fun kind(raw: String): String = when (raw.lowercase(Locale.ROOT)) { "tv", "tv_short" -> "ТВ"; "movie" -> "Фильм"; "ona" -> "ONA"; "ova" -> "OVA"; "special", "tv_special" -> "Спешл"; else -> raw.ifBlank { "Аниме" } }
-    private fun statusName(raw: String): String = when { raw.contains("ongo", true) || raw.contains("выход", true) -> "Сейчас выходит"; raw.contains("anons", true) || raw.contains("анонс", true) -> "Анонсирован"; raw.isBlank() -> ""; else -> "Завершён" }
+
+    private fun anixImage(raw: String): String {
+        if (raw.isBlank()) return ""
+        return when {
+            raw.startsWith("http") -> safe(raw)
+            raw.startsWith("//") -> safe("https:$raw")
+            raw.startsWith("/") -> safe("https://api-s.anixsekai.com$raw")
+            else -> safe(raw)
+        }
+    }
+
+    private fun shikiImage(raw: String): String {
+        return when {
+            raw.startsWith("//") -> safe("https:$raw")
+            raw.startsWith("/") -> safe("https://shikimori.one$raw")
+            else -> safe(raw)
+        }
+    }
+
+    private fun strip(value: String): String = value
+        .replace(Regex("""<[^>]+>"""), " ")
+        .replace(Regex("""\[[^]]+]"""), " ")
+        .replace(Regex("""\s+"""), " ")
+        .trim()
+
+    private fun cleanTitle(raw: String): String = strip(raw)
+        .replace('\u00a0', ' ')
+        .replace(Regex("""\s+"""), " ")
+        .replace(Regex("""(?iu)^смотреть\s+"""), "")
+        .replace(Regex("""(?iu)\s+все\s+серии.*$"""), "")
+        .replace(Regex("""\s*\[[^]]*]\s*$"""), "")
+        .trim()
+
+    private fun plainName(raw: String): String = raw
+        .lowercase(Locale.ROOT)
+        .replace(Regex("""[^\p{L}\p{N}]+"""), " ")
+        .trim()
+
+    private fun numberIn(raw: String, fallback: Double): Double = Regex("""[0-9]+(?:\.[0-9]+)?""")
+        .find(raw)?.value?.toDoubleOrNull() ?: fallback
+
+    private fun episodesIn(raw: String): Int = Regex("""(?iu)(?:из|серий:?|episodes?)\s*(\d{1,4})""")
+        .find(raw)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+
+    private fun yearFrom(raw: String): Int = Regex("""(19|20)\d{2}""")
+        .find(raw)?.value?.toIntOrNull() ?: 0
+
+    private fun kind(raw: String): String = when (raw.lowercase(Locale.ROOT)) {
+        "tv", "tv_short" -> "ТВ"
+        "movie" -> "Фильм"
+        "ona" -> "ONA"
+        "ova" -> "OVA"
+        "special", "tv_special" -> "Спешл"
+        else -> raw.ifBlank { "Аниме" }
+    }
+
+    private fun statusName(raw: String): String = when {
+        raw.contains("ongo", true) || raw.contains("выход", true) -> "Сейчас выходит"
+        raw.contains("anons", true) || raw.contains("анонс", true) -> "Анонсирован"
+        raw.isBlank() -> ""
+        else -> "Завершён"
+    }
+
     private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
-    private fun stableId(value: String): String = ((MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }.take(12).toLong(16) % 999999999L) + 1L).toString()
-    private fun firstImage(html: String, base: String): String = Regex("<img[^>]+(?:data-src|data-original|src)=[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE).find(html)?.groupValues?.getOrNull(1)?.let { absolute(base, it) }.orEmpty()
-    private fun heading(html: String): String = Regex("<h1[^>]*>(.*?)</h1>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(html)?.groupValues?.getOrNull(1)?.let { cleanTitle(it) }.orEmpty()
-    private fun description(html: String): String = listOf("description", "full-text", "story", "entry").firstNotNullOfOrNull { cls -> Regex("<[^>]+class=[\"'][^\"']*$cls[^\"']*[\"'][^>]*>(.*?)</[^>]+>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(html)?.groupValues?.getOrNull(1)?.let { strip(it).take(1200) } }.orEmpty()
-    private fun unescape(value: String): String = value.replace("&amp;", "&").replace("&#039;", "'").replace("&quot;", "\"")
-    private fun mediaLinks(html: String): List<String> = Regex("https?:\\\\?/\\\\?/[^\"'<>\\s]+?(?:\\.m3u8|\\.mp4|\\.mpd)[^\"'<>\\s]*", RegexOption.IGNORE_CASE).findAll(html).mapNotNull { safe(it.value.replace("\\/", "/")) }.distinct().take(12).toList()
-    private fun qualityOf(url: String): Int = Regex("(?:^|[^0-9])([1-9][0-9]{2,3})p?(?:[^0-9]|$)").find(url)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
-    private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> = streams.toSortedMap(compareBy<Int> { abs(it - preferred) }.thenByDescending { it })
-    private fun animetkaEpisodeUrl(link: String, episode: Int): String = runCatching { val uri = Uri.parse(link); if (uri.path?.startsWith("/video/") == true) link else uri.buildUpon().appendQueryParameter("episode", episode.toString()).build().toString() }.getOrDefault(link)
-    private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String = "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
-    private fun chooseAnixSource(sources: JSONArray?): JSONObject? { var first: JSONObject? = null; for (i in 0 until (sources?.length() ?: 0)) { val row = sources?.optJSONObject(i) ?: continue; if (first == null) first = row; val name = row.optString("name", row.optString("title", "")).lowercase(Locale.ROOT); if (row.optInt("id", 0) == 12 || name.contains("kodik")) return row }; return first }
-    private fun firstArray(root: JSONObject?, vararg keys: String): JSONArray? { if (root == null) return null; keys.forEach { key -> root.optJSONArray(key)?.let { return it }; root.optJSONObject(key)?.let { obj -> firstArray(obj, "releases", "content", "data", "list", "items", "types", "sources", "episodes")?.let { return it } } }; return null }
-    private fun firstObject(root: JSONObject?, vararg keys: String): JSONObject? { if (root == null) return null; keys.forEach { root.optJSONObject(it)?.let { obj -> return obj } }; return null }
-    private fun animetkaHeaders() = mapOf("Accept" to "application/json,text/plain,*/*", "Origin" to "https://animetka.com", "Referer" to "https://animetka.com/", "User-Agent" to chrome)
-    private fun anixHeaders(base: String) = mapOf("Accept" to "application/json", "User-Agent" to anixUa, "Origin" to base, "Referer" to "$base/", "Accept-Language" to "ru-RU,ru;q=0.9,en;q=0.5")
+
+    private fun stableId(value: String): String {
+        val hex = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+        return ((hex.take(12).toLong(16) % 999999999L) + 1L).toString()
+    }
+
+    private fun firstImage(html: String, base: String): String {
+        val raw = Regex("""<img[^>]+(?:data-src|data-original|src)=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            .find(html)?.groupValues?.getOrNull(1).orEmpty()
+        return absolute(base, raw)
+    }
+
+    private fun heading(html: String): String {
+        val raw = Regex("""<h1[^>]*>(.*?)</h1>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+            .find(html)?.groupValues?.getOrNull(1).orEmpty()
+        return cleanTitle(raw)
+    }
+
+    private fun description(html: String): String {
+        for (cls in listOf("description", "full-text", "story", "entry")) {
+            val raw = Regex("""<[^>]+class=["'][^"']*$cls[^"']*["'][^>]*>(.*?)</[^>]+>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+                .find(html)?.groupValues?.getOrNull(1).orEmpty()
+            val clean = strip(raw).take(1200)
+            if (clean.length > 40) return clean
+        }
+        return ""
+    }
+
+    private fun unescape(value: String): String = value
+        .replace("&amp;", "&")
+        .replace("&#039;", "'")
+        .replace("&quot;", "\"")
+
+    private fun mediaLinks(html: String): List<String> {
+        val pattern = Regex("""https?:\?/\?/[^"'<>\s]+?(?:\.m3u8|\.mp4|\.mpd)[^"'<>\s]*""", RegexOption.IGNORE_CASE)
+        return pattern.findAll(html)
+            .mapNotNull { safe(it.value.replace("\/", "/")) }
+            .distinct()
+            .take(12)
+            .toList()
+    }
+
+    private fun qualityOf(url: String): Int = Regex("""(?:^|[^0-9])([1-9][0-9]{2,3})p?(?:[^0-9]|$)""")
+        .find(url)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+
+    private fun sortQualities(streams: Map<Int, String>, preferred: Int): Map<Int, String> =
+        streams.toSortedMap(compareBy<Int> { abs(it - preferred) }.thenByDescending { it })
+
+    private fun animetkaEpisodeUrl(link: String, episode: Int): String {
+        return runCatching {
+            val uri = Uri.parse(link)
+            if (uri.path?.startsWith("/video/") == true) link else uri.buildUpon().appendQueryParameter("episode", episode.toString()).build().toString()
+        }.getOrDefault(link)
+    }
+
+    private fun anixEpisodePath(id: String, typeId: String, sourceId: String, episode: String): String =
+        "https://api-s.anixsekai.com/release/$id/type/$typeId/source/$sourceId/episode/$episode"
+
+    private fun chooseAnixSource(sources: JSONArray?): JSONObject? {
+        var first: JSONObject? = null
+        for (i in 0 until (sources?.length() ?: 0)) {
+            val row = sources?.optJSONObject(i) ?: continue
+            if (first == null) first = row
+            val name = row.optString("name", row.optString("title", "")).lowercase(Locale.ROOT)
+            if (row.optInt("id", 0) == 12 || name.contains("kodik")) return row
+        }
+        return first
+    }
+
+    private fun firstArray(root: JSONObject?, vararg keys: String): JSONArray? {
+        if (root == null) return null
+        for (key in keys) {
+            root.optJSONArray(key)?.let { return it }
+            val nested = root.optJSONObject(key)
+            val found = firstArray(nested, "releases", "content", "data", "list", "items", "types", "sources", "episodes")
+            if (found != null) return found
+        }
+        return null
+    }
+
+    private fun firstObject(root: JSONObject?, vararg keys: String): JSONObject? {
+        if (root == null) return null
+        for (key in keys) root.optJSONObject(key)?.let { return it }
+        return null
+    }
+
+    private fun animetkaHeaders(): Map<String, String> = mapOf(
+        "Accept" to "application/json,text/plain,*/*",
+        "Origin" to "https://animetka.com",
+        "Referer" to "https://animetka.com/",
+        "User-Agent" to chrome
+    )
+
+    private fun anixHeaders(base: String): Map<String, String> = mapOf(
+        "Accept" to "application/json",
+        "User-Agent" to anixUa,
+        "Origin" to base,
+        "Referer" to "$base/",
+        "Accept-Language" to "ru-RU,ru;q=0.9,en;q=0.5"
+    )
 
     companion object {
         private const val chrome = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36"
