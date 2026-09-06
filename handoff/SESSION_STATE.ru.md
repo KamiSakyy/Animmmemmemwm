@@ -94,3 +94,14 @@ git diff --check
 - `.github/workflows/build-apk.yml` теперь собирает `:app:assembleRelease` и `:kotlinapp:assembleRelease` и сохраняет два APK.
 - Основной app поднят до 4.10.0/41; Kotlin app — 1.0.0-kotlin/2.
 - Для сборки тяжёлого Kotlin/Compose APK Gradle heap увеличен до 4G, metaspace до 1G, workers=1; lint release у kotlinapp отключён.
+
+## YORU Kotlin 1.1.0
+
+- Пользователь подтвердил, что Kotlin-приложение быстрее и лучше запускает видео; дальнейшая активная работа теперь только в `yoru-android/kotlinapp`.
+- Java YORU 4.10.0 остаётся доставленным APK, но новый основной фокус — Kotlin app.
+- `MainActivity.kt` переписан под дизайн YORU: главный экран, каталог, коллекция, загрузки, календарь, настройки, карточка, fullscreen image viewer и player.
+- Добавлены `YoruModels.kt`, `YoruStore.kt`, `YoruRepository.kt` для чистой Kotlin-архитектуры без Java-легаси.
+- Kotlin store хранит избранное, историю, настройки, скачанные серии, экспорт/импорт совместимого формата.
+- Kotlin repository сохраняет быстрый AniLibria path, OkHttp cache и локальное локальное сохранение видео без лишних технических экранов.
+- Kotlin player: Media3/ExoPlayer, быстрый буфер, progress, resume, auto-next, opening skip, fullscreen, PiP, smart-fill, speed до 2.5×, double tap seek.
+- `.github/workflows/build-apk.yml` переведён на сборку только `:kotlinapp:assembleRelease`, итоговый файл `YORU-Kotlin-1.1.0-release.apk`.
