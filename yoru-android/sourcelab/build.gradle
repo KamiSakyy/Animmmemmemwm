@@ -1,0 +1,38 @@
+plugins { id 'com.android.application' }
+
+def owner = new Properties()
+def ownerFile = rootProject.file('owner-signing/signing.properties')
+if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
+
+android {
+ namespace 'app.yoru.sourcelab'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'app.yoru.sourcelab'
+  minSdk 26
+  targetSdk 36
+  versionCode 1
+  versionName '0.1.0'
+ }
+ signingConfigs { release {
+  if (ownerFile.exists()) {
+   storeFile rootProject.file('owner-signing/yoru-release.jks')
+   storePassword owner.getProperty('storePassword')
+   keyAlias owner.getProperty('keyAlias')
+   keyPassword owner.getProperty('keyPassword')
+  }
+  enableV1Signing false
+  enableV2Signing true
+  enableV3Signing true
+ } }
+ buildTypes {
+  release { minifyEnabled false; shrinkResources false; debuggable false; signingConfig signingConfigs.release }
+  debug { applicationIdSuffix '.debug' }
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] } }
+}
+
+dependencies {
+ implementation 'org.jsoup:jsoup:1.18.3'
+}

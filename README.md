@@ -29,3 +29,15 @@ Source handoff YORU: `handoff/YORU-4.13.0-source-handoff.zip`.
 CI run: `34063163110`.
 
 Ключ YORU 4.13.0: Quality+ добавляет честные 1440p/2160p/“лучшее доступное” только при наличии реального потока; любимые озвучки стали списком приоритета для карточки, плеера, источников и скачивания; Карточка+ показывает расширенные публичные метаданные; коллекция получила пользовательские папки/полки поверх старых статусов. Animetka подключена глубже через публичный `/api/anime/playlist`, без private tokens/auth bypass/DRM bypass. Оптимизации календаря 4.12.11, cold start/cache 4.12.10, bounded executors 4.12.9 и фоновые уведомления 4.12.8 сохранены.
+
+
+## YORU Source Lab 0.1.0
+
+Отдельное тестовое приложение `app.yoru.sourcelab` для проверки новых источников перед переносом в YORU. YORU 4.13.0 и его текущие источники не изменяются.
+
+Категории Source Lab: AnimeON, Coani, AnimeUA, AllAnime, Anichi.
+
+Исходники: `yoru-android/sourcelab`.
+Workflow сборки: `.github/workflows/build-sourcelab-apk.yml`.
+Инструкция: `handoff/YORU_SOURCE_LAB_0.1.0_BUILD.ru.md`.
+Backup YORU перед Source Lab: `handoff/YORU-4.13.0-before-source-lab.zip`.
