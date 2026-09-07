@@ -135,7 +135,7 @@ public final class ApiRepository {
         }else if(source.equals("anilibria")){
             Map<String,String> p=params("limit","24","page",String.valueOf(page),"f[search]",q,"f[sorting]",libriaSort(f),"f[genres]",f.genre,"f[types]",f.type,"f[years][from_year]",f.year,"f[years][to_year]",f.year,"f[publish_statuses]",libriaStatus(f));JSONObject data=get(query("https://anilibria.top/api/v1/anime/catalog/releases",p));rows=data.optJSONArray("data");for(int i=0;rows!=null&&i<rows.length();i++)out.items.add(remember(libriaAnime(rows.getJSONObject(i))));JSONObject meta=data.optJSONObject("meta"),pg=meta==null?null:meta.optJSONObject("pagination");if(pg!=null){out.total=pg.optLong("total",-1);out.more=page<pg.optInt("total_pages");}
         }else throw new IOException("Неизвестный каталог");
-        if(filterActive(f)){ArrayList<Anime> rows=filterSort(out.items,q,f);out.items.clear();out.items.addAll(rows);out.total=rows.size();}if(out.total>=0&&q.isEmpty()&&f.genre.isEmpty()&&f.year.isEmpty()&&f.type.isEmpty()&&f.status.isEmpty())counts.put(source,out.total);return out;
+        if(filterActive(f)){ArrayList<Anime> filteredRows=filterSort(out.items,q,f);out.items.clear();out.items.addAll(filteredRows);out.total=filteredRows.size();}if(out.total>=0&&q.isEmpty()&&f.genre.isEmpty()&&f.year.isEmpty()&&f.type.isEmpty()&&f.status.isEmpty())counts.put(source,out.total);return out;
     }
 
 
