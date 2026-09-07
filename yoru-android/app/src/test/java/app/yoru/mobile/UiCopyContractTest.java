@@ -22,7 +22,10 @@ public class UiCopyContractTest {
         "yoru-android/app/src/main/java/app/yoru/mobile/"
       )) {
         Path file = dir.resolve(prefix + name + ".java");
-        if (Files.isRegularFile(file)) return Files.readString(file);
+        if (Files.isRegularFile(file)) return new String(
+          Files.readAllBytes(file),
+          java.nio.charset.StandardCharsets.UTF_8
+        );
       }
     }
     throw new IOException("Cannot locate production source: " + name);
