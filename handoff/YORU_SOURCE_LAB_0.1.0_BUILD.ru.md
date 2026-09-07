@@ -85,7 +85,24 @@ Hoster extractors не копируются в Source Lab — приложени
 
 Модуль `yoru-android/sourcelab` намеренно не подключён постоянно в `yoru-android/settings.gradle`, чтобы не запускать YORU/YURO workflows и не менять основную сборку. Source Lab workflow временно добавляет `include ':sourcelab'` только в CI job.
 
-Ожидаемый APK после CI:
+Готовый APK после CI:
 
-- `apk-output/YORU-SourceLab-0.1.0-release.apk`
-- `apk-output/YORU-SourceLab-0.1.0-release.apk.sha256`
+- APK: `apk-output/YORU-SourceLab-0.1.0-release.apk`
+- SHA256: `492a062849b81a3bdb7b4186bea9a1909e56abceb265d53e509478d1eee25823`
+- Размер APK: `185924` bytes
+- SHA-файл: `apk-output/YORU-SourceLab-0.1.0-release.apk.sha256`
+- Source handoff: `handoff/YORU-SourceLab-0.1.0-source-handoff.zip`
+- Source handoff SHA256: `ca5ef5530a1f6186452f852eff6258fdceb9ae62be8f410a277df64c484e01b3`
+- Source handoff размер: `16314` bytes
+- GitHub Actions run: `34101137479` — success
+- APK commit: `41dcb47` (`Add built YORU Source Lab 0.1.0 release APK [skip ci]`)
+
+## Проверка
+
+- `sha256sum -c apk-output/YORU-SourceLab-0.1.0-release.apk.sha256` — OK.
+- `unzip -t apk-output/YORU-SourceLab-0.1.0-release.apk` — No errors detected.
+- `sha256sum -c handoff/YORU-SourceLab-0.1.0-source-handoff.zip.sha256` — OK.
+- `unzip -t handoff/YORU-SourceLab-0.1.0-source-handoff.zip` — No errors detected.
+- Первый CI поймал Java lambda final issue; исправлено `a27cbc4`.
+- Второй CI собрал APK, но save-step упал из-за временного `settings.gradle`; исправлено `158ec8c`.
+- Финальный run `34101137479` прошёл build/save/upload.
