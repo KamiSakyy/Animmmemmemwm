@@ -58,7 +58,22 @@
 
 Модуль `yoru-android/sourcelab` намеренно не подключён постоянно в `yoru-android/settings.gradle`. Workflow временно добавляет `include ':sourcelab'` только в CI job.
 
-Ожидаемые файлы после CI:
+Готовые файлы после CI:
 
-- `apk-output/YORU-SourcePlayer-0.2.0-release.apk`
-- `apk-output/YORU-SourcePlayer-0.2.0-release.apk.sha256`
+- APK: `apk-output/YORU-SourcePlayer-0.2.0-release.apk`
+- SHA256 APK: `72bfe6851cc0877a9d8ca5cb31b774aceb3ff301bf3289c6c26bc411079afc19`
+- Размер APK: `3948632` bytes
+- SHA-файл: `apk-output/YORU-SourcePlayer-0.2.0-release.apk.sha256`
+- Source handoff: `handoff/YORU-SourcePlayer-0.2.0-source-handoff.zip`
+- Source handoff SHA256: `d879ee5ef043092e781b4ae7721ec3f2ccd0435d5eda822d22d1765356aba69f`
+- Source handoff размер: `18874` bytes
+- GitHub Actions run: `34103385017` — success
+- APK commit: `a868026` (`Add built YORU Source Player 0.2.0 release APK [skip ci]`)
+
+## Проверка
+
+- `sha256sum -c apk-output/YORU-SourcePlayer-0.2.0-release.apk.sha256` — OK.
+- `unzip -t apk-output/YORU-SourcePlayer-0.2.0-release.apk` — No errors detected.
+- `sha256sum -c handoff/YORU-SourcePlayer-0.2.0-source-handoff.zip.sha256` — OK.
+- `unzip -t handoff/YORU-SourcePlayer-0.2.0-source-handoff.zip` — No errors detected.
+- CI build/save/upload прошёл успешно.

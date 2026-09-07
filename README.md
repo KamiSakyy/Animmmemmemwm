@@ -40,6 +40,8 @@ CI run: `34063163110`.
 
 Исходники: `yoru-android/sourcelab`.
 Workflow сборки: `.github/workflows/build-sourcelab-apk.yml`.
-Ожидаемый release APK: `apk-output/YORU-SourcePlayer-0.2.0-release.apk`.
+Готовый release APK: `apk-output/YORU-SourcePlayer-0.2.0-release.apk`.
+SHA256 APK: `72bfe6851cc0877a9d8ca5cb31b774aceb3ff301bf3289c6c26bc411079afc19`.
+Source handoff: `handoff/YORU-SourcePlayer-0.2.0-source-handoff.zip`.
 Инструкция: `handoff/YORU_SOURCE_PLAYER_0.2.0_BUILD.ru.md`.
 Backup YORU перед Source Player: `handoff/YORU-4.13.0-before-source-lab.zip`.
