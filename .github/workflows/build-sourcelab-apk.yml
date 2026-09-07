@@ -77,6 +77,7 @@ jobs:
       - name: Save APK into branch
         working-directory: .
         run: |
+          git restore yoru-android/settings.gradle || true
           git pull --rebase origin arena/01a07147-animmmemmemwm
           mkdir -p apk-output
           rm -f apk-output/YORU-SourceLab-0.1.0-release.apk apk-output/YORU-SourceLab-0.1.0-release.apk.sha256
