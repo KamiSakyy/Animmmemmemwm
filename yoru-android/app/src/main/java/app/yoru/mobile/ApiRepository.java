@@ -1,0 +1,5334 @@
+package app.yoru.mobile;
+
+import android.content.Context;
+import android.net.Uri;
+import android.text.Html;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.*;
+import org.json.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.*;
+
+public final class ApiRepository {
+
+  private static final String CHROME =
+    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36";
+  private static final String ANIX_UA = "Anixart/8.5.2 (Android 13; Pixel 7)";
+  private static final String[] ANIX_BASES = {
+    "https://api-s.anixsekai.com",
+    "https://api.anixsekai.com",
+  };
+  private static final String[] SHIKI_GRAPH = {
+    "https://shikimori.io/api/graphql",
+    "https://shikimori.one/api/graphql",
+    "https://shikimori.me/api/graphql",
+  };
+  private static final String[] SHIKI_REST = {
+    "https://shikimori.one",
+    "https://shikimori.me",
+  };
+  public static final LinkedHashMap<String, String> sourceNames =
+    new LinkedHashMap<>();
+  private static final String[] REAL_SOURCES = {
+    "yummy",
+    "anilibria",
+    "animevost",
+    "animelib",
+    "animedia",
+    "animetka",
+    "shikimori",
+  };
+
+  static {
+    sourceNames.put("all", "YORU");
+    sourceNames.put("yoru", "YORU");
+    sourceNames.put("yummy", "YORU");
+    sourceNames.put("anilibria", "AniLiberty");
+    sourceNames.put("animevost", "AnimeVost");
+    sourceNames.put("animelib", "AniLib");
+    sourceNames.put("animelib4k", "AniLib Ultra");
+    sourceNames.put("animedia", "AniMedia");
+    sourceNames.put("animetka", "Animetka");
+    sourceNames.put("anidub", "AniDUB");
+    sourceNames.put("shikimori", "Shikimori");
+    sourceNames.put("kodik", "YORU");
+    sourceNames.put("anixsekai", "YORU");
+  }
+
+  public static final String[] VOICE_PREF_VALUES = {
+    "",
+    "anidub",
+    "anilibria",
+    "animaunt",
+    "animevost",
+    "anistar-deep",
+    "beyond-studio",
+    "dreamcast",
+    "animedia",
+    "studio-band",
+    "jam",
+    "shiza",
+    "subtitles",
+  };
+  public static final String[] VOICE_PREF_NAMES = {
+    "Авто",
+    "AniDUB",
+    "AniLibria.TV",
+    "AniMaunt",
+    "AnimeVost",
+    "AniStar & DEEP",
+    "Beyond:Studio",
+    "Dream Cast",
+    "AniMedia",
+    "StudioBand",
+    "JAM",
+    "SHIZA Project",
+    "Субтитры",
+  };
+
+  private static boolean routeLabel(String value) {
+    String v =
+      value == null ? "" : value.toLowerCase(Locale.ROOT).replace('ё', 'е');
+    return (
+      v.contains("yoru") ||
+      v.contains("yummy") ||
+      v.contains("yani") ||
+      v.contains("kodik") ||
+      v.contains("aniqit") ||
+      v.contains("cdnvideohub") ||
+      v.contains("anix") ||
+      v.contains("sekai") ||
+      v.equals("player") ||
+      v.equals("iframe") ||
+      v.equals("плеер") ||
+      v.equals("вариант") ||
+      v.equals("оригинал")
+    );
+  }
+
+  public static String sourceVoice(String source) {
+    String s = source == null ? "" : source.toLowerCase(Locale.ROOT);
+    if (
+      s.contains("anilibria") ||
+      s.contains("aniliberty") ||
+      s.contains("cdnlibs")
+    ) return "AniLibria.TV";
+    if (s.contains("animevost")) return "AnimeVost";
+    if (s.contains("anidub")) return "AniDUB";
+    if (s.contains("animedia")) return "AniMedia";
+    return "";
+  }
+
+  public static String voiceKey(String value) {
+    String v =
+      value == null ? "" : value.toLowerCase(Locale.ROOT).replace('ё', 'е');
+    v = v
+      .replace("анилибрия", "anilibria")
+      .replace("анилиберт", "aniliberty")
+      .replace("анимаунт", "animaunt")
+      .replace("анимевост", "animevost")
+      .replace("анимедиа", "animedia")
+      .replace("субтитры", "subtitles")
+      .replace("сабы", "subtitles");
+    if (
+      v.contains("anilibria") ||
+      v.contains("aniliberty") ||
+      v.contains("cdnlibs")
+    ) return "anilibria";
+    if (v.contains("animaunt") || v.contains("ani maunt")) return "animaunt";
+    if (v.contains("animevost") || v.contains("anime vost")) return "animevost";
+    if (v.contains("anistar") && v.contains("deep")) return "anistar-deep";
+    if (v.contains("beyond") && v.contains("studio")) return "beyond-studio";
+    if (v.contains("dream") && v.contains("cast")) return "dreamcast";
+    if (v.contains("anidub") || v.contains("ani dub")) return "anidub";
+    if (v.contains("animedia") || v.contains("ani media")) return "animedia";
+    if (
+      v.contains("studioband") || v.contains("studio band")
+    ) return "studio-band";
+    if (v.matches(".*\bjam\b.*")) return "jam";
+    if (v.contains("shiza")) return "shiza";
+    if (
+      v.contains("subtitles") ||
+      v.contains("subtitle") ||
+      v.contains("sub ") ||
+      v.contains(" subs") ||
+      v.contains("суб")
+    ) return "subtitles";
+    if (routeLabel(v)) return "";
+    String plain = plainName(v);
+    if (
+      plain.isEmpty() ||
+      plain.equals("auto") ||
+      plain.equals("avto") ||
+      plain.equals("ozvuchka") ||
+      plain.equals("perevod")
+    ) return "";
+    return plain.replaceAll("\\s+", "");
+  }
+
+  public static String voiceTitle(String value) {
+    String key = voiceKey(value);
+    if (key.equals("anilibria")) return "AniLibria.TV";
+    if (key.equals("animaunt")) return "AniMaunt";
+    if (key.equals("animevost")) return "AnimeVost";
+    if (key.equals("anistar-deep")) return "AniStar & DEEP";
+    if (key.equals("beyond-studio")) return "Beyond:Studio";
+    if (key.equals("dreamcast")) return "Dream Cast";
+    if (key.equals("anidub")) return "AniDUB";
+    if (key.equals("animedia")) return "AniMedia";
+    if (key.equals("studio-band")) return "StudioBand";
+    if (key.equals("jam")) return "JAM";
+    if (key.equals("shiza")) return "SHIZA Project";
+    if (key.equals("subtitles")) return "Субтитры";
+    String label = cleanLabel(value);
+    if (
+      label.isEmpty() ||
+      routeLabel(label) ||
+      label.equalsIgnoreCase("Озвучка") ||
+      label.equalsIgnoreCase("Перевод") ||
+      label.equalsIgnoreCase("Дубляж")
+    ) return "";
+    label = label
+      .replaceAll(
+        "(?i)\\b(player|iframe|hls|dash|mp4|kodik|yummy|yani|aniqit|cdnvideohub|yoru)\\b",
+        ""
+      )
+      .replaceAll("\\s+", " ")
+      .trim();
+    return label.isEmpty() ? "" : label;
+  }
+
+  public static boolean voiceMatches(String wanted, String actual) {
+    String w = voiceKey(wanted);
+    if (w.isEmpty()) return true;
+    String a = voiceKey(actual);
+    if (w.equals(a)) return true;
+    String wt = plainName(wanted),
+      at = plainName(actual);
+    return (
+      !wt.isEmpty() &&
+      !at.isEmpty() &&
+      !routeLabel(actual) &&
+      (at.contains(wt) || wt.contains(at))
+    );
+  }
+
+  private static final String SH_FIELDS =
+    "id malId name russian english kind rating score status episodes episodesAired nextEpisodeAt airedOn{year date} poster{mainUrl originalUrl} genres{id russian name} studios{name}";
+  private static final long DAY_MS = 24L * 60 * 60 * 1000;
+  private final Context context;
+  private static final int MEMORY_CACHE_LIMIT = 96,
+    STREAM_CACHE_LIMIT = 64,
+    MEMORY_CACHE_MAX_TEXT = 50_000;
+  private final ConcurrentHashMap<String, Cache> cache =
+    new ConcurrentHashMap<>(128);
+  private final ConcurrentHashMap<String, StreamCache> streamCache =
+    new ConcurrentHashMap<>(96);
+  private final ConcurrentHashMap<String, Anime> known =
+    new ConcurrentHashMap<>();
+  private volatile long lastMemoryTrim, lastStreamTrim;
+  private final YoruShield shield;
+  private final ArrayList<Anime> seed = new ArrayList<>();
+  private final java.util.concurrent.ConcurrentHashMap<String, Long> counts =
+    new java.util.concurrent.ConcurrentHashMap<>();
+  private String publicToken = "";
+  private long tokenAt;
+  private volatile boolean bootLoaded;
+
+  private static final class Cache {
+
+    String text;
+    long at;
+
+    Cache(String t) {
+      text = t;
+      at = System.currentTimeMillis();
+    }
+  }
+
+  private static final class StreamCache {
+
+    TreeMap<Integer, String> streams;
+    long at;
+
+    StreamCache(TreeMap<Integer, String> s) {
+      streams = new TreeMap<>(s);
+      at = System.currentTimeMillis();
+    }
+  }
+
+  private static final class YoruChoice {
+
+    Anime.Variant variant;
+    int quality;
+    TreeMap<Integer, String> streams;
+
+    YoruChoice(Anime.Variant v, int q, TreeMap<Integer, String> s) {
+      variant = v;
+      quality = q;
+      streams = new TreeMap<>(s);
+    }
+  }
+
+  public static final class Filter {
+
+    public String year = "",
+      genre = "",
+      type = "",
+      status = "",
+      sort = "RATING_DESC",
+      season = "";
+  }
+
+  public static final class AiringItem {
+
+    public Anime anime;
+    public long time;
+    public int episode;
+    public String kind = "",
+      precision = "",
+      source = "";
+  }
+
+  public static JSONArray airingJson(List<AiringItem> rows) {
+    JSONArray arr = new JSONArray();
+    try {
+      if (rows != null) for (AiringItem item : rows) {
+        if (item == null || item.anime == null) continue;
+        arr.put(
+          new JSONObject()
+            .put("anime", item.anime.json())
+            .put("time", item.time)
+            .put("episode", item.episode)
+            .put("kind", item.kind)
+            .put("precision", item.precision)
+            .put("source", item.source)
+        );
+      }
+    } catch (Exception ignored) {}
+    return arr;
+  }
+
+  public static ArrayList<AiringItem> airingFromJson(JSONArray arr) {
+    ArrayList<AiringItem> out = new ArrayList<>();
+    try {
+      for (int i = 0; arr != null && i < arr.length() && i < 800; i++) {
+        JSONObject j = arr.optJSONObject(i);
+        if (j == null) continue;
+        AiringItem item = new AiringItem();
+        item.anime = Anime.from(j.optJSONObject("anime"));
+        item.time = j.optLong("time");
+        item.episode = j.optInt("episode");
+        item.kind = j.optString("kind");
+        item.precision = j.optString("precision");
+        item.source = j.optString("source");
+        if (Anime.valid(item.anime) && item.time > 0) out.add(item);
+      }
+    } catch (Exception ignored) {}
+    return out;
+  }
+
+  public static int todayCount(List<AiringItem> rows) {
+    Calendar c = Calendar.getInstance();
+    c.set(Calendar.HOUR_OF_DAY, 0);
+    c.set(Calendar.MINUTE, 0);
+    c.set(Calendar.SECOND, 0);
+    c.set(Calendar.MILLISECOND, 0);
+    long start = c.getTimeInMillis(),
+      end = start + DAY_MS;
+    int n = 0;
+    if (rows != null) for (AiringItem item : rows)
+      if (item != null && item.time >= start && item.time < end) n++;
+    return n;
+  }
+
+  public ApiRepository(Context c) {
+    context = c.getApplicationContext();
+    shield = new YoruShield(context);
+  }
+
+  private synchronized void ensureBoot() {
+    if (bootLoaded) return;
+    bootLoaded = true;
+    try {
+      JSONObject boot = new JSONObject(
+        readStream(context.getAssets().open("boot.json"), 3 * 1024 * 1024)
+      );
+      JSONArray rows = boot.optJSONArray("releases");
+      for (int i = 0; rows != null && i < rows.length(); i++) {
+        Anime a = Anime.from(rows.getJSONObject(i));
+        a.cached = true;
+        if (a.id.equals("9542")) a.malId = 52991;
+        if (a.id.equals("9600")) a.malId = 52299;
+        if (a.id.equals("9555")) a.malId = 54492;
+        seed.add(a);
+        known.put(a.key(), a);
+      }
+    } catch (Exception ignored) {}
+    try {
+      JSONObject cs = new JSONObject(
+        readStream(context.getAssets().open("counts.json"), 100000)
+      );
+      Iterator<String> it = cs.keys();
+      while (it.hasNext()) {
+        String key = it.next();
+        JSONObject row = cs.optJSONObject(key);
+        long n = row == null ? -1 : row.optLong("value", -1);
+        if (n >= 0) counts.put(key, n);
+      }
+    } catch (Exception ignored) {}
+  }
+
+  public long countOf(String source) {
+    ensureBoot();
+    if ("yoru".equals(source)) return countOf("all");
+    if ("all".equals(source)) {
+      long sum = 0;
+      for (String s : REAL_SOURCES) {
+        Long n = counts.get(s);
+        if (n != null && n > 0) sum += n;
+      }
+      return sum > 0 ? sum : -1;
+    }
+    Long n = counts.get(source);
+    return n == null ? -1 : n;
+  }
+
+  public void clearMemory() {
+    cache.clear();
+    streamCache.clear();
+  }
+
+  public JSONObject sourceDiagnostics() {
+    JSONObject out = new JSONObject();
+    try {
+      out.put("routes", YoruApp.app().store.sourceSnapshot());
+      out.put("memoryCache", cache.size());
+      out.put("streamCache", streamCache.size());
+      out.put("known", known.size());
+      out.put("calendarToday", YoruApp.app().calendarTodayCount);
+    } catch (Exception ignored) {}
+    return out;
+  }
+
+  public List<Anime> seed() {
+    ensureBoot();
+    return new ArrayList<>(seed);
+  }
+
+  public Anime remember(Anime a) {
+    if (Anime.valid(a)) {
+      known.put(a.key(), a);
+      if (known.size() > 1800) {
+        Iterator<String> it = known.keySet().iterator();
+        if (it.hasNext()) known.remove(it.next());
+      }
+    }
+    return a;
+  }
+
+  public Anime known(String key) {
+    ensureBoot();
+    return known.get(key);
+  }
+
+  public TreeMap<Integer, String> resolveStreams(String input)
+    throws Exception {
+    String key = embed(input);
+    if (key.isEmpty()) key = safeUrl(input);
+    if (key.isEmpty()) throw new IOException("Просмотр не передал данные");
+    long now = System.currentTimeMillis();
+    StreamCache hit = streamCache.get(key);
+    if (hit != null) {
+      if (now - hit.at < 20 * 60 * 1000) return new TreeMap<>(hit.streams);
+      streamCache.remove(key, hit);
+    }
+    TreeMap<Integer, String> streams = VideoResolver.resolve(this, key);
+    if (!streams.isEmpty()) {
+      streamCache.put(key, new StreamCache(streams));
+      trimStreamCache();
+    }
+    return new TreeMap<>(streams);
+  }
+
+  static String readStream(InputStream in, int max) throws IOException {
+    try (
+      InputStream input = in;
+      ByteArrayOutputStream out = new ByteArrayOutputStream()
+    ) {
+      byte[] b = new byte[8192];
+      int n;
+      while ((n = input.read(b)) != -1) {
+        if (out.size() + n > max) throw new IOException(
+          "Слишком большой ответ каталога"
+        );
+        out.write(b, 0, n);
+      }
+      return out.toString("UTF-8");
+    }
+  }
+
+  public static String safeUrl(String value) {
+    if (value == null || value.trim().isEmpty()) return "";
+    value = value
+      .trim()
+      .replace(" ", "%20")
+      .replace("\\/", "/")
+      .replace("&amp;", "&");
+    if (value.startsWith("//")) value = "https:" + value;
+    try {
+      Uri u = Uri.parse(value);
+      String h = u.getHost();
+      if (h == null) return "";
+      h = h.toLowerCase(Locale.ROOT);
+      if (
+        "http".equals(u.getScheme()) &&
+        (h.equals("video.animetop.info") ||
+          h.equals("media.animetop.info") ||
+          h.equals("static.openni.ru"))
+      ) u = u.buildUpon().scheme("https").build();
+      String scheme = u.getScheme();
+      if (
+        !("https".equals(scheme) || "http".equals(scheme)) ||
+        u.getUserInfo() != null ||
+        !h.contains(".") ||
+        h.equals("localhost") ||
+        h.endsWith(".local") ||
+        h.matches("^(127|10|0|192\\.168|169\\.254)\\..*") ||
+        h.matches("^172\\.(1[6-9]|2[0-9]|3[01])\\..*")
+      ) return "";
+      return u.toString();
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  String request(String url, String method, String body, boolean form)
+    throws Exception {
+    return request(url, method, body, form, null);
+  }
+
+  String request(
+    String url,
+    String method,
+    String body,
+    boolean form,
+    Map<String, String> headers
+  ) throws Exception {
+    String ck = cacheKey(method, url, body, headers);
+    long now = System.currentTimeMillis(),
+      ttl = cacheTtl(url, body);
+    Cache hit = cache.get(ck);
+    if (hit != null) {
+      if (now - hit.at < ttl) return hit.text;
+      cache.remove(ck, hit);
+    }
+    Exception last = null;
+    ArrayList<String> attempts = shield.routes(url);
+    for (String start : attempts) {
+      try {
+        String text = requestNetwork(start, method, body, form, headers);
+        if (text.length() < MEMORY_CACHE_MAX_TEXT) {
+          cache.put(ck, new Cache(text));
+          trimMemoryCache();
+        }
+        shield.ok(start);
+        return text;
+      } catch (Exception e) {
+        last = e;
+        shield.fail(start);
+      }
+    }
+    if (last != null) throw last;
+    throw new IOException("Каталог не ответил");
+  }
+
+  private static long cacheTtl(String url, String body) {
+    String v = (url + " " + (body == null ? "" : body)).toLowerCase(
+      Locale.ROOT
+    );
+    if (
+      v.contains("nextepisodeat") ||
+      v.contains("episodesaired") ||
+      v.contains("/api/animes/")
+    ) return 8 * 60 * 1000L;
+    if (v.contains("graphql") || v.contains("/anime")) return 3 * 60 * 1000L;
+    return 90000L;
+  }
+
+  private static String cacheKey(
+    String method,
+    String url,
+    String body,
+    Map<String, String> headers
+  ) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      digest(md, method);
+      digest(md, url);
+      digest(md, body);
+      if (headers != null && !headers.isEmpty()) {
+        ArrayList<String> keys = new ArrayList<>(headers.keySet());
+        Collections.sort(keys);
+        for (String k : keys) {
+          digest(md, k);
+          digest(md, headers.get(k));
+        }
+      }
+      return hex(md.digest());
+    } catch (Exception e) {
+      return Integer.toHexString(Objects.hash(method, url, body, headers));
+    }
+  }
+
+  private static void digest(MessageDigest md, String value) {
+    if (value != null) md.update(value.getBytes(StandardCharsets.UTF_8));
+    md.update((byte) 0);
+  }
+
+  private static String hex(byte[] bytes) {
+    char[] table = "0123456789abcdef".toCharArray(),
+      out = new char[bytes.length * 2];
+    for (int i = 0; i < bytes.length; i++) {
+      int v = bytes[i] & 255;
+      out[i * 2] = table[v >>> 4];
+      out[i * 2 + 1] = table[v & 15];
+    }
+    return new String(out);
+  }
+
+  private void trimMemoryCache() {
+    int size = cache.size();
+    if (size <= MEMORY_CACHE_LIMIT) return;
+    long now = System.currentTimeMillis();
+    if (now - lastMemoryTrim < 1000L && size < MEMORY_CACHE_LIMIT * 2) return;
+    lastMemoryTrim = now;
+    ArrayList<Map.Entry<String, Cache>> rows = new ArrayList<>(
+      cache.entrySet()
+    );
+    rows.sort((a, b) -> Long.compare(a.getValue().at, b.getValue().at));
+    for (int i = 0; i < rows.size() - MEMORY_CACHE_LIMIT; i++) {
+      Map.Entry<String, Cache> e = rows.get(i);
+      cache.remove(e.getKey(), e.getValue());
+    }
+  }
+
+  private void trimStreamCache() {
+    int size = streamCache.size();
+    if (size <= STREAM_CACHE_LIMIT) return;
+    long now = System.currentTimeMillis();
+    if (now - lastStreamTrim < 1000L && size < STREAM_CACHE_LIMIT * 2) return;
+    lastStreamTrim = now;
+    ArrayList<Map.Entry<String, StreamCache>> rows = new ArrayList<>(
+      streamCache.entrySet()
+    );
+    rows.sort((a, b) -> Long.compare(a.getValue().at, b.getValue().at));
+    for (int i = 0; i < rows.size() - STREAM_CACHE_LIMIT; i++) {
+      Map.Entry<String, StreamCache> e = rows.get(i);
+      streamCache.remove(e.getKey(), e.getValue());
+    }
+  }
+
+  private String requestNetwork(
+    String url,
+    String method,
+    String body,
+    boolean form,
+    Map<String, String> headers
+  ) throws Exception {
+    String current = url;
+    String currentMethod = method,
+      currentBody = body;
+    for (int redirect = 0; redirect < 5; redirect++) {
+      if (
+        Thread.currentThread().isInterrupted()
+      ) throw new InterruptedIOException();
+      if (safeUrl(current).isEmpty()) throw new IOException(
+        "Недопустимый адрес"
+      );
+      URL target = new URL(current);
+      HttpURLConnection c = (HttpURLConnection) target.openConnection();
+      c.setConnectTimeout(2200);
+      c.setReadTimeout(3600);
+      c.setInstanceFollowRedirects(false);
+      c.setRequestMethod(currentMethod);
+      c.setRequestProperty(
+        "Accept",
+        "application/json,text/html;q=0.9,*/*;q=0.6"
+      );
+      c.setRequestProperty("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.5");
+      c.setRequestProperty("User-Agent", CHROME);
+      if (headers != null) for (Map.Entry<
+        String,
+        String
+      > e : headers.entrySet())
+        if (e.getKey() != null && e.getValue() != null) c.setRequestProperty(
+          e.getKey(),
+          e.getValue()
+        );
+      try {
+        if (currentBody != null) {
+          c.setDoOutput(true);
+          c.setRequestProperty(
+            "Content-Type",
+            form
+              ? "application/x-www-form-urlencoded; charset=UTF-8"
+              : "application/json; charset=UTF-8"
+          );
+          try (OutputStream out = c.getOutputStream()) {
+            out.write(currentBody.getBytes(StandardCharsets.UTF_8));
+          }
+        }
+        int code = c.getResponseCode();
+        if (code >= 300 && code < 400) {
+          String loc = c.getHeaderField("Location");
+          if (loc == null) throw new IOException("Каталог не ответил");
+          current = new URL(new URL(current), loc).toString();
+          if (code != 307 && code != 308) {
+            currentMethod = "GET";
+            currentBody = null;
+          }
+          continue;
+        }
+        if (code == 429) throw new IOException(
+          "Каталог временно занят. Попробуйте позже."
+        );
+        if (code < 200 || code >= 300) throw new IOException(
+          "Каталог сейчас недоступен. Попробуйте другой вариант."
+        );
+        return readStream(c.getInputStream(), 12 * 1024 * 1024);
+      } finally {
+        c.disconnect();
+      }
+    }
+    throw new IOException("Каталог не ответил");
+  }
+
+  public void refreshProtection(boolean force) {
+    shield.refresh(force);
+  }
+
+  String document(String u) throws Exception {
+    return request(u, "GET", null, false);
+  }
+
+  String formPage(String u, String body) throws Exception {
+    return request(u, "POST", body, true);
+  }
+
+  private JSONObject get(String u) throws Exception {
+    return new JSONObject(request(u, "GET", null, false));
+  }
+
+  private JSONObject postJson(String u, JSONObject j) throws Exception {
+    return new JSONObject(request(u, "POST", j.toString(), false));
+  }
+
+  private JSONObject postForm(String u, String key, String value)
+    throws Exception {
+    return new JSONObject(
+      request(u, "POST", enc(key) + "=" + enc(value), true)
+    );
+  }
+
+  private static String enc(String s) {
+    try {
+      return URLEncoder.encode(s, "UTF-8");
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  public static String query(String base, Map<String, String> params) {
+    StringBuilder s = new StringBuilder(base);
+    for (Map.Entry<String, String> e : params.entrySet()) {
+      if (e.getValue() == null || e.getValue().isEmpty()) continue;
+      s.append(s.indexOf("?") >= 0 ? '&' : '?')
+        .append(enc(e.getKey()))
+        .append('=')
+        .append(enc(e.getValue()));
+    }
+    return s.toString();
+  }
+
+  private static LinkedHashMap<String, String> params(String... kv) {
+    LinkedHashMap<String, String> p = new LinkedHashMap<>();
+    for (int i = 0; i + 1 < kv.length; i += 2) p.put(kv[i], kv[i + 1]);
+    return p;
+  }
+
+  private JSONObject shiki(String q) throws Exception {
+    JSONObject body = new JSONObject().put("query", q);
+    Exception last = null;
+    for (String url : SHIKI_GRAPH) {
+      try {
+        JSONObject j = new JSONObject(
+          request(url, "POST", body.toString(), false)
+        );
+        if (j.has("errors")) throw new IOException(
+          "Каталог не ответил на запрос"
+        );
+        return j.getJSONObject("data");
+      } catch (Exception e) {
+        last = e;
+      }
+    }
+    if (last != null) throw last;
+    throw new IOException("Каталог не ответил на запрос");
+  }
+
+  private String shikiRest(String path) throws Exception {
+    Exception last = null;
+    for (String base : SHIKI_REST) {
+      try {
+        return request(base + path, "GET", null, false);
+      } catch (Exception e) {
+        last = e;
+      }
+    }
+    if (last != null) throw last;
+    throw new IOException("Shikimori не ответил");
+  }
+
+  private static boolean nativeFilters(String source) {
+    return (
+      source.equals("yoru") ||
+      source.equals("shikimori") ||
+      source.equals("yummy") ||
+      source.equals("anilibria")
+    );
+  }
+
+  private static boolean filterActive(Filter f) {
+    return (
+      f != null &&
+      (!f.year.isEmpty() ||
+        !f.genre.isEmpty() ||
+        !f.type.isEmpty() ||
+        !f.status.isEmpty() ||
+        !f.season.isEmpty() ||
+        !"RATING_DESC".equals(f.sort))
+    );
+  }
+
+  public Anime.Page catalog(String source, String search, int page, Filter f)
+    throws Exception {
+    if (f == null) f = new Filter();
+    if (source == null || source.isEmpty()) source = "all";
+    if (!source.equals("all") && !nativeFilters(source) && filterActive(f)) {
+      Anime.Page smart = catalog("shikimori", search, page, f);
+      smart.note = "Умная подборка";
+      return smart;
+    }
+    if (source.equals("all")) return allCatalog(search, page, f);
+    if (source.equals("yoru")) return yoruCatalog(search, page, f);
+    if (source.equals("anixsekai")) return anixCatalog(search, page, f);
+    if (source.equals("animedia")) return new NativeSources(this).catalog(
+      source,
+      search,
+      page
+    );
+    if (source.equals("kodik")) return kodikCatalog(search, page, f);
+    if (source.equals("animelib4k")) return animelib4kCatalog(search, page, f);
+    if (source.equals("animetka")) return animetkaCatalog(search, page, f);
+    if (source.equals("anidub")) return anidubCatalog(search, page);
+    Anime.Page out = new Anime.Page();
+    out.page = page;
+    JSONArray rows;
+    String q = search == null ? "" : search.trim();
+    int limit = 24;
+    if (source.equals("shikimori")) {
+      String args =
+        "limit:24,page:" +
+        page +
+        ",order:" +
+        (f.sort.equals("POPULARITY") ? "popularity" : "ranked") +
+        ",rating:\"!rx\"";
+      if (!q.isEmpty()) args += ",search:" + JSONObject.quote(q);
+      if (!f.year.isEmpty()) args +=
+        ",season:" +
+        JSONObject.quote((f.season.isEmpty() ? "" : f.season + "_") + f.year);
+      if (!f.genre.isEmpty()) args += ",genre:" + JSONObject.quote(f.genre);
+      if (!f.type.isEmpty()) args +=
+        ",kind:" + JSONObject.quote(f.type.toLowerCase(Locale.ROOT));
+      if (!f.status.isEmpty()) args += ",status:" + JSONObject.quote(f.status);
+      rows = shiki("{animes(" + args + "){" + SH_FIELDS + "}}").optJSONArray(
+        "animes"
+      );
+      for (int i = 0; rows != null && i < rows.length(); i++) out.items.add(
+        remember(shikiAnime(rows.getJSONObject(i)))
+      );
+      out.more = rows != null && rows.length() == limit;
+    } else if (source.equals("animevost")) {
+      JSONObject data = q.isEmpty()
+        ? get("https://api.animevost.org/v1/last?quantity=24&page=" + page)
+        : postForm("https://api.animevost.org/v1/search", "name", q);
+      rows = data.optJSONArray("data");
+      if (rows == null) rows = new JSONArray();
+      if (q.isEmpty()) {
+        JSONObject st = data.optJSONObject("state");
+        out.total = st == null ? -1 : st.optLong("count", -1);
+        for (int i = 0; i < rows.length(); i++) out.items.add(
+          remember(vostAnime(rows.getJSONObject(i)))
+        );
+        out.more = out.total > page * 24;
+      } else {
+        out.total = rows.length();
+        for (
+          int i = (page - 1) * 24;
+          i < Math.min(rows.length(), page * 24);
+          i++
+        ) out.items.add(remember(vostAnime(rows.getJSONObject(i))));
+        out.more = rows.length() > page * 24;
+      }
+    } else if (source.equals("yummy")) {
+      Map<String, String> p = params(
+        "limit",
+        "24",
+        "offset",
+        String.valueOf((page - 1) * 24),
+        "q",
+        q,
+        "sort",
+        f.sort.equals("YEAR_DESC") ? "year" : "rating",
+        "sort_forward",
+        "false",
+        "genres",
+        f.genre,
+        "from_year",
+        f.year,
+        "to_year",
+        f.year,
+        "types",
+        f.type.toLowerCase(Locale.ROOT),
+        "status",
+        f.status.equals("anons") ? "announcement" : f.status
+      );
+      JSONObject data = get(query("https://api.yani.tv/anime", p));
+      if (data.has("error")) throw new IOException("Каталог сейчас недоступен");
+      rows = data.optJSONArray("response");
+      for (int i = 0; rows != null && i < rows.length(); i++) out.items.add(
+        remember(yummyAnime(rows.getJSONObject(i)))
+      );
+      out.more = rows != null && rows.length() == 24;
+    } else if (source.equals("animelib")) {
+      Map<String, String> p = params(
+        "page",
+        String.valueOf(page),
+        "q",
+        q,
+        "sort_by",
+        f.sort.equals("FRESH_AT_DESC") ? "last_episode_at" : "rate_avg"
+      );
+      String u =
+        query("https://api.cdnlibs.org/api/anime", p) +
+        "&fields%5B%5D=rate&fields%5B%5D=rate_avg&fields%5B%5D=releaseDate";
+      if (!f.status.isEmpty()) u +=
+        "&status%5B%5D=" + (f.status.equals("ongoing") ? "1" : "2");
+      JSONObject data = get(u);
+      rows = data.optJSONArray("data");
+      for (int i = 0; rows != null && i < rows.length(); i++) out.items.add(
+        remember(amAnime(rows.getJSONObject(i)))
+      );
+      JSONObject links = data.optJSONObject("links");
+      out.more =
+        links != null &&
+        !links.isNull("next") &&
+        !links.optString("next", "").isEmpty();
+    } else if (source.equals("anilibria")) {
+      Map<String, String> p = params(
+        "limit",
+        "24",
+        "page",
+        String.valueOf(page),
+        "f[search]",
+        q,
+        "f[sorting]",
+        f.sort.equals("POPULARITY") ? "RATING_DESC" : f.sort,
+        "f[genres]",
+        f.genre,
+        "f[types]",
+        f.type,
+        "f[years][from_year]",
+        f.year,
+        "f[years][to_year]",
+        f.year,
+        "f[publish_statuses]",
+        f.status.isEmpty()
+          ? ""
+          : f.status.equals("ongoing")
+            ? "IS_ONGOING"
+            : "IS_NOT_ONGOING"
+      );
+      JSONObject data = get(
+        query("https://anilibria.top/api/v1/anime/catalog/releases", p)
+      );
+      rows = data.optJSONArray("data");
+      for (int i = 0; rows != null && i < rows.length(); i++) out.items.add(
+        remember(libriaAnime(rows.getJSONObject(i)))
+      );
+      JSONObject meta = data.optJSONObject("meta"),
+        pg = meta == null ? null : meta.optJSONObject("pagination");
+      if (pg != null) {
+        out.total = pg.optLong("total", -1);
+        out.more = page < pg.optInt("total_pages");
+      }
+    } else throw new IOException("Неизвестный каталог");
+    if (
+      out.total >= 0 &&
+      q.isEmpty() &&
+      f.genre.isEmpty() &&
+      f.year.isEmpty() &&
+      f.type.isEmpty() &&
+      f.status.isEmpty()
+    ) counts.put(source, out.total);
+    return out;
+  }
+
+  private Anime.Page allCatalog(String search, int page, Filter f)
+    throws Exception {
+    if (filterActive(f)) {
+      Anime.Page smart = catalog("shikimori", search, page, f);
+      smart.note = "Умная подборка";
+      return smart;
+    }
+    Anime.Page out = new Anime.Page();
+    out.page = page;
+    LinkedHashMap<String, Anime> items = new LinkedHashMap<>();
+    boolean more = false;
+    int ok = 0;
+    ExecutorService pool = Executors.newFixedThreadPool(
+      Math.max(2, Math.min(4, REAL_SOURCES.length))
+    );
+    CompletionService<Anime.Page> done = new ExecutorCompletionService<>(pool);
+    for (String source : REAL_SOURCES) {
+      final String src = source;
+      done.submit(() -> catalog(src, search, page, f));
+    }
+    long deadline =
+      System.currentTimeMillis() +
+      (search == null || search.trim().isEmpty() ? 3600 : 4600);
+    try {
+      for (int i = 0; i < REAL_SOURCES.length; i++) {
+        long left = deadline - System.currentTimeMillis();
+        if (left <= 0) break;
+        Future<Anime.Page> future = done.poll(left, TimeUnit.MILLISECONDS);
+        if (future == null) break;
+        try {
+          Anime.Page p = future.get();
+          ok++;
+          more |= p.more;
+          for (Anime a : p.items) items.put(a.key(), a);
+          if (items.size() >= 24 && ok >= 2) break;
+        } catch (Exception ignored) {}
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    out.items.addAll(SourceEngine.mergeCatalog(items.values(), 24));
+    out.more = more;
+    if (
+      (search == null || search.trim().isEmpty()) && countOf("all") > 0
+    ) out.total = countOf("all");
+    if (out.items.isEmpty() && ok == 0) throw new IOException(
+      "YORU сейчас не получил подборку"
+    );
+    return out;
+  }
+
+  public Anime quickDetails(Anime base) throws Exception {
+    if (!Anime.valid(base)) return base;
+    YoruCache db = YoruApp.app() == null ? null : YoruApp.app().cache;
+    Anime cached = db == null ? null : db.detail(base, 18 * 60 * 60 * 1000L);
+    if (Anime.valid(cached)) {
+      SourceEngine.absorb(base, cached);
+      return remember(cached);
+    }
+    Anime result = null;
+    if (base.source.equals("shikimori")) {
+      int id = base.malId > 0 ? base.malId : parseInt(base.id);
+      if (id > 0) result = shikiQuick(id, base.source);
+    } else if (base.source.equals("yoru")) {
+      int id = base.malId > 0 ? base.malId : 0;
+      if (id > 0) {
+        Anime meta = shikiQuick(id, "yoru");
+        Anime a = yoruShell(meta);
+        fillYoruMeta(a, meta);
+        result = a;
+      } else try {
+        Anime y = findYummy(base);
+        if (Anime.valid(y)) {
+          Anime a = yoruShell(y);
+          fillYoruMeta(a, y);
+          result = a;
+        }
+      } catch (Exception ignored) {}
+    } else if (base.source.equals("yummy")) {
+      JSONObject d = get(
+        "https://api.yani.tv/anime/" + enc(base.id)
+      ).optJSONObject("response");
+      result = d == null ? base : yummyAnime(d);
+    } else if (base.source.equals("animelib")) {
+      String slug = base.alias.isEmpty() ? base.id : base.alias;
+      result = amAnime(animelibDetail(slug, base).getJSONObject("data"));
+    } else if (base.source.equals("anilibria")) result = libriaAnime(
+      get("https://anilibria.top/api/v1/anime/releases/" + enc(base.id))
+    );
+    else result = details(base, false);
+    if (!Anime.valid(result)) result = base;
+    if (result.year == 0) result.year = base.year;
+    if (result.description.isEmpty()) result.description = base.description;
+    if (result.poster.isEmpty()) result.poster = base.poster;
+    if (db != null) db.detail(result);
+    return remember(result);
+  }
+
+  public void prefetchQuickDetails(Collection<Anime> rows, int max) {
+    if (rows == null) return;
+    int n = 0;
+    for (Anime a : rows) {
+      if (!Anime.valid(a)) continue;
+      if (++n > max) break;
+      try {
+        quickDetails(a);
+      } catch (Exception ignored) {}
+    }
+  }
+
+  private Anime shikiQuick(int id, String source) throws Exception {
+    JSONArray rows = shiki(
+      "{animes(ids:" +
+        JSONObject.quote(String.valueOf(id)) +
+        ",limit:1){" +
+        SH_FIELDS +
+        " descriptionHtml}}"
+    ).optJSONArray("animes");
+    if (rows == null || rows.length() == 0) throw new IOException(
+      "Аниме не найдено"
+    );
+    JSONObject j = rows.getJSONObject(0);
+    Anime a = shikiAnime(j);
+    a.source = source == null || source.isEmpty() ? "shikimori" : source;
+    if (a.malId <= 0) a.malId = id;
+    if ("yoru".equals(a.source)) a.id = String.valueOf(id);
+    a.description = plain(j.optString("descriptionHtml"));
+    YoruCache db = YoruApp.app() == null ? null : YoruApp.app().cache;
+    if (db != null) db.detail(a);
+    return remember(a);
+  }
+
+  public Anime details(Anime base, boolean episodes) throws Exception {
+    if (base.source.equals("animedia")) return new NativeSources(this).details(
+      base,
+      episodes
+    );
+    Anime a;
+    String id = base.id;
+    switch (base.source) {
+      case "yoru": {
+        a = yoruDetails(base, episodes);
+        break;
+      }
+      case "anixsekai": {
+        a = anixDetails(base, episodes);
+        break;
+      }
+      case "shikimori": {
+        JSONArray rows = shiki(
+          "{animes(ids:" +
+            JSONObject.quote(id) +
+            ",limit:1){" +
+            SH_FIELDS +
+            " descriptionHtml related{relationKind anime{" +
+            SH_FIELDS +
+            "}}}}"
+        ).optJSONArray("animes");
+        if (rows == null || rows.length() == 0) throw new IOException(
+          "Аниме не найдено"
+        );
+        JSONObject j = rows.getJSONObject(0);
+        a = shikiAnime(j);
+        a.description = plain(j.optString("descriptionHtml"));
+        JSONArray rel = j.optJSONArray("related");
+        for (int i = 0; rel != null && i < rel.length(); i++) {
+          JSONObject r = rel.getJSONObject(i).optJSONObject("anime");
+          if (r != null) a.related.add(remember(shikiAnime(r)));
+        }
+        break;
+      }
+      case "animevost": {
+        JSONArray rows = postForm(
+          "https://api.animevost.org/v1/info",
+          "id",
+          id
+        ).optJSONArray("data");
+        if (rows == null || rows.length() == 0) throw new IOException(
+          "Аниме не найдено"
+        );
+        a = vostAnime(rows.getJSONObject(0));
+        if (episodes) {
+          JSONArray list = new JSONArray(
+            request(
+              "https://api.animevost.org/v1/playlist",
+              "POST",
+              "id=" + enc(id),
+              true
+            )
+          );
+          for (int i = 0; i < list.length(); i++) {
+            JSONObject e = list.getJSONObject(i);
+            Anime.Episode ep = new Anime.Episode();
+            ep.id = id + "-" + i;
+            ep.name = e.optString("name", "");
+            ep.number = numberIn(ep.name, i + 1);
+            putStream(ep, 480, e.optString("std"));
+            putStream(ep, 720, e.optString("hd"));
+            a.episodeList.add(ep);
+          }
+          a.episodesAired = Math.max(a.episodesAired, a.episodeList.size());
+          a.episodes = Math.max(a.episodes, a.episodeList.size());
+        }
+        break;
+      }
+      case "yummy": {
+        JSONObject d = get(
+          "https://api.yani.tv/anime/" + enc(id)
+        ).optJSONObject("response");
+        if (d == null) throw new IOException("YORU не открыл карточку");
+        a = yummyAnime(d);
+        if (episodes) {
+          a.episodeList.addAll(YummyParser.episodes(id));
+          a.episodesAired = Math.max(a.episodesAired, playableEpisodes(a));
+          a.episodes = Math.max(a.episodes, a.episodeList.size());
+        }
+        break;
+      }
+      case "anidub": {
+        a = anidubDetails(base, episodes);
+        break;
+      }
+      case "animelib": {
+        String slug = base.alias.isEmpty() ? id : base.alias;
+        JSONObject d = animelibDetail(slug, base).getJSONObject("data");
+        a = amAnime(d);
+        if (episodes) {
+          JSONArray rows = get(
+            "https://api.cdnlibs.org/api/episodes?anime_id=" + enc(a.alias)
+          ).optJSONArray("data");
+          for (int i = 0; rows != null && i < rows.length(); i++) {
+            JSONObject e = rows.getJSONObject(i);
+            double n = e.optDouble("number", -1);
+            if (n < 0 || !Double.isFinite(n)) continue;
+            Anime.Episode ep = new Anime.Episode();
+            ep.id = e.optString("id");
+            ep.number = n;
+            ep.name = e.optString("name", "");
+            ep.poster = bestImage(e);
+            ep.lazy = "animelib";
+            a.episodeList.add(ep);
+          }
+          a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+          a.episodesAired = Math.max(a.episodesAired, a.episodeList.size());
+          a.episodes = Math.max(a.episodes, a.episodeList.size());
+        }
+        break;
+      }
+      case "animelib4k": {
+        Anime copy = Anime.from(base.json());
+        copy.source = "animelib";
+        a = details(copy, episodes);
+        a.source = "animelib4k";
+        break;
+      }
+      case "anilibria": {
+        a = libriaAnime(
+          get("https://anilibria.top/api/v1/anime/releases/" + enc(id))
+        );
+        break;
+      }
+      case "animetka": {
+        a = animetkaDetails(base, episodes);
+        break;
+      }
+      case "kodik": {
+        a = kodikDetails(base, episodes);
+        break;
+      }
+      default:
+        throw new IOException("Неизвестный каталог");
+    }
+    if (a.year == 0) a.year = base.year;
+    if (a.malId == 0) a.malId = base.malId;
+    if (a.anilistId == 0) a.anilistId = base.anilistId;
+    if (a.kpId == 0) a.kpId = base.kpId;
+    if (a.description.isEmpty()) a.description = base.description;
+    if (a.poster.isEmpty()) a.poster = base.poster;
+    if (a.trailerUrl.isEmpty()) a.trailerUrl = base.trailerUrl;
+    for (String shot : base.screenshots)
+      if (
+        !shot.isEmpty() &&
+        !a.screenshots.contains(shot) &&
+        a.screenshots.size() < 12
+      ) a.screenshots.add(shot);
+    enrichSchedule(a);
+    enrichVisuals(a);
+    enrichRelated(a);
+    appendFutureEpisodes(a);
+    applyEpisodeVisuals(a);
+    YoruCache db = YoruApp.app() == null ? null : YoruApp.app().cache;
+    if (db != null) db.detail(a);
+    return remember(a);
+  }
+
+  public Anime.Playback playback(Anime input, String selectedMode)
+    throws Exception {
+    normalizeIds(input);
+    String selected =
+      selectedMode == null || selectedMode.trim().isEmpty()
+        ? "auto"
+        : selectedMode.trim();
+    if (selected.equals("all")) selected = "auto";
+    if (!selected.equals("auto")) {
+      Anime video = findPlayableSource(input, selected);
+      if (video == null) throw new IOException(
+        "Просмотр сейчас не вернул серии"
+      );
+      return playbackResult(input, video, selected);
+    }
+    ArrayList<String> order = SourceEngine.playbackOrder(input);
+    ExecutorService pool = Executors.newFixedThreadPool(
+      Math.max(1, Math.min(4, order.size()))
+    );
+    CompletionService<Anime.Playback> done = new ExecutorCompletionService<>(
+      pool
+    );
+    for (String source : order) {
+      final String src = source;
+      done.submit(() -> {
+        Anime video = findPlayableSource(input, src);
+        return video == null ? null : playbackResult(input, video, src);
+      });
+    }
+    long deadline = System.currentTimeMillis() + 9500;
+    try {
+      for (int i = 0; i < order.size(); i++) {
+        long left = deadline - System.currentTimeMillis();
+        if (left <= 0) break;
+        Future<Anime.Playback> f = done.poll(left, TimeUnit.MILLISECONDS);
+        if (f == null) break;
+        try {
+          Anime.Playback r = f.get();
+          if (r != null) return r;
+        } catch (Exception ignored) {}
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    throw new IOException("YORU сейчас не нашёл серии");
+  }
+
+  private Anime.Playback playbackResult(
+    Anime catalog,
+    Anime video,
+    String provider
+  ) {
+    Anime.Playback r = new Anime.Playback();
+    r.catalog = catalog;
+    r.video = video;
+    r.provider =
+      provider == null || provider.isEmpty() ? video.source : provider;
+    return r;
+  }
+
+  private Anime findPlayableSource(Anime input, String source) {
+    long started = System.currentTimeMillis();
+    try {
+      Anime candidate = findSourceCandidate(input, source);
+      if (candidate == null) {
+        SourceEngine.record(
+          source,
+          false,
+          System.currentTimeMillis() - started,
+          0,
+          0,
+          0
+        );
+        return null;
+      }
+      Anime full = candidate.episodeList.isEmpty()
+        ? details(candidate, true)
+        : candidate;
+      if (!full.blocked && !full.episodeList.isEmpty()) {
+        SourceEngine.record(
+          source,
+          true,
+          System.currentTimeMillis() - started,
+          full.episodeList.size(),
+          SourceEngine.optionCount(full),
+          SourceEngine.maxQuality(full)
+        );
+        return full;
+      }
+      SourceEngine.record(
+        source,
+        false,
+        System.currentTimeMillis() - started,
+        0,
+        0,
+        0
+      );
+    } catch (Exception ignored) {
+      SourceEngine.record(
+        source,
+        false,
+        System.currentTimeMillis() - started,
+        0,
+        0,
+        0
+      );
+    }
+    return null;
+  }
+
+  private Anime findSourceCandidate(Anime input, String source)
+    throws Exception {
+    if (
+      source.equals(input.source) &&
+      Arrays.asList(
+        "yoru",
+        "animevost",
+        "anilibria",
+        "animedia",
+        "animelib",
+        "animelib4k",
+        "yummy",
+        "animetka",
+        "anidub",
+        "kodik",
+        "anixsekai"
+      ).contains(source)
+    ) return input;
+    if (source.equals("yoru")) return yoruShell(input);
+    if (source.equals("yummy")) return findYummy(input);
+    if (source.equals("anilibria")) {
+      Anime v = findAniLiberty(input);
+      if (v != null) return v;
+    }
+    if (source.equals("animelib")) {
+      Anime v = findAniLib(input);
+      if (v != null) return v;
+    }
+    if (source.equals("kodik")) return kodikShell(input);
+    if (source.equals("anixsekai")) return findAnix(input);
+    if (
+      source.equals("animetka") || source.equals("anidub")
+    ) return searchSource(input, source);
+    if (source.equals("animelib4k")) {
+      Anime v = findAniLib(input);
+      if (v != null) {
+        v.source = "animelib4k";
+        return v;
+      }
+    }
+    if (
+      Arrays.asList("animevost", "animedia").contains(source)
+    ) return searchSource(input, source);
+    return null;
+  }
+
+  public synchronized void loadEpisode(Anime.Episode ep) throws Exception {
+    if (ep.lazy.equals("yoru")) {
+      loadYoruEpisode(ep);
+      return;
+    }
+    if (ep.lazy.equals("animedia")) {
+      new NativeSources(this).loadEpisode(ep);
+      return;
+    }
+    if (ep.lazy.equals("anidub")) {
+      if (ep.variants.isEmpty() && !ep.resolverUrl.isEmpty()) ep.variants.add(
+        new Anime.Variant("AniDUB", hostName(ep.resolverUrl), ep.resolverUrl)
+      );
+      return;
+    }
+    if (ep.lazy.equals("kodik")) {
+      if (ep.variants.isEmpty()) ep.variants.add(
+        new Anime.Variant("", "YORU", ep.resolverUrl)
+      );
+      return;
+    }
+    if (ep.lazy.equals("anixsekai")) {
+      return;
+    }
+    if (!"animelib".equals(ep.lazy) || !ep.variants.isEmpty()) return;
+    JSONObject d = get(
+      "https://api.cdnlibs.org/api/episodes/" + enc(ep.id)
+    ).getJSONObject("data");
+    JSONArray rows = d.optJSONArray("players");
+    for (int i = 0; rows != null && i < rows.length(); i++) {
+      JSONObject v = rows.getJSONObject(i);
+      String u = embed(v.optString("src"));
+      if (u.isEmpty()) continue;
+      JSONObject team = v.optJSONObject("team"),
+        t = v.optJSONObject("translation_type");
+      String teamName =
+        team == null ? "" : team.optString("name", team.optString("title", ""));
+      String type =
+        t == null
+          ? "Озвучка"
+          : t.optString("label", t.optString("title", "Озвучка"));
+      String name = (type + " " + teamName).trim();
+      String player = cleanLabel(v.optString("player", "Вариант"));
+      Anime.Variant row = new Anime.Variant(
+        name.isEmpty() ? "Озвучка" : cleanLabel(name),
+        player.isEmpty() ? "Вариант" : player,
+        u
+      );
+      row.displayName =
+        (row.name.isEmpty() ? "Озвучка" : row.name) +
+        (row.player.isEmpty() ? "" : " · " + row.player);
+      addVariant(ep, row);
+    }
+    if (ep.variants.isEmpty()) throw new IOException(
+      "У серии пока нет доступного просмотра"
+    );
+    ep.variants.sort(Comparator.comparingInt(v -> SourceEngine.variantRank(v)));
+  }
+
+  public static final class DownloadOption {
+
+    public Anime source;
+    public Anime.Episode episode;
+    public int quality;
+    public String voice, player;
+
+    DownloadOption(Anime s, Anime.Episode e, int q, String v, String p) {
+      source = s;
+      episode = e;
+      quality = q;
+      voice = v;
+      player = p;
+    }
+
+    public String label() {
+      String q = QualityPlus.streamLabel(quality);
+      String v = voiceTitle(voice);
+      if (v.isEmpty()) v = "Дорожка без названия";
+      return q + " · " + v;
+    }
+  }
+
+  private List<DownloadOption> options(Anime source, double number)
+    throws Exception {
+    SecureStore store = YoruApp.app().store;
+    return options(
+      source,
+      number,
+      store.voicePreference(),
+      store.downloadResolution(),
+      store.onlyPreferredVoice()
+    );
+  }
+
+  private List<DownloadOption> options(
+    Anime source,
+    double number,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) throws Exception {
+    ArrayList<DownloadOption> out = new ArrayList<>();
+    if (!Anime.valid(source)) return out;
+    Anime a = source.episodeList.isEmpty() ? details(source, true) : source;
+    Anime.Episode e = findEpisode(a, number);
+    if (e == null) return out;
+    if (!"yoru".equals(e.lazy)) loadEpisode(e);
+    for (Map.Entry<Integer, String> stream : e.streams.entrySet()) {
+      String u = safeUrl(stream.getValue());
+      if (u.isEmpty()) continue;
+      String streamVoice = sourceVoice(a.source);
+      DownloadOption option = new DownloadOption(
+        a,
+        e,
+        stream.getKey(),
+        streamVoice,
+        downloadSourceName(a.source)
+      );
+      if (optionAllowed(option, voice, maxQuality, strictVoice)) out.add(
+        option
+      );
+    }
+    if (!e.variants.isEmpty()) out.addAll(
+      variantOptions(a, e, voice, maxQuality, strictVoice)
+    );
+    return uniqueOptions(out);
+  }
+
+  private List<DownloadOption> variantOptions(
+    Anime source,
+    Anime.Episode episode,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    ArrayList<DownloadOption> out = new ArrayList<>();
+    ArrayList<Anime.Variant> variants = SourceEngine.sortVariants(
+      episode.variants
+    );
+    ArrayList<Anime.Variant> chosen = new ArrayList<>();
+    for (Anime.Variant v : variants) {
+      String label =
+        v == null ? "" : v.name + " " + v.displayName + " " + v.player;
+      if (strictVoice && !voiceMatches(voice, label)) continue;
+      chosen.add(v);
+      if (chosen.size() >= (strictVoice ? 3 : 7)) break;
+    }
+    if (chosen.isEmpty()) return out;
+    ExecutorService pool = Executors.newFixedThreadPool(
+      strictVoice ? 1 : Math.max(1, Math.min(4, chosen.size()))
+    );
+    CompletionService<List<DownloadOption>> done =
+      new ExecutorCompletionService<>(pool);
+    for (Anime.Variant variant : chosen)
+      done.submit(() -> {
+        ArrayList<DownloadOption> rows = new ArrayList<>();
+        try {
+          TreeMap<Integer, String> streams = resolveStreams(variant.url);
+          String vName = voiceTitle(
+            variant.name.isEmpty() ? variant.label() : variant.name
+          );
+          for (Map.Entry<Integer, String> stream : streams.entrySet()) {
+            if (safeUrl(stream.getValue()).isEmpty()) continue;
+            Anime.Episode ep = new Anime.Episode();
+            ep.id =
+              episode.id +
+              "-" +
+              Integer.toHexString(
+                (variant.url + "|" + stream.getKey()).hashCode()
+              );
+            ep.number = episode.number;
+            ep.name = vName;
+            ep.duration = episode.duration;
+            ep.openingStart = episode.openingStart;
+            ep.openingEnd = episode.openingEnd;
+            ep.streams.put(stream.getKey(), stream.getValue());
+            DownloadOption option = new DownloadOption(
+              source,
+              ep,
+              stream.getKey(),
+              vName,
+              variant.player
+            );
+            if (optionAllowed(option, voice, maxQuality, strictVoice)) rows.add(
+              option
+            );
+          }
+          SourceEngine.recordVariant(
+            variant,
+            !rows.isEmpty(),
+            0,
+            streams.isEmpty() ? 0 : streams.lastKey()
+          );
+        } catch (Exception ignored) {
+          SourceEngine.recordVariant(variant, false, 0, 0);
+        }
+        return rows;
+      });
+    long deadline = System.currentTimeMillis() + (strictVoice ? 16000 : 9500);
+    try {
+      for (int i = 0; i < chosen.size(); i++) {
+        long left = deadline - System.currentTimeMillis();
+        if (left <= 0 || out.size() >= 8) break;
+        Future<List<DownloadOption>> future;
+        try {
+          future = done.poll(left, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          break;
+        }
+        if (future == null) break;
+        try {
+          out.addAll(future.get());
+          out = uniqueOptions(out);
+        } catch (Exception ignored) {}
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    return uniqueOptions(out);
+  }
+
+  private boolean optionAllowed(
+    DownloadOption option,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    if (option == null || option.episode == null) return false;
+    if (
+      strictVoice &&
+      !voiceMatches(voice, option.voice + " " + option.episode.name)
+    ) return false;
+    if (
+      maxQuality > 0 &&
+      maxQuality < 9999 &&
+      option.quality > 0 &&
+      option.quality > maxQuality
+    ) return false;
+    return option.quality >= 0;
+  }
+
+  private static ArrayList<DownloadOption> uniqueOptions(
+    Collection<DownloadOption> rows
+  ) {
+    LinkedHashMap<String, DownloadOption> map = new LinkedHashMap<>();
+    if (rows != null) for (DownloadOption option : rows) {
+      if (option == null || option.episode == null) continue;
+      String url = safeUrl(option.episode.streams.get(option.quality));
+      if (url.isEmpty()) continue;
+      String voice = voiceKey(option.voice + " " + option.episode.name);
+      String urlKey = Integer.toHexString(url.hashCode());
+      String key =
+        episodeParam(option.episode.number) +
+        "|" +
+        option.quality +
+        "|" +
+        (voice.isEmpty() ? "unknown:" + urlKey : voice);
+      if (!map.containsKey(key)) map.put(key, option);
+    }
+    ArrayList<DownloadOption> out = new ArrayList<>(map.values());
+    out.sort((a, b) -> {
+      int va = YoruApp.app().store.voicePriority(
+          a.voice + " " + (a.episode == null ? "" : a.episode.name)
+        ),
+        vb = YoruApp.app().store.voicePriority(
+          b.voice + " " + (b.episode == null ? "" : b.episode.name)
+        );
+      if (va != vb) return Integer.compare(
+        va < 0 ? 999 : va,
+        vb < 0 ? 999 : vb
+      );
+      int sa = SourceEngine.score(
+          a.source == null ? "" : a.source.source,
+          a.source
+        ),
+        sb = SourceEngine.score(
+          b.source == null ? "" : b.source.source,
+          b.source
+        );
+      int p = sb - sa;
+      if (p != 0) return p;
+      return Integer.compare(b.quality, a.quality);
+    });
+    return out;
+  }
+
+  private boolean enoughDownloadOptions(
+    ArrayList<DownloadOption> rows,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    ArrayList<DownloadOption> unique = uniqueOptions(rows);
+    if (unique.size() >= 6) return true;
+    HashSet<Integer> q = new HashSet<>();
+    for (DownloadOption option : unique)
+      if (optionAllowed(option, voice, maxQuality, strictVoice)) q.add(
+        option.quality
+      );
+    return q.size() >= 3 && unique.size() >= 3;
+  }
+
+  private void collectOptions(
+    ArrayList<DownloadOption> out,
+    Anime source,
+    double number,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    if (!Anime.valid(source)) return;
+    try {
+      out.addAll(options(source, number, voice, maxQuality, strictVoice));
+    } catch (Exception ignored) {}
+  }
+
+  private void collectDetailsOptions(
+    ArrayList<DownloadOption> out,
+    Anime base,
+    double number,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    if (!Anime.valid(base)) return;
+    try {
+      collectOptions(
+        out,
+        details(base, true),
+        number,
+        voice,
+        maxQuality,
+        strictVoice
+      );
+    } catch (Exception ignored) {}
+  }
+
+  private void collectCatalogOptions(
+    ArrayList<DownloadOption> out,
+    Anime base,
+    double number,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) {
+    if (!Anime.valid(base)) return;
+    ArrayList<Anime> matches = new ArrayList<>();
+    for (String s : SourceEngine.discoveryOrder(base, null)) {
+      try {
+        for (Anime candidate : catalog(
+          s,
+          base.original.isEmpty() ? base.title : base.original,
+          1,
+          new Filter()
+        ).items)
+          if (
+            candidate != null &&
+            SourceEngine.identity(candidate).equals(SourceEngine.identity(base))
+          ) matches.add(candidate);
+      } catch (Exception ignored) {}
+      if (matches.size() >= 4) break;
+    }
+    matches.sort(
+      (a, b) ->
+        SourceEngine.score(b.source, b) - SourceEngine.score(a.source, a)
+    );
+    for (Anime candidate : matches) {
+      collectOptions(out, candidate, number, voice, maxQuality, strictVoice);
+      if (enoughDownloadOptions(out, voice, maxQuality, strictVoice)) break;
+    }
+  }
+
+  private void collectIframeOptions(
+    ArrayList<DownloadOption> out,
+    Anime base,
+    double number
+  ) {
+    try {
+      Anime.Playback ready = playback(base, "kodik");
+      String url = ready == null ? "" : embed(ready.directUrl);
+      if (url.isEmpty() && ready != null && ready.video != null) {
+        Anime.Episode ep = findEpisode(ready.video, number);
+        if (ep != null) {
+          loadEpisode(ep);
+          if (!ep.variants.isEmpty()) url = embed(ep.variants.get(0).url);
+        }
+      }
+      if (url.isEmpty()) return;
+      TreeMap<Integer, String> streams = resolveStreams(url);
+      for (Map.Entry<Integer, String> stream : streams.entrySet()) {
+        String safe = safeUrl(stream.getValue());
+        if (safe.isEmpty()) continue;
+        Anime source = Anime.from(base.json());
+        source.source = "kodik";
+        source.id = base.id.isEmpty()
+          ? String.valueOf(Math.abs(base.key().hashCode()))
+          : base.id;
+        Anime.Episode ep = new Anime.Episode();
+        ep.id = source.id + "-" + episodeParam(number) + "-" + stream.getKey();
+        ep.number = number;
+        ep.name = "";
+        ep.streams.put(stream.getKey(), safe);
+        out.add(new DownloadOption(source, ep, stream.getKey(), "", "YORU"));
+      }
+    } catch (Exception ignored) {}
+  }
+
+  private static Anime.Episode findEpisode(Anime anime, double number) {
+    if (anime == null) return null;
+    Anime.Episode fallback = null;
+    double best = Double.MAX_VALUE;
+    for (Anime.Episode ep : anime.episodeList) {
+      if (ep == null || ep.future) continue;
+      if (sameEpisode(ep.number, number)) return ep;
+      double diff = Math.abs(ep.number - number);
+      if (diff < best) {
+        best = diff;
+        fallback = ep;
+      }
+    }
+    return fallback;
+  }
+
+  public List<DownloadOption> downloadOptions(
+    Anime a,
+    Anime.Playback current,
+    double number
+  ) throws Exception {
+    SecureStore store = YoruApp.app().store;
+    return downloadOptions(
+      a,
+      current,
+      number,
+      store.voicePreference(),
+      store.downloadResolution(),
+      store.onlyPreferredVoice()
+    );
+  }
+
+  public List<DownloadOption> downloadOptions(
+    Anime a,
+    Anime.Playback current,
+    double number,
+    String voice,
+    int maxQuality,
+    boolean strictVoice
+  ) throws Exception {
+    ArrayList<DownloadOption> out = new ArrayList<>();
+    if (current != null && current.video != null) collectOptions(
+      out,
+      current.video,
+      number,
+      voice,
+      maxQuality,
+      strictVoice
+    );
+    if (
+      enoughDownloadOptions(out, voice, maxQuality, strictVoice)
+    ) return uniqueOptions(out);
+    collectDetailsOptions(out, a, number, voice, maxQuality, strictVoice);
+    if (
+      enoughDownloadOptions(out, voice, maxQuality, strictVoice)
+    ) return uniqueOptions(out);
+    Anime yoru = yoruShell(a);
+    if (Anime.valid(yoru)) collectOptions(
+      out,
+      yoru,
+      number,
+      voice,
+      maxQuality,
+      strictVoice
+    );
+    if (
+      enoughDownloadOptions(out, voice, maxQuality, strictVoice)
+    ) return uniqueOptions(out);
+    Anime max = findYummy(a);
+    if (Anime.valid(max)) collectOptions(
+      out,
+      max,
+      number,
+      voice,
+      maxQuality,
+      strictVoice
+    );
+    if (
+      enoughDownloadOptions(out, voice, maxQuality, strictVoice)
+    ) return uniqueOptions(out);
+    if (!strictVoice) collectIframeOptions(out, a, number);
+    if (!out.isEmpty()) return uniqueOptions(out);
+    if (strictVoice && !voiceKey(voice).isEmpty()) {
+      ArrayList<DownloadOption> fallback = new ArrayList<>();
+      if (current != null && current.video != null) collectOptions(
+        fallback,
+        current.video,
+        number,
+        "",
+        maxQuality,
+        false
+      );
+      collectDetailsOptions(fallback, a, number, "", maxQuality, false);
+      if (Anime.valid(yoru)) collectOptions(
+        fallback,
+        yoru,
+        number,
+        "",
+        maxQuality,
+        false
+      );
+      if (Anime.valid(max)) collectOptions(
+        fallback,
+        max,
+        number,
+        "",
+        maxQuality,
+        false
+      );
+      if (fallback.isEmpty()) collectCatalogOptions(
+        fallback,
+        a,
+        number,
+        "",
+        maxQuality,
+        false
+      );
+      return uniqueOptions(fallback);
+    }
+    collectCatalogOptions(out, a, number, voice, maxQuality, false);
+    return uniqueOptions(out);
+  }
+
+  private Anime.Page yoruCatalog(String search, int page, Filter f)
+    throws Exception {
+    String q = search == null ? "" : search.trim();
+    Anime.Page base;
+    try {
+      base = catalog("shikimori", q, page, f);
+    } catch (Exception first) {
+      base = catalog("yummy", q, page, f);
+    }
+    Anime.Page out = new Anime.Page();
+    out.page = base.page;
+    out.total = base.total;
+    out.more = base.more;
+    out.note = "YORU";
+    for (Anime item : base.items) out.items.add(remember(yoruShell(item)));
+    return out;
+  }
+
+  private Anime yoruShell(Anime base) {
+    Anime a = Anime.from(base == null ? new JSONObject() : base.json());
+    String originalSource = base == null ? "" : base.source;
+    a.source = "yoru";
+    int id =
+      a.malId > 0
+        ? a.malId
+        : "shikimori".equals(originalSource)
+          ? parseInt(base.id)
+          : 0;
+    if (id > 0 && a.malId == 0) a.malId = id;
+    if (id <= 0) id = (int) (1L +
+      (Integer.toUnsignedLong((base == null ? "yoru" : base.key()).hashCode()) %
+        999999999L));
+    a.id = String.valueOf(id);
+    a.blocked = false;
+    return a;
+  }
+
+  private Anime yoruDetails(Anime base, boolean episodes) throws Exception {
+    Anime a = yoruShell(base);
+    Anime y = null;
+    try {
+      y = findYummy(base);
+      if (y != null) fillYoruMeta(a, y);
+    } catch (Exception ignored) {}
+    try {
+      int mal = a.malId > 0 ? a.malId : y == null ? 0 : y.malId;
+      if (mal > 0) {
+        Anime sh = new Anime();
+        sh.source = "shikimori";
+        sh.id = String.valueOf(mal);
+        Anime meta = details(sh, false);
+        fillYoruMeta(a, meta);
+        for (Anime r : meta.related) a.related.add(r);
+      }
+    } catch (Exception ignored) {}
+    if (episodes) {
+      ArrayList<Anime> found = yoruFoundSources(base, a, y);
+      LinkedHashMap<String, Anime.Episode> map = new LinkedHashMap<>();
+      for (Anime source : found) mergeYoruEpisodes(map, source);
+      a.episodeList.clear();
+      a.episodeList.addAll(map.values());
+      a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+      a.episodes = Math.max(a.episodes, a.episodeList.size());
+      appendFutureEpisodes(a);
+      applyEpisodeVisuals(a);
+    }
+    return remember(a);
+  }
+
+  private void fillYoruMeta(Anime target, Anime source) {
+    if (target == null || source == null) return;
+    if (target.title.isEmpty()) target.title = source.title;
+    if (target.original.isEmpty()) target.original = source.original;
+    if (target.alias.isEmpty()) target.alias = source.alias;
+    if (target.poster.isEmpty()) target.poster = source.poster;
+    if (target.description.isEmpty()) target.description = source.description;
+    if (target.year == 0) target.year = source.year;
+    if (target.type.isEmpty() || target.type.equals("Аниме")) target.type =
+      source.type;
+    if (target.status.isEmpty()) target.status = source.status;
+    if (target.age.isEmpty()) target.age = source.age;
+    if (target.studio.isEmpty()) target.studio = source.studio;
+    if (target.episodes == 0) target.episodes = source.episodes;
+    if (target.episodesAired == 0) target.episodesAired = source.episodesAired;
+    if (target.nextEpisodeAt.isEmpty()) target.nextEpisodeAt =
+      source.nextEpisodeAt;
+    if (target.malId == 0) target.malId = source.malId;
+    if (target.anilistId == 0) target.anilistId = source.anilistId;
+    if (target.kpId == 0) target.kpId = source.kpId;
+    if (target.libriaAlias.isEmpty()) target.libriaAlias = source.libriaAlias;
+    if (target.score == 0) target.score = source.score;
+    if (target.trailerUrl.isEmpty()) target.trailerUrl = source.trailerUrl;
+    if (target.airedDate.isEmpty()) target.airedDate = source.airedDate;
+    for (String shot : source.screenshots)
+      if (
+        !shot.isEmpty() &&
+        !target.screenshots.contains(shot) &&
+        target.screenshots.size() < 12
+      ) target.screenshots.add(shot);
+    for (String g : source.genres)
+      if (!target.genres.contains(g)) target.genres.add(g);
+  }
+
+  private ArrayList<Anime> yoruFoundSources(
+    Anime original,
+    Anime shell,
+    Anime yummy
+  ) {
+    ArrayList<Anime> out = new ArrayList<>();
+    LinkedHashSet<String> seen = new LinkedHashSet<>();
+    ArrayList<String> sources = SourceEngine.discoveryOrder(original, shell);
+    String pref = "";
+    boolean concrete = false;
+    try {
+      pref = YoruApp.app().store.voicePreference();
+      concrete = !voiceKey(pref).isEmpty();
+    } catch (Exception ignored) {}
+    if (concrete) {
+      ArrayList<String> focused = new ArrayList<>();
+      for (String s : sources)
+        if (sourceLikelyHasVoice(s, pref)) focused.add(s);
+      for (String s : sources) if (!focused.contains(s)) focused.add(s);
+      sources = focused;
+    }
+    ExecutorService pool = Executors.newFixedThreadPool(
+      Math.max(1, Math.min(5, sources.size() + 1))
+    );
+    CompletionService<Anime> done = new ExecutorCompletionService<>(pool);
+    int jobs = 0;
+    if (yummy != null && (!concrete || sourceLikelyHasVoice("yummy", pref))) {
+      Anime y = yummy;
+      done.submit(() -> details(y, true));
+      jobs++;
+    }
+    for (String source : sources) {
+      done.submit(() -> yoruFindSource(original, shell, source));
+      jobs++;
+    }
+    long deadline = System.currentTimeMillis() + (concrete ? 12500 : 15000);
+    try {
+      for (int i = 0; i < jobs; i++) {
+        long left = deadline - System.currentTimeMillis();
+        if (left <= 0) break;
+        Future<Anime> f;
+        try {
+          f = done.poll(left, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          break;
+        }
+        if (f == null) break;
+        try {
+          Anime a = f.get();
+          if (
+            a != null &&
+            !a.episodeList.isEmpty() &&
+            seen.add(a.source + ":" + a.id)
+          ) out.add(a);
+        } catch (Exception ignored) {}
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    out.sort(
+      Comparator.comparingInt(a -> 1000 - SourceEngine.score(a.source, a))
+    );
+    return out;
+  }
+
+  private boolean sourceLikelyHasVoice(String source, String voice) {
+    String key = voiceKey(voice),
+      s = SourceEngine.sourceId(source);
+    if (key.isEmpty()) return true;
+    if (key.equals("anidub")) return (
+      s.equals("anidub") ||
+      s.equals("yummy") ||
+      s.equals("anixsekai") ||
+      s.equals("kodik")
+    );
+    if (key.equals("animevost")) return (
+      s.equals("animevost") || s.equals("yummy") || s.equals("kodik")
+    );
+    if (key.equals("animedia")) return (
+      s.equals("animedia") || s.equals("yummy") || s.equals("kodik")
+    );
+    if (key.equals("anilibria")) return (
+      s.equals("anilibria") ||
+      s.equals("animelib") ||
+      s.equals("animelib4k") ||
+      s.equals("yummy")
+    );
+    return (
+      s.equals("yummy") ||
+      s.equals("anixsekai") ||
+      s.equals("kodik") ||
+      s.equals("animetka")
+    );
+  }
+
+  private Anime yoruFindSource(Anime original, Anime shell, String source) {
+    long started = System.currentTimeMillis();
+    try {
+      Anime candidate;
+      if (source.equals("kodik")) candidate = kodikShell(shell);
+      else if (source.equals("anixsekai")) candidate = findAnix(shell);
+      else if (source.equals("anilibria")) candidate = findAniLiberty(shell);
+      else if (
+        source.equals("animetka") ||
+        source.equals("anidub") ||
+        source.equals("animevost") ||
+        source.equals("animedia")
+      ) candidate = searchSource(shell, source);
+      else candidate = searchSource(shell, source);
+      if (
+        candidate == null &&
+        original != null &&
+        !original.source.equals("yoru") &&
+        original.source.equals(source)
+      ) candidate = original;
+      if (candidate == null) {
+        SourceEngine.record(
+          source,
+          false,
+          System.currentTimeMillis() - started,
+          0,
+          0,
+          0
+        );
+        return null;
+      }
+      Anime full = details(candidate, true);
+      if (full.blocked || full.episodeList.isEmpty()) {
+        SourceEngine.record(
+          source,
+          false,
+          System.currentTimeMillis() - started,
+          0,
+          0,
+          0
+        );
+        return null;
+      }
+      SourceEngine.record(
+        source,
+        true,
+        System.currentTimeMillis() - started,
+        full.episodeList.size(),
+        SourceEngine.optionCount(full),
+        SourceEngine.maxQuality(full)
+      );
+      return full;
+    } catch (Exception e) {
+      SourceEngine.record(
+        source,
+        false,
+        System.currentTimeMillis() - started,
+        0,
+        0,
+        0
+      );
+      return null;
+    }
+  }
+
+  private void mergeYoruEpisodes(
+    LinkedHashMap<String, Anime.Episode> map,
+    Anime source
+  ) {
+    String route = downloadSourceName(source.source);
+    for (Anime.Episode e : source.episodeList) {
+      if (e == null || e.number < 0 || !Double.isFinite(e.number)) continue;
+      ArrayList<Anime.Variant> variants = new ArrayList<>();
+      String baseVoice = sourceVoice(source.source);
+      for (Map.Entry<Integer, String> stream : e.streams.entrySet()) {
+        String url = safeUrl(stream.getValue());
+        if (url.isEmpty()) continue;
+        Anime.Variant v = new Anime.Variant(baseVoice, route, url);
+        v.duration = e.duration;
+        v.openingStart = e.openingStart;
+        v.openingEnd = e.openingEnd;
+        v.displayName = baseVoice;
+        variants.add(v);
+      }
+      for (Anime.Variant row : e.variants) {
+        String url = embed(row.url);
+        if (url.isEmpty()) continue;
+        String rowLabel = cleanLabel(
+            row.name.isEmpty() ? row.label() : row.name
+          ),
+          rowPlayer = cleanLabel(row.player);
+        String voice = voiceTitle(rowLabel);
+        if (voice.isEmpty()) voice = sourceVoice(source.source);
+        Anime.Variant v = new Anime.Variant(
+          voice,
+          rowPlayer.isEmpty() ? route : route + " · " + rowPlayer,
+          url
+        );
+        v.duration = row.duration;
+        v.openingStart = row.openingStart;
+        v.openingEnd = row.openingEnd;
+        v.displayName = voice;
+        variants.add(v);
+      }
+      if (variants.isEmpty()) continue;
+      String key = episodeParam(e.number);
+      Anime.Episode ep = map.get(key);
+      if (ep == null) {
+        ep = new Anime.Episode();
+        ep.id = "yoru-" + key;
+        ep.number = e.number;
+        ep.name = "";
+        ep.lazy = "yoru";
+        map.put(key, ep);
+      }
+      ep.duration = Math.max(ep.duration, e.duration);
+      if (ep.openingEnd <= 0 && e.openingEnd > 0) {
+        ep.openingStart = e.openingStart;
+        ep.openingEnd = e.openingEnd;
+      }
+      for (Anime.Variant v : variants) addVariant(ep, v);
+      ep.variants.sort(
+        Comparator.comparingInt(v -> SourceEngine.variantRank(v))
+      );
+    }
+  }
+
+  private void loadYoruEpisode(Anime.Episode ep) throws Exception {
+    if ("yoru-ready".equals(ep.resolverUrl)) return;
+    if (ep.variants.isEmpty() && !ep.streams.isEmpty()) {
+      ep.resolverUrl = "yoru-ready";
+      return;
+    }
+    ArrayList<Anime.Variant> sorted = SourceEngine.sortVariants(ep.variants);
+    ArrayList<Anime.Variant> keep = new ArrayList<>();
+    String preferred = "";
+    boolean strict = false;
+    try {
+      preferred = YoruApp.app().store.voicePreference();
+      strict = !voiceKey(preferred).isEmpty();
+    } catch (Exception ignored) {}
+    collectYoruVariants(sorted, keep, preferred, strict);
+    if (keep.isEmpty() && strict) {
+      collectYoruVariants(sorted, keep, "", false);
+      try {
+        YoruApp.app().store.onlyPreferredVoice(false);
+      } catch (Exception ignored) {}
+    }
+    if (keep.isEmpty()) throw new IOException(
+      "YORU пока не нашёл доступные озвучки для этой серии"
+    );
+    ep.variants.clear();
+    for (Anime.Variant v : keep) addVariant(ep, v);
+    ep.variants.sort(Comparator.comparingInt(v -> SourceEngine.variantRank(v)));
+    ep.resolverUrl = "yoru-ready";
+  }
+
+  private static void collectYoruVariants(
+    ArrayList<Anime.Variant> sorted,
+    ArrayList<Anime.Variant> keep,
+    String preferred,
+    boolean strict
+  ) {
+    LinkedHashMap<String, Integer> perVoice = new LinkedHashMap<>();
+    for (Anime.Variant v : sorted) {
+      String label =
+        v == null ? "" : v.name + " " + v.displayName + " " + v.player;
+      if (strict && !voiceMatches(preferred, label)) continue;
+      String voice = voiceTitle(v.name.isEmpty() ? v.label() : v.name);
+      String key = voiceKey(voice);
+      if (key.isEmpty()) key =
+        "unknown:" +
+        Integer.toHexString((v.url == null ? "" : v.url).hashCode());
+      int count = perVoice.getOrDefault(key, 0);
+      if (strict && count >= 3) continue;
+      if (!strict && count >= 2) continue;
+      perVoice.put(key, count + 1);
+      keep.add(copyVariant(v));
+      if (strict && keep.size() >= 3) break;
+      if (!strict && (keep.size() >= 14 || perVoice.size() >= 9)) break;
+    }
+  }
+
+  private static Anime.Variant copyVariant(Anime.Variant v) {
+    Anime.Variant copy = new Anime.Variant(
+      cleanLabel(v.name),
+      cleanLabel(v.player),
+      v.url
+    );
+    copy.displayName = cleanLabel(v.displayName);
+    copy.duration = v.duration;
+    copy.openingStart = v.openingStart;
+    copy.openingEnd = v.openingEnd;
+    return copy;
+  }
+
+  private static int yoruSourceRank(String source) {
+    if ("yummy".equals(source)) return 0;
+    if ("anixsekai".equals(source)) return 1;
+    if ("anilibria".equals(source)) return 2;
+    if ("animevost".equals(source)) return 3;
+    if ("animetka".equals(source)) return 4;
+    if ("kodik".equals(source)) return 5;
+    if ("anidub".equals(source)) return 6;
+    if ("animedia".equals(source)) return 7;
+    return 20;
+  }
+
+  private static int yoruVariantRank(Anime.Variant v) {
+    String p = (
+      (v == null ? "" : v.player) +
+      " " +
+      (v == null ? "" : v.name) +
+      " " +
+      (v == null ? "" : v.displayName)
+    ).toLowerCase(Locale.ROOT);
+    int source = p.contains("yummyanime")
+      ? 0
+      : p.contains("anix")
+        ? 1
+        : p.contains("anilibria") || p.contains("aniliberty")
+          ? 2
+          : p.contains("animevost")
+            ? 3
+            : p.contains("animetka")
+              ? 4
+              : p.contains("kodik")
+                ? 5
+                : p.contains("anidub")
+                  ? 6
+                  : 10;
+    int player =
+      p.contains("cvh") || p.contains("cdnvideohub")
+        ? 0
+        : p.contains("aksor")
+          ? 1
+          : p.contains("vk") || p.contains("вконт")
+            ? 2
+            : p.contains("rutube")
+              ? 3
+              : p.contains("zedfilm") || p.contains("hlamer")
+                ? 4
+                : p.contains("alloha")
+                  ? 5
+                  : p.contains("sibnet")
+                    ? 6
+                    : 10;
+    return source * 100 + player;
+  }
+
+  public ArrayList<AiringItem> airingSchedule(int days) throws Exception {
+    return airingSchedule(days, null);
+  }
+
+  public ArrayList<AiringItem> airingSchedule(int days, List<Anime> focus)
+    throws Exception {
+    days = Math.max(7, Math.min(28, days));
+    long now = System.currentTimeMillis(),
+      start = startOfDay(now),
+      end = start + days * DAY_MS;
+    LinkedHashMap<String, AiringItem> map = new LinkedHashMap<>();
+    Exception fail = null;
+    try {
+      for (int page = 1; page <= 8; page++) airingPage(
+        map,
+        "ongoing",
+        "popularity",
+        page,
+        now,
+        start,
+        end,
+        false
+      );
+    } catch (Exception e) {
+      fail = e;
+    }
+    try {
+      for (int page = 1; page <= 3; page++) airingPage(
+        map,
+        "anons",
+        "aired_on",
+        page,
+        now,
+        start,
+        end,
+        true
+      );
+    } catch (Exception ignored) {}
+    try {
+      appendFavoriteAirings(map, focus, now, start, end);
+    } catch (Exception ignored) {}
+    ArrayList<AiringItem> list = new ArrayList<>(map.values());
+    if (list.isEmpty()) {
+      try {
+        Filter f = new Filter();
+        f.status = "ongoing";
+        Anime.Page p = catalog("shikimori", "", 1, f);
+        int i = 0;
+        for (Anime a : p.items) {
+          AiringItem row = new AiringItem();
+          row.anime = a;
+          row.time = start + (i++ % 7) * DAY_MS + 20 * 60 * 60 * 1000;
+          row.episode = Math.max(
+            1,
+            a.episodesAired > 0 ? a.episodesAired + 1 : a.episodes
+          );
+          row.kind = "Онгоинг";
+          row.precision = "Скоро";
+          row.source = "YORU";
+          list.add(row);
+          if (list.size() >= 120) break;
+        }
+      } catch (Exception ignored) {}
+    }
+    list.sort((a, b) -> {
+      int t = Long.compare(a.time, b.time);
+      if (t != 0) return t;
+      double bs = b.anime == null ? 0 : b.anime.score,
+        as = a.anime == null ? 0 : a.anime.score;
+      return Double.compare(bs, as);
+    });
+    if (list.isEmpty() && fail != null) throw fail;
+    return list;
+  }
+
+  private void appendFavoriteAirings(
+    LinkedHashMap<String, AiringItem> map,
+    List<Anime> focus,
+    long now,
+    long start,
+    long end
+  ) {
+    if (focus == null || focus.isEmpty()) return;
+    LinkedHashMap<Integer, Anime> ids = new LinkedHashMap<>();
+    ArrayList<Anime> unresolved = new ArrayList<>();
+    int seen = 0;
+    for (Anime fav : focus) {
+      if (!Anime.valid(fav)) continue;
+      putFavoriteKnownDate(map, fav, now, start, end);
+      int id = scheduleId(fav);
+      if (id > 0 && !ids.containsKey(id)) ids.put(id, fav);
+      else if (unresolved.size() < 120) unresolved.add(Anime.from(fav.json()));
+      if (++seen >= 120) break;
+    }
+    favoriteBatches(map, ids, now, start, end);
+    if (unresolved.isEmpty()) return;
+    LinkedHashSet<Integer> found = new LinkedHashSet<>();
+    ExecutorService pool = Executors.newFixedThreadPool(
+      Math.max(1, Math.min(4, unresolved.size()))
+    );
+    CompletionService<Integer> done = new ExecutorCompletionService<>(pool);
+    int jobs = 0;
+    for (Anime fav : unresolved) {
+      done.submit(() -> searchScheduleId(fav));
+      jobs++;
+    }
+    long deadline = System.currentTimeMillis() + 3800;
+    try {
+      for (int i = 0; i < jobs; i++) {
+        long left = deadline - System.currentTimeMillis();
+        if (left <= 0) break;
+        Future<Integer> f;
+        try {
+          f = done.poll(left, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          break;
+        }
+        if (f == null) break;
+        try {
+          int id = f.get();
+          if (id > 0) found.add(id);
+        } catch (Exception ignored) {}
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    if (!found.isEmpty()) {
+      LinkedHashMap<Integer, Anime> more = new LinkedHashMap<>();
+      for (Integer id : found) more.put(id, new Anime());
+      favoriteBatches(map, more, now, start, end);
+    }
+  }
+
+  private void favoriteBatches(
+    LinkedHashMap<String, AiringItem> map,
+    LinkedHashMap<Integer, Anime> ids,
+    long now,
+    long start,
+    long end
+  ) {
+    if (ids == null || ids.isEmpty()) return;
+    ArrayList<Integer> batch = new ArrayList<>();
+    for (Integer id : ids.keySet()) {
+      batch.add(id);
+      if (batch.size() >= 40) {
+        favoriteBatch(map, batch, now, start, end);
+        batch.clear();
+      }
+    }
+    if (!batch.isEmpty()) favoriteBatch(map, batch, now, start, end);
+  }
+
+  private int searchScheduleId(Anime fav) {
+    try {
+      for (String q : searchTerms(fav)) {
+        Anime.Page page = catalog("shikimori", q, 1, new Filter());
+        for (Anime candidate : page.items)
+          if (
+            matchesAnime(candidate, fav) ||
+            ApiRepository.plainName(candidate.title).equals(
+              ApiRepository.plainName(fav.title)
+            ) ||
+            (!fav.original.isEmpty() &&
+              ApiRepository.plainName(candidate.original).equals(
+                ApiRepository.plainName(fav.original)
+              ))
+          ) return scheduleId(candidate);
+      }
+    } catch (Exception ignored) {}
+    return 0;
+  }
+
+  private void favoriteBatch(
+    LinkedHashMap<String, AiringItem> map,
+    List<Integer> ids,
+    long now,
+    long start,
+    long end
+  ) {
+    StringBuilder joined = new StringBuilder();
+    for (Integer id : ids) {
+      if (id == null || id <= 0) continue;
+      if (joined.length() > 0) joined.append(',');
+      joined.append(id);
+    }
+    if (joined.length() == 0) return;
+    try {
+      JSONArray rows = shiki(
+        "{animes(ids:" +
+          JSONObject.quote(joined.toString()) +
+          ",limit:" +
+          Math.min(50, ids.size()) +
+          "){" +
+          SH_FIELDS +
+          "}}"
+      ).optJSONArray("animes");
+      for (int i = 0; rows != null && i < rows.length(); i++) putAiring(
+        map,
+        rows.getJSONObject(i),
+        now,
+        start,
+        end,
+        false
+      );
+    } catch (Exception ignored) {}
+  }
+
+  private static int scheduleId(Anime a) {
+    if (a == null) return 0;
+    if (a.malId > 0) return a.malId;
+    if (
+      "shikimori".equals(a.source) || "yoru".equals(a.source)
+    ) return parseInt(a.id);
+    return 0;
+  }
+
+  private void putFavoriteKnownDate(
+    LinkedHashMap<String, AiringItem> map,
+    Anime fav,
+    long now,
+    long start,
+    long end
+  ) {
+    if (!Anime.valid(fav)) return;
+    long at = parseInstant(fav.nextEpisodeAt);
+    if (at <= 0 || at < start - DAY_MS / 2 || at > end) return;
+    int aired = Math.max(0, fav.episodesAired),
+      total = fav.episodes,
+      next = Math.max(1, aired + 1);
+    if (total > 0 && next > total) return;
+    AiringItem item = new AiringItem();
+    item.anime = remember(fav);
+    item.time = at;
+    item.episode = next;
+    item.kind = "Новая серия";
+    item.precision = "Точная дата";
+    item.source = "YORU";
+    String key =
+      (fav.malId > 0 ? "mal:" + fav.malId : fav.key()) +
+      "|" +
+      item.episode +
+      "|" +
+      startOfDay(at);
+    AiringItem old = map.get(key);
+    if (old == null || !"Точная дата".equals(old.precision)) map.put(key, item);
+  }
+
+  private void airingPage(
+    LinkedHashMap<String, AiringItem> map,
+    String status,
+    String order,
+    int page,
+    long now,
+    long start,
+    long end,
+    boolean premiere
+  ) throws Exception {
+    String fields =
+      "id malId name russian english kind rating score status episodes episodesAired nextEpisodeAt airedOn{year date} poster{mainUrl originalUrl} genres{id russian name} nextEpisodeAt";
+    JSONArray rows = shiki(
+      "{animes(limit:50,page:" +
+        page +
+        ",status:" +
+        JSONObject.quote(status) +
+        ",order:" +
+        order +
+        "){" +
+        fields +
+        "}}"
+    ).optJSONArray("animes");
+    for (int i = 0; rows != null && i < rows.length(); i++) putAiring(
+      map,
+      rows.getJSONObject(i),
+      now,
+      start,
+      end,
+      premiere
+    );
+  }
+
+  private void putAiring(
+    LinkedHashMap<String, AiringItem> map,
+    JSONObject j,
+    long now,
+    long start,
+    long end,
+    boolean premiere
+  ) {
+    Anime a = remember(shikiAnime(j));
+    int aired = j.optInt("episodesAired", 0),
+      total = j.optInt("episodes", a.episodes),
+      next = Math.max(1, aired + 1);
+    long at = premiere
+      ? dateAt(j.optJSONObject("airedOn"), 20)
+      : parseInstant(j.optString("nextEpisodeAt", ""));
+    String precision = premiere ? "Премьера" : "Точная дата";
+    if (!premiere && at <= 0) {
+      at = estimateWeekly(j, now, end);
+      precision = "Расчёт";
+    }
+    if (!premiere && at <= 0) {
+      at = spreadCalendarSlot(a, start, end, now);
+      precision = "Скоро";
+    }
+    if (total > 0 && next > total && !premiere) return;
+    if (at <= 0 || at < start - DAY_MS / 2 || at > end) return;
+    AiringItem item = new AiringItem();
+    item.anime = a;
+    item.time = at;
+    item.episode = premiere ? 1 : next;
+    item.kind = premiere ? "Премьера" : "Новая серия";
+    item.precision = precision;
+    item.source = "YORU";
+    String key =
+      (a.malId > 0 ? "mal:" + a.malId : a.key()) +
+      "|" +
+      item.episode +
+      "|" +
+      startOfDay(at);
+    AiringItem old = map.get(key);
+    if (
+      old == null ||
+      ("Точная дата".equals(item.precision) &&
+        !"Точная дата".equals(old.precision))
+    ) map.put(key, item);
+  }
+
+  private static long estimateWeekly(JSONObject j, long now, long end) {
+    long first = dateAt(j.optJSONObject("airedOn"), 20);
+    if (first <= 0) return 0;
+    int aired = Math.max(0, j.optInt("episodesAired", 0));
+    long at = first + aired * 7L * DAY_MS;
+    while (at < now - 6 * 60 * 60 * 1000) at += 7L * DAY_MS;
+    return at <= end ? at : 0;
+  }
+
+  private static long spreadCalendarSlot(
+    Anime a,
+    long start,
+    long end,
+    long now
+  ) {
+    long days = Math.max(1, (end - start) / DAY_MS);
+    long seed = Math.abs((long) (Anime.valid(a) ? a.key() : "yoru").hashCode());
+    long at = start + (seed % days) * DAY_MS + 20 * 60 * 60 * 1000;
+    if (at < now - 2 * 60 * 60 * 1000 && days > 1) at =
+      start + ((seed + 1) % days) * DAY_MS + 20 * 60 * 60 * 1000;
+    return at;
+  }
+
+  private static long parseInstant(String value) {
+    String v = value == null ? "" : value.trim();
+    if (v.isEmpty() || v.equals("null")) return 0;
+    try {
+      return OffsetDateTime.parse(v).toInstant().toEpochMilli();
+    } catch (Exception ignored) {}
+    try {
+      return Instant.parse(v).toEpochMilli();
+    } catch (Exception ignored) {}
+    try {
+      return LocalDateTime.parse(v)
+        .atZone(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli();
+    } catch (Exception ignored) {}
+    return 0;
+  }
+
+  private static long dateAt(JSONObject value, int hour) {
+    if (value == null) return 0;
+    String d = value.optString("date", "");
+    if (d.isEmpty() && value.optInt("year", 0) > 0) d = String.format(
+      Locale.US,
+      "%04d-%02d-%02d",
+      value.optInt("year"),
+      Math.max(1, value.optInt("month", 1)),
+      Math.max(1, value.optInt("day", 1))
+    );
+    try {
+      return LocalDate.parse(d)
+        .atTime(hour, 0)
+        .atZone(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli();
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  private static long startOfDay(long time) {
+    return Instant.ofEpochMilli(time)
+      .atZone(ZoneId.systemDefault())
+      .toLocalDate()
+      .atStartOfDay(ZoneId.systemDefault())
+      .toInstant()
+      .toEpochMilli();
+  }
+
+  private Anime.Page animetkaCatalog(String search, int page, Filter f)
+    throws Exception {
+    Anime.Page out = new Anime.Page();
+    out.page = page;
+    String q = search == null ? "" : search.trim();
+    int limit = 24,
+      offset = Math.max(0, (page - 1) * limit);
+    String url = q.isEmpty()
+      ? query(
+          "https://animetka.com/api/anime/top",
+          params(
+            "limit",
+            String.valueOf(limit),
+            "offset",
+            String.valueOf(offset)
+          )
+        )
+      : query(
+          "https://animetka.com/api/anime/search",
+          params(
+            "name",
+            q,
+            "limit",
+            String.valueOf(limit),
+            "offset",
+            String.valueOf(offset)
+          )
+        );
+    JSONArray rows = new JSONArray(
+      request(url, "GET", null, false, animetkaHeaders())
+    );
+    if (rows.length() == 0 && !q.isEmpty()) rows = new JSONArray(
+      request(
+        query(
+          "https://animetka.com/api/anime/search",
+          params(
+            "q",
+            q,
+            "limit",
+            String.valueOf(limit),
+            "offset",
+            String.valueOf(offset)
+          )
+        ),
+        "GET",
+        null,
+        false,
+        animetkaHeaders()
+      )
+    );
+    int end = Math.min(rows.length(), limit);
+    for (int i = 0; i < end; i++) {
+      Anime a = animetkaAnime(rows.getJSONObject(i));
+      if (Anime.valid(a)) out.items.add(remember(a));
+    }
+    out.more = rows.length() == limit;
+    return out;
+  }
+
+  private Anime animetkaDetails(Anime base, boolean episodes) throws Exception {
+    JSONObject d = new JSONObject(
+      request(
+        "https://animetka.com/api/anime/" + enc(base.id),
+        "GET",
+        null,
+        false,
+        animetkaHeaders()
+      )
+    );
+    Anime a = animetkaAnime(d);
+    if (!Anime.valid(a)) {
+      a = Anime.from(base.json());
+      a.source = "animetka";
+    }
+    JSONArray rel = d.optJSONArray("franchise");
+    for (int i = 0; rel != null && i < rel.length(); i++) {
+      JSONObject r = rel.optJSONObject(i);
+      if (r != null) {
+        Anime item = animetkaAnime(r);
+        if (Anime.valid(item) && !item.id.equals(a.id)) a.related.add(
+          remember(item)
+        );
+      }
+    }
+    if (episodes) {
+      LinkedHashMap<String, Anime.Episode> map = new LinkedHashMap<>();
+      JSONObject lm = d.optJSONObject("AnilibriaMapping");
+      JSONArray le = lm == null ? null : lm.optJSONArray("episodes");
+      for (int i = 0; le != null && i < le.length(); i++) {
+        JSONObject e = le.optJSONObject(i);
+        if (e == null) continue;
+        double n = e.optDouble("ordinal", i + 1);
+        String key = episodeParam(n);
+        Anime.Episode ep = map.get(key);
+        if (ep == null) {
+          ep = new Anime.Episode();
+          ep.id = a.id + "-" + key;
+          ep.number = n;
+          ep.name = e.optString("name", "");
+          map.put(key, ep);
+        }
+        if (ep.name.isEmpty()) ep.name = "AniLibria";
+        ep.duration = e.optInt("duration", ep.duration);
+        putStream(ep, 480, e.optString("hls_480"));
+        putStream(ep, 720, e.optString("hls_720"));
+        putStream(ep, 1080, e.optString("hls_1080"));
+        JSONObject op = e.optJSONObject("opening");
+        if (op != null) {
+          ep.openingStart = op.optInt("start", ep.openingStart);
+          ep.openingEnd = op.optInt("stop", ep.openingEnd);
+        }
+      }
+      JSONArray rows = d.optJSONArray("Animes");
+      HashMap<Integer, String> names = animetkaTranslationNames(d, rows);
+      for (int i = 0; rows != null && i < rows.length(); i++) {
+        JSONObject row = rows.optJSONObject(i);
+        if (row == null) continue;
+        String link = embed(row.optString("link"));
+        if (link.isEmpty()) continue;
+        int material = parseInt(a.id);
+        int tid = row.optInt("translation", 0),
+          count = Math.max(
+            row.optInt("episodes_total", 0),
+            row.optInt("episodes_aired", 0)
+          );
+        if (count <= 0) count = a.episodes > 0 ? a.episodes : 1;
+        if (
+          row.optString("kodik_id").startsWith("movie-") ||
+          (Uri.parse(link).getPath() != null &&
+            Uri.parse(link).getPath().startsWith("/video/"))
+        ) count = 1;
+        count = Math.max(1, Math.min(250, count));
+        String voice = names.get(tid);
+        if (voice == null || voice.isEmpty()) voice =
+          tid > 0 ? "Перевод " + tid : "";
+        String q = row
+          .optString("quality", "")
+          .replace("WEB-DLRip ", "")
+          .trim();
+        for (int n = 1; n <= count; n++) {
+          String key = episodeParam(n);
+          Anime.Episode ep = map.get(key);
+          if (ep == null) {
+            ep = new Anime.Episode();
+            ep.id = a.id + "-" + key;
+            ep.number = n;
+            map.put(key, ep);
+          }
+          String url =
+            tid > 0
+              ? animetkaPlaylistUrl(material, tid, n)
+              : animetkaEpisodeUrl(link, n);
+          Anime.Variant v = new Anime.Variant(voice, "Animetka", url);
+          v.displayName = voice + (q.isEmpty() ? "" : " · " + q);
+          addVariant(ep, v);
+          if (!link.isEmpty()) {
+            String fallback = animetkaEpisodeUrl(link, n);
+            if (!fallback.equals(url)) {
+              Anime.Variant back = new Anime.Variant(voice, "YORU", fallback);
+              back.displayName = v.displayName + " · запасной";
+              addVariant(ep, back);
+            }
+          }
+        }
+      }
+      a.episodeList.clear();
+      a.episodeList.addAll(map.values());
+      a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+      a.episodesAired = Math.max(a.episodesAired, playableEpisodes(a));
+      a.episodes = Math.max(a.episodes, a.episodeList.size());
+    }
+    return remember(a);
+  }
+
+  private HashMap<Integer, String> animetkaTranslationNames(
+    JSONObject detail,
+    JSONArray rows
+  ) {
+    HashMap<Integer, String> out = new HashMap<>();
+    int material = detail.optInt("id", detail.optInt("animetka_id", 0)),
+      tid = 0;
+    for (int i = 0; rows != null && i < rows.length(); i++) {
+      JSONObject row = rows.optJSONObject(i);
+      if (row != null && row.optInt("translation", 0) > 0) {
+        tid = row.optInt("translation");
+        break;
+      }
+    }
+    if (material <= 0 || tid <= 0) return out;
+    try {
+      JSONObject p = new JSONObject(
+        request(
+          query(
+            "https://animetka.com/api/anime/playlist",
+            params(
+              "material",
+              String.valueOf(material),
+              "tid",
+              String.valueOf(tid)
+            )
+          ),
+          "GET",
+          null,
+          false,
+          animetkaHeaders()
+        )
+      );
+      JSONArray list = p.optJSONArray("translations");
+      for (int i = 0; list != null && i < list.length(); i++) {
+        JSONObject t = list.optJSONObject(i);
+        if (t != null) out.put(
+          t.optInt("value", t.optInt("id", 0)),
+          t.optString("name", t.optString("title", ""))
+        );
+      }
+    } catch (Exception ignored) {}
+    return out;
+  }
+
+  private static String animetkaEpisodeUrl(String link, int episode) {
+    try {
+      Uri u = Uri.parse(link);
+      String path = u.getPath();
+      if (path != null && path.startsWith("/video/")) return link;
+      return u
+        .buildUpon()
+        .appendQueryParameter("episode", String.valueOf(episode))
+        .build()
+        .toString();
+    } catch (Exception e) {
+      return link;
+    }
+  }
+
+  private static String animetkaPlaylistUrl(
+    int material,
+    int tid,
+    int episode
+  ) {
+    return query(
+      "https://animetka.com/api/anime/playlist",
+      params(
+        "material",
+        String.valueOf(material),
+        "tid",
+        String.valueOf(tid),
+        "episode",
+        String.valueOf(episode)
+      )
+    );
+  }
+
+  private static void addVariant(Anime.Episode ep, Anime.Variant v) {
+    for (Anime.Variant old : ep.variants)
+      if (
+        old.url.equals(v.url) &&
+        old.name.equals(v.name) &&
+        old.player.equals(v.player)
+      ) return;
+    ep.variants.add(v);
+  }
+
+  private static HashMap<String, String> animetkaHeaders() {
+    HashMap<String, String> h = new HashMap<>();
+    h.put("Accept", "application/json,text/plain,*/*");
+    h.put("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.5");
+    h.put("Origin", "https://animetka.com");
+    h.put("Referer", "https://animetka.com/");
+    h.put(
+      "User-Agent",
+      "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36"
+    );
+    return h;
+  }
+
+  private Anime.Page anidubCatalog(String search, int page) throws Exception {
+    Anime.Page out = new Anime.Page();
+    out.page = page;
+    String q = search == null ? "" : search.trim();
+    String url = q.isEmpty()
+      ? page <= 1
+        ? "https://online.anidub.com/"
+        : "https://online.anidub.com/page/" + page + "/"
+      : query(
+          "https://online.anidub.com/index.php",
+          params("do", "search", "subaction", "search", "story", q)
+        );
+    Document doc = Jsoup.parse(document(url), url);
+    LinkedHashMap<String, Anime> map = new LinkedHashMap<>();
+    for (Element a : doc.select("a[href]")) {
+      String href = absolute(url, a.attr("href"));
+      if (
+        href.isEmpty() ||
+        href.contains("/user/") ||
+        href.contains("/anidub_news/") ||
+        !Pattern.compile("/(\\d+)-[^/]+\\.html(?:$|[?#])").matcher(href).find()
+      ) continue;
+      Element scope = cardScope(a);
+      String title = anchorTitle(a);
+      if (
+        title.isEmpty() || title.length() < 2 || title.matches("[+\\-]?[0-9.]+")
+      ) continue;
+      Anime item = anidubShell(
+        href,
+        title,
+        posterFrom(url, scope),
+        scope == null ? title : scope.text()
+      );
+      if (q.isEmpty() || matchesQuery(item, q)) putBetter(map, item);
+      if (map.size() >= 24) break;
+    }
+    out.items.addAll(map.values());
+    out.more = q.isEmpty() && out.items.size() >= 18;
+    return out;
+  }
+
+  private Anime anidubDetails(Anime base, boolean episodes) throws Exception {
+    String url = sourceUrl(base);
+    String html = document(url);
+    Document doc = Jsoup.parse(html, url);
+    Anime a = anidubShell(
+      url,
+      heading(doc, base.title),
+      posterFrom(url, doc),
+      doc.text()
+    );
+    String desc = descriptionFrom(doc);
+    if (!desc.isEmpty()) a.description = desc;
+    for (Element g : doc.select("a[href*=/xfsearch/genre/],a[href*=/genre/]")) {
+      String t = cleanText(g.text());
+      if (!t.isEmpty() && !a.genres.contains(t)) a.genres.add(t);
+    }
+    if (episodes) {
+      LinkedHashMap<String, Anime.Episode> map = new LinkedHashMap<>();
+      anidubOptions(doc, html, url, "sel", "Sibnet", map, a.id);
+      anidubOptions(doc, html, url, "sel2", "AniDUB", map, a.id);
+      anidubOptions(doc, html, url, "sel3", "Stormo", map, a.id);
+      if (map.isEmpty()) anidubDirectFallback(a, html, url);
+      else {
+        a.episodeList.clear();
+        a.episodeList.addAll(map.values());
+        a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+        a.episodes = Math.max(a.episodes, a.episodeList.size());
+      }
+    }
+    return remember(a);
+  }
+
+  private void anidubOptions(
+    Document doc,
+    String html,
+    String page,
+    String id,
+    String player,
+    LinkedHashMap<String, Anime.Episode> map,
+    String baseId
+  ) {
+    for (Element o : doc.select("#" + id + " option"))
+      anidubOption(page, player, o.attr("value"), o.text(), map, baseId);
+    Matcher box = Pattern.compile(
+      "<select[^>]+id=[\\\"']" +
+        Pattern.quote(id) +
+        "[\\\"'][^>]*>(.*?)</select>",
+      Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    ).matcher(html);
+    while (box.find()) {
+      Matcher m = Pattern.compile(
+        "<option[^>]+value=[\\\"']([^\\\"']+)[\\\"'][^>]*>(.*?)</option>",
+        Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+      ).matcher(box.group(1));
+      while (m.find())
+        anidubOption(
+          page,
+          player,
+          unescape(m.group(1)),
+          plain(m.group(2)),
+          map,
+          baseId
+        );
+    }
+  }
+
+  private void anidubOption(
+    String page,
+    String suggested,
+    String value,
+    String label,
+    LinkedHashMap<String, Anime.Episode> map,
+    String baseId
+  ) {
+    String v = unescape(value);
+    if (v.isEmpty()) return;
+    int cut = v.lastIndexOf('|');
+    String raw = cut > 0 ? v.substring(0, cut) : v,
+      num = cut > 0 ? v.substring(cut + 1) : label;
+    String provider = absolute(page, raw);
+    if (provider.isEmpty()) return;
+    double n = numberIn(num + " " + label, map.size() + 1);
+    if (n <= 0 || !Double.isFinite(n)) n = map.size() + 1;
+    String key = episodeParam(n);
+    Anime.Episode ep = map.get(key);
+    if (ep == null) {
+      ep = new Anime.Episode();
+      ep.id = baseId + "-" + key;
+      ep.number = n;
+      ep.name = "AniDUB";
+      ep.lazy = "anidub";
+      map.put(key, ep);
+    }
+    String h = hostName(provider).toLowerCase(Locale.ROOT),
+      p = suggested;
+    if (h.contains("sibnet")) p = "Sibnet";
+    else if (h.contains("stormo")) p = "Stormo";
+    else if (h.contains("ladony") || provider.contains("vid.php")) p = "AniDUB";
+    Anime.Variant variant = new Anime.Variant("AniDUB", p, provider);
+    variant.displayName = "AniDUB · " + p;
+    addVariant(ep, variant);
+  }
+
+  private void anidubDirectFallback(Anime a, String html, String page) {
+    Matcher m = Pattern.compile(
+      "https?:\\\\?/\\\\?/[^\\\"'<>\\s]+?(?:\\.m3u8|\\.mp4)[^\\\"'<>\\s]*",
+      Pattern.CASE_INSENSITIVE
+    ).matcher(html);
+    Anime.Episode ep = null;
+    while (m.find()) {
+      String safe = safeUrl(m.group().replace("\\/", "/"));
+      if (safe.isEmpty()) continue;
+      if (ep == null) {
+        ep = new Anime.Episode();
+        ep.id = a.id + "-1";
+        ep.number = 1;
+        ep.name = "AniDUB";
+        a.episodeList.add(ep);
+      }
+      putStream(ep, VideoResolver.qualityOf(safe), safe);
+    }
+    if (ep != null) {
+      a.episodes = Math.max(a.episodes, 1);
+      return;
+    }
+    Matcher iframe = Pattern.compile(
+      "<(?:iframe|embed)[^>]+src=[\\\"']([^\\\"']+)[\\\"']",
+      Pattern.CASE_INSENSITIVE
+    ).matcher(html);
+    while (iframe.find()) {
+      String u = embed(absolute(page, iframe.group(1)));
+      if (u.isEmpty()) continue;
+      if (ep == null) {
+        ep = new Anime.Episode();
+        ep.id = a.id + "-1";
+        ep.number = 1;
+        ep.name = "AniDUB";
+        ep.lazy = "anidub";
+        a.episodeList.add(ep);
+      }
+      Anime.Variant v = new Anime.Variant("AniDUB", hostName(u), u);
+      v.displayName = "AniDUB · " + hostName(u);
+      addVariant(ep, v);
+    }
+    if (ep != null) a.episodes = Math.max(a.episodes, 1);
+  }
+
+  private static boolean badTitle(String title) {
+    String t = title == null ? "" : title.trim();
+    if (t.length() < 2 || t.length() > 120) return true;
+    if (!Pattern.compile("[\\p{L}]").matcher(t).find()) return true;
+    String compact = t.replaceAll("[\\s_.-]", "");
+    boolean cyr = Pattern.compile("[А-Яа-яЁё]").matcher(t).find();
+    boolean token =
+      compact.length() > 18 &&
+      compact.matches("[A-Za-z0-9+/=_]+") &&
+      compact.matches(".*[0-9+/=_].*");
+    return token && !cyr;
+  }
+
+  private static Anime anidubShell(
+    String url,
+    String title,
+    String poster,
+    String meta
+  ) {
+    Anime a = new Anime();
+    a.source = "anidub";
+    Matcher m = Pattern.compile("/(\\d+)-[^/]+\\.html").matcher(url);
+    a.id = m.find() ? m.group(1) : stableId(url);
+    a.alias = safeUrl(url);
+    fillNames(a, title);
+    a.poster = safeUrl(poster);
+    a.year = yearIn(meta);
+    a.episodes = episodesIn(meta + " " + title);
+    a.status =
+      meta != null && meta.toLowerCase(Locale.ROOT).contains("онгоинг")
+        ? "ongoing"
+        : "released";
+    return a;
+  }
+
+  private static void fillNames(Anime a, String title) {
+    String t = cleanTitle(title);
+    if (t.isEmpty()) t = "Аниме";
+    String[] parts = t.split("\\s*/\\s*", 2);
+    a.title = parts[0].trim();
+    if (parts.length > 1) a.original = parts[1]
+      .replaceAll("\\s*\\[[^\\]]*\\]\\s*$", "")
+      .trim();
+  }
+
+  private static String cleanTitle(String raw) {
+    String t = plain(raw).replace('\u00a0', ' ').trim();
+    if (t.contains("\n")) for (String row : t.split("\\r?\\n")) {
+      row = row.trim();
+      if (row.length() > 1) {
+        t = row;
+        break;
+      }
+    }
+    t = t.replaceAll("\\s+", " ").trim();
+    t = t
+      .replaceFirst("(?iu)^смотреть\\s+", "")
+      .replaceFirst("(?iu)^постер\\s+аниме\\s+", "");
+    t = t.replaceAll("(?iu)\\s+все\\s+серии(?:\\s+и\\s+сезоны)?$", "");
+    t = t.replaceAll("\\s*\\[[^\\]]*\\]\\s*$", "");
+    return t.trim();
+  }
+
+  private static String cleanText(String raw) {
+    return plain(raw).replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
+  }
+
+  private static String anchorTitle(Element a) {
+    String[] values = {
+      a.attr("title"),
+      a.select("img[alt]").attr("alt"),
+      a.ownText(),
+      a.text(),
+    };
+    for (String v : values) {
+      String t = cleanTitle(v);
+      if (
+        !t.isEmpty() &&
+        !t.equalsIgnoreCase("смотреть") &&
+        !t.matches("[+\\-]?[0-9.]+")
+      ) return t;
+    }
+    return "";
+  }
+
+  private static Element cardScope(Element a) {
+    Element s = a;
+    for (int i = 0; i < 5 && s != null; i++) {
+      String cls = s.className().toLowerCase(Locale.ROOT);
+      if (
+        cls.contains("short") ||
+        cls.contains("th-") ||
+        cls.contains("item") ||
+        cls.contains("movie") ||
+        cls.contains("anime") ||
+        cls.contains("story") ||
+        !s.select("img[src]").isEmpty()
+      ) return s;
+      s = s.parent();
+    }
+    return a.parent() == null ? a : a.parent();
+  }
+
+  private static String posterFrom(String base, Element scope) {
+    if (scope == null) return "";
+    String best = "";
+    for (Element img : scope.select(
+      "img[src],img[data-src],img[data-original]"
+    )) {
+      String src = first(
+        first(img.attr("data-src"), img.attr("data-original")),
+        img.attr("src")
+      );
+      String safe = absolute(base, src);
+      String low = safe.toLowerCase(Locale.ROOT);
+      if (
+        safe.isEmpty() ||
+        low.contains("logo") ||
+        low.contains("banner") ||
+        low.contains("avatar") ||
+        low.contains("transparent")
+      ) continue;
+      best = safe;
+      if (
+        low.contains("poster") ||
+        low.contains("uploads/posts") ||
+        low.contains("previews")
+      ) break;
+    }
+    if (!best.isEmpty()) return best;
+    Matcher bg = Pattern.compile(
+      "url\\(['\\\"]?([^)'\\\"]+)",
+      Pattern.CASE_INSENSITIVE
+    ).matcher(scope.attr("style"));
+    return bg.find() ? absolute(base, bg.group(1)) : "";
+  }
+
+  private static String heading(Document doc, String fallback) {
+    for (Element h : doc.select("h1,h2,h3")) {
+      String t = cleanTitle(h.text());
+      String l = t.toLowerCase(Locale.ROOT);
+      if (
+        t.length() > 2 &&
+        !l.startsWith("описание") &&
+        !l.contains("комментар") &&
+        !l.contains("смотреть онлайн")
+      ) return t;
+    }
+    String title = cleanTitle(doc.title());
+    return title.isEmpty()
+      ? fallback
+      : title.replaceAll("(?iu)\\s+смотреть.*$", "").trim();
+  }
+
+  private static String descriptionFrom(Document doc) {
+    for (String sel : new String[] {
+      "[itemprop=description]",
+      ".description",
+      ".full-text",
+      ".story",
+      ".quote",
+      ".entry",
+      "p",
+    })
+      for (Element e : doc.select(sel)) {
+        String t = cleanText(e.text());
+        String l = t.toLowerCase(Locale.ROOT);
+        if (
+          t.length() > 80 &&
+          !l.contains("зарегистриру") &&
+          !l.contains("комментар") &&
+          !l.contains("донат")
+        ) return t.length() > 1200 ? t.substring(0, 1200) : t;
+      }
+    return "";
+  }
+
+  private void putBetter(LinkedHashMap<String, Anime> map, Anime a) {
+    if (!Anime.valid(a)) return;
+    Anime old = map.get(a.id);
+    if (
+      old == null ||
+      a.title.length() < old.title.length() ||
+      (old.poster.isEmpty() && !a.poster.isEmpty())
+    ) map.put(a.id, remember(a));
+  }
+
+  private static boolean matchesQuery(Anime a, String q) {
+    String n = plainName(q);
+    if (n.isEmpty()) return true;
+    String title = plainName(a.title + " " + a.original + " " + a.alias);
+    return (
+      title.contains(n) ||
+      n.contains(plainName(a.title)) ||
+      (!a.original.isEmpty() && n.contains(plainName(a.original)))
+    );
+  }
+
+  private static String sourceUrl(Anime base) throws Exception {
+    String u = safeUrl(base.alias);
+    if (!u.isEmpty()) return u;
+    throw new IOException("У каталога нет адреса страницы");
+  }
+
+  private static String stableId(String value) {
+    long h = Integer.toUnsignedLong((value == null ? "" : value).hashCode());
+    return String.valueOf(1000000000L + (h % 8999999999L));
+  }
+
+  private static int yearIn(String text) {
+    Matcher m = Pattern.compile(
+      "(?:^|[^0-9])((?:19|20)[0-9]{2})(?:[^0-9]|$)"
+    ).matcher(text == null ? "" : text);
+    try {
+      return m.find() ? Integer.parseInt(m.group(1)) : 0;
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  private static int episodesIn(String text) {
+    String s = text == null ? "" : text;
+    String[] patterns = {
+      "из\\s*(\\d{1,4})",
+      "(\\d{1,4})\\s*сер(?:ия|ии|ий)",
+      "Серии?:\\s*[^0-9]*(\\d{1,4})",
+    };
+    for (String p : patterns) {
+      Matcher m = Pattern.compile(
+        p,
+        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+      ).matcher(s);
+      if (m.find()) try {
+        return Integer.parseInt(m.group(1));
+      } catch (Exception ignored) {}
+    }
+    return 0;
+  }
+
+  private static String episodeTitle(String text, int fallback) {
+    String t = cleanText(text);
+    if (t.isEmpty()) return "Серия " + fallback;
+    t = t.replaceFirst("(?iu)^смотреть\\s+", "");
+    return t.length() > 120 ? t.substring(0, 120) : t;
+  }
+
+  private static String latinSlug(String text) {
+    String s = (text == null ? "" : text)
+      .toLowerCase(Locale.ROOT)
+      .replaceAll("[^a-z0-9]+", "-")
+      .replaceAll("^-+|-+$", "");
+    return s.matches(".*[a-z].*") ? s : "";
+  }
+
+  private static String findText(String input, String regex) {
+    Matcher m = Pattern.compile(
+      regex,
+      Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.DOTALL
+    ).matcher(input == null ? "" : input);
+    return m.find() ? cleanText(unescape(m.group(1))) : "";
+  }
+
+  private static String unescape(String s) {
+    return s == null
+      ? ""
+      : s
+          .replace("&quot;", "\"")
+          .replace("&#34;", "\"")
+          .replace("&#039;", "'")
+          .replace("&amp;", "&")
+          .replace("\\/", "/");
+  }
+
+  private Anime.Page anixCatalog(String search, int page, Filter f)
+    throws Exception {
+    Anime.Page out = new Anime.Page();
+    out.page = page;
+    String q = search == null ? "" : search.trim();
+    JSONObject body = new JSONObject();
+    body.put("sort", f != null && "POPULARITY".equals(f.sort) ? 2 : 1);
+    body.put("age_rating", new JSONArray());
+    body.put("genres", new JSONArray());
+    body.put("years", new JSONArray());
+    body.put("seasons", new JSONArray());
+    body.put("types", new JSONArray());
+    body.put("statuses", new JSONArray());
+    body.put("countries", new JSONArray());
+    if (!q.isEmpty()) {
+      body.put("search", q);
+      body.put("query", q);
+      body.put("title", q);
+    }
+    if (f != null && !f.year.isEmpty()) body
+      .getJSONArray("years")
+      .put(parseInt(f.year));
+    JSONObject root = anixPost("/filter/" + Math.max(0, page - 1), body);
+    JSONArray rows = firstArray(
+      root,
+      "releases",
+      "content",
+      "data",
+      "list",
+      "items"
+    );
+    for (int i = 0; rows != null && i < rows.length(); i++) {
+      JSONObject row = rows.optJSONObject(i);
+      if (row == null) continue;
+      Anime a = anixAnime(row);
+      if (Anime.valid(a) && (q.isEmpty() || matchesQuery(a, q))) out.items.add(
+        remember(a)
+      );
+      if (out.items.size() >= 24) break;
+    }
+    out.more = rows != null && rows.length() >= 24;
+    return out;
+  }
+
+  private Anime anixDetails(Anime base, boolean episodes) throws Exception {
+    JSONObject root = anixGet("/release/" + enc(base.id));
+    JSONObject row = firstObject(root, "release", "data", "item");
+    Anime a = row == null ? Anime.from(base.json()) : anixAnime(row);
+    if (!Anime.valid(a)) {
+      a = Anime.from(base.json());
+      a.source = "anixsekai";
+    }
+    if (episodes) {
+      LinkedHashMap<String, Anime.Episode> map = new LinkedHashMap<>();
+      JSONArray types = firstArray(
+        anixGet("/episode/" + enc(a.id)),
+        "types",
+        "data",
+        "items"
+      );
+      ArrayList<JSONObject> list = new ArrayList<>();
+      for (int i = 0; types != null && i < types.length(); i++) {
+        JSONObject t = types.optJSONObject(i);
+        if (t == null) continue;
+        String voice = voiceTitle(
+          t.optString("name", t.optString("title", ""))
+        );
+        if (voice.isEmpty()) continue;
+        list.add(t);
+      }
+      String pref = "";
+      boolean strict = false;
+      try {
+        pref = YoruApp.app().store.voicePreference();
+        strict = false;
+      } catch (Exception ignored) {}
+      final String wanted = pref;
+      list.sort((x, y) -> {
+        String xv = voiceTitle(x.optString("name", x.optString("title", ""))),
+          yv = voiceTitle(y.optString("name", y.optString("title", "")));
+        int xs = !wanted.isEmpty() && voiceMatches(wanted, xv) ? 0 : 1,
+          ys = !wanted.isEmpty() && voiceMatches(wanted, yv) ? 0 : 1;
+        if (xs != ys) return xs - ys;
+        int xc = x.optInt("episodes_count", 0),
+          yc = y.optInt("episodes_count", 0);
+        return yc - xc;
+      });
+      int limit = !voiceKey(wanted).isEmpty() ? 6 : 24,
+        loaded = 0;
+      for (JSONObject type : list) {
+        String voice = voiceTitle(
+          type.optString("name", type.optString("title", ""))
+        );
+        if (strict && !voiceMatches(pref, voice)) continue;
+        int typeId = type.optInt("id", 0);
+        if (typeId <= 0) continue;
+        JSONObject srcRoot;
+        try {
+          srcRoot = anixGet("/episode/" + enc(a.id) + "/" + typeId);
+        } catch (Exception ignored) {
+          continue;
+        }
+        JSONArray sources = firstArray(srcRoot, "sources", "data", "items");
+        JSONObject source = chooseAnixSource(sources);
+        if (source == null) continue;
+        int sourceId = source.optInt("id", 0);
+        if (sourceId <= 0) continue;
+        JSONObject epRoot;
+        try {
+          epRoot = anixGet(
+            "/episode/" + enc(a.id) + "/" + typeId + "/" + sourceId
+          );
+        } catch (Exception ignored) {
+          continue;
+        }
+        JSONArray eps = firstArray(epRoot, "episodes", "data", "items");
+        for (int i = 0; eps != null && i < eps.length(); i++) {
+          JSONObject e = eps.optJSONObject(i);
+          if (e == null) continue;
+          String url = embed(
+            e.optString(
+              "url",
+              e.optString("link", e.optString("iframe_url", ""))
+            )
+          );
+          if (url.isEmpty()) continue;
+          double n = e.optDouble(
+            "position",
+            e.optDouble("episode", e.optDouble("number", i + 1))
+          );
+          if (!Double.isFinite(n) || n < 0) n = i + 1;
+          String key = episodeParam(n);
+          Anime.Episode ep = map.get(key);
+          if (ep == null) {
+            ep = new Anime.Episode();
+            ep.id = a.id + "-" + key;
+            ep.number = n;
+            ep.name = e.optString("title", e.optString("name", ""));
+            map.put(key, ep);
+          }
+          ep.lazy = "anixsekai";
+          if (ep.poster.isEmpty()) ep.poster = anixImage(bestImage(e));
+          ep.duration = Math.max(ep.duration, e.optInt("duration", 0));
+          Anime.Variant v = new Anime.Variant(voice, "YORU", url);
+          v.displayName = voice;
+          addVariant(ep, v);
+        }
+        if (++loaded >= limit) break;
+      }
+      a.episodeList.clear();
+      a.episodeList.addAll(map.values());
+      a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+      a.episodesAired = Math.max(a.episodesAired, playableEpisodes(a));
+      a.episodes = Math.max(a.episodes, a.episodeList.size());
+    }
+    return remember(a);
+  }
+
+  private JSONObject chooseAnixSource(JSONArray sources) {
+    JSONObject first = null,
+      kodik = null;
+    for (int i = 0; sources != null && i < sources.length(); i++) {
+      JSONObject s = sources.optJSONObject(i);
+      if (s == null) continue;
+      String name = s
+        .optString("name", s.optString("title", ""))
+        .toLowerCase(Locale.ROOT);
+      if (first == null) first = s;
+      if (s.optInt("id", 0) == 12 || name.contains("kodik")) {
+        kodik = s;
+        break;
+      }
+    }
+    return kodik != null ? kodik : first;
+  }
+
+  private Anime findAnix(Anime a) throws Exception {
+    normalizeIds(a);
+    Anime best = null;
+    for (String q : searchTerms(a)) {
+      Anime.Page page = anixCatalog(q, 1, new Filter());
+      for (Anime item : page.items) {
+        if (matchesAnime(item, a)) return item;
+        if (best == null && matchesQuery(item, q)) best = item;
+      }
+    }
+    return best;
+  }
+
+  private JSONObject anixGet(String path) throws Exception {
+    Exception last = null;
+    for (String base : ANIX_BASES)
+      try {
+        return anixOk(
+          request(base + path, "GET", null, false, anixHeaders(base))
+        );
+      } catch (Exception e) {
+        last = e;
+      }
+    if (last != null) throw last;
+    throw new IOException("YORU не ответил");
+  }
+
+  private JSONObject anixPost(String path, JSONObject body) throws Exception {
+    Exception last = null;
+    for (String base : ANIX_BASES)
+      try {
+        return anixOk(
+          request(
+            base + path,
+            "POST",
+            body.toString(),
+            false,
+            anixHeaders(base)
+          )
+        );
+      } catch (Exception e) {
+        last = e;
+      }
+    if (last != null) throw last;
+    throw new IOException("YORU не ответил");
+  }
+
+  private JSONObject anixOk(String text) throws Exception {
+    JSONObject root = new JSONObject(text);
+    if (root.has("code") && root.optInt("code", 0) != 0) throw new IOException(
+      "YORU временно недоступен"
+    );
+    return root;
+  }
+
+  private static HashMap<String, String> anixHeaders(String base) {
+    HashMap<String, String> h = new HashMap<>();
+    h.put("Accept", "application/json");
+    h.put("User-Agent", ANIX_UA);
+    h.put("Origin", base);
+    h.put("Referer", base + "/");
+    h.put("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.5");
+    return h;
+  }
+
+  private static JSONArray firstArray(JSONObject root, String... keys) {
+    if (root == null) return null;
+    for (String k : keys) {
+      JSONArray a = root.optJSONArray(k);
+      if (a != null) return a;
+      JSONObject o = root.optJSONObject(k);
+      if (o != null) {
+        JSONArray nested = firstArray(
+          o,
+          "releases",
+          "content",
+          "data",
+          "list",
+          "items",
+          "types",
+          "sources",
+          "episodes"
+        );
+        if (nested != null) return nested;
+      }
+    }
+    return null;
+  }
+
+  private static JSONObject firstObject(JSONObject root, String... keys) {
+    if (root == null) return null;
+    for (String k : keys) {
+      JSONObject o = root.optJSONObject(k);
+      if (o != null) return o;
+    }
+    return null;
+  }
+
+  private static Anime anixAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "anixsekai";
+    a.id = j.optString("id", j.optString("releaseId"));
+    a.title = j.optString(
+      "title_ru",
+      j.optString("title", j.optString("name", "Аниме"))
+    );
+    a.original = j.optString(
+      "title_original",
+      j.optString("title_en", j.optString("title_alt", ""))
+    );
+    a.alias = j.optString("alias", j.optString("code", ""));
+    a.description = plain(
+      j.optString("description", j.optString("annotation", ""))
+    );
+    String poster = j.optString(
+      "poster",
+      j.optString(
+        "image",
+        j.optString(
+          "image_url",
+          j.optString("poster_url", j.optString("screenshot", ""))
+        )
+      )
+    );
+    a.poster = anixImage(poster);
+    a.trailerUrl = safeUrl(
+      j.optString(
+        "trailer",
+        j.optString("trailer_url", j.optString("youtube_url", ""))
+      )
+    );
+    addScreenshot(
+      a,
+      anixImage(j.optString("screenshot", j.optString("frame", "")))
+    );
+    JSONArray shots = j.optJSONArray("screenshots");
+    for (int i = 0; shots != null && i < shots.length(); i++) addScreenshot(
+      a,
+      anixImage(imageFrom(shots.opt(i)))
+    );
+    a.airedDate = j.optString(
+      "aired_on",
+      j.optString("release_date", j.optString("date", ""))
+    );
+    a.year = j.optInt(
+      "year",
+      yearIn(j.optString("aired_on", j.optString("season", "")))
+    );
+    a.type = kind(j.optString("type", j.optString("category", "")));
+    a.status = j.optString("status", j.optString("publish_status", ""));
+    a.episodes = j.optInt(
+      "episodes_total",
+      j.optInt(
+        "episodes_count",
+        j.optInt("episodes", j.optInt("episode_count", 0))
+      )
+    );
+    a.episodesAired = j.optInt("episodes_aired", j.optInt("episodesAired", 0));
+    a.score = j.optDouble(
+      "grade",
+      j.optDouble("rating", j.optDouble("score", 0))
+    );
+    a.age = j.optInt("age_rating", 0) > 0 ? j.optInt("age_rating") + "+" : "";
+    a.malId = j.optInt(
+      "myanimelist_id",
+      j.optInt("mal_id", j.optInt("malId", 0))
+    );
+    a.anilistId = j.optInt("anilist_id", j.optInt("anilistId", 0));
+    genres(a, j.optJSONArray("genres"), "name");
+    genres(a, j.optJSONArray("categories"), "name");
+    return a;
+  }
+
+  private static String anixImage(String raw) {
+    String s = raw == null ? "" : raw.trim().replace("\\/", "/");
+    if (s.isEmpty() || s.equals("null")) return "";
+    if (s.startsWith("http")) return safeUrl(s);
+    if (s.startsWith("//")) return safeUrl("https:" + s);
+    if (s.startsWith("/")) return safeUrl("https://api-s.anixsekai.com" + s);
+    return safeUrl(s);
+  }
+
+  private void enrichSchedule(Anime a) {
+    if (a == null) return;
+    int mal =
+      a.malId > 0 ? a.malId : "shikimori".equals(a.source) ? parseInt(a.id) : 0;
+    if (mal <= 0) return;
+    try {
+      JSONArray rows = shiki(
+        "{animes(ids:" +
+          JSONObject.quote(String.valueOf(mal)) +
+          ",limit:1){id status episodes episodesAired nextEpisodeAt airedOn{year date}}}"
+      ).optJSONArray("animes");
+      JSONObject j =
+        rows != null && rows.length() > 0 ? rows.optJSONObject(0) : null;
+      if (j == null) return;
+      int total = j.optInt("episodes", 0),
+        aired = j.optInt("episodesAired", 0);
+      if (total > 0) a.episodes = total;
+      if (aired > 0) a.episodesAired = aired;
+      String next = j.optString("nextEpisodeAt", "");
+      if (!next.isEmpty() && !next.equals("null")) a.nextEpisodeAt = next;
+      String st = j.optString("status", "");
+      if (!st.isEmpty()) a.status = st;
+    } catch (Exception ignored) {}
+  }
+
+  private static int playableEpisodes(Anime a) {
+    int n = 0;
+    if (a != null) for (Anime.Episode e : a.episodeList)
+      if (e != null && !e.future) n++;
+    return n;
+  }
+
+  private static void appendFutureEpisodes(Anime a) {
+    if (a == null || a.episodes <= 0) return;
+    boolean incomplete = a.episodesAired > 0 && a.episodesAired < a.episodes;
+    boolean scheduled =
+      !a.nextEpisodeAt.isEmpty() && !"null".equalsIgnoreCase(a.nextEpisodeAt);
+    if (!a.ongoing() && !incomplete && !scheduled) return;
+    int playable = 0;
+    for (Anime.Episode e : a.episodeList)
+      if (e != null && !e.future) playable++;
+    int aired = incomplete
+      ? a.episodesAired
+      : Math.max(a.episodesAired, playable);
+    if (aired <= 0 && playable > 0) aired = playable;
+    if (aired >= a.episodes) {
+      a.episodesAired = Math.max(a.episodesAired, a.episodes);
+      return;
+    }
+    a.episodesAired = aired;
+    LinkedHashSet<String> have = new LinkedHashSet<>();
+    for (Anime.Episode e : a.episodeList) {
+      if (e == null) continue;
+      String key = episodeParam(e.number);
+      have.add(key);
+      if (e.number > aired + 0.001) markFuture(
+        e,
+        (int) Math.round(e.number) == aired + 1
+          ? formatAirDate(a.nextEpisodeAt)
+          : "Дата уточняется"
+      );
+    }
+    int max =
+      a.episodes - aired > 24 ? Math.min(a.episodes, aired + 24) : a.episodes;
+    for (int n = aired + 1; n <= max; n++) {
+      String key = episodeParam(n);
+      if (have.contains(key)) continue;
+      Anime.Episode ep = new Anime.Episode();
+      ep.id =
+        (a.id == null || a.id.isEmpty() ? "future" : a.id) + "-future-" + n;
+      ep.number = n;
+      markFuture(
+        ep,
+        n == aired + 1 ? formatAirDate(a.nextEpisodeAt) : "Дата уточняется"
+      );
+      a.episodeList.add(ep);
+    }
+  }
+
+  private static void markFuture(Anime.Episode ep, String date) {
+    if (ep == null) return;
+    String label =
+      date == null || date.trim().isEmpty() ? "Дата уточняется" : date.trim();
+    ep.future = true;
+    ep.airDate = label;
+    ep.name = label;
+    ep.poster = "";
+    ep.lazy = "";
+    ep.resolverUrl = "";
+    ep.duration = 0;
+    ep.openingStart = 0;
+    ep.openingEnd = 0;
+    ep.streams.clear();
+    ep.variants.clear();
+  }
+
+  private static String formatAirDate(String raw) {
+    String v = raw == null ? "" : raw.trim();
+    if (v.isEmpty() || v.equals("null")) return "Дата уточняется";
+    try {
+      return (
+        "Выйдет " +
+        dateLabel(
+          OffsetDateTime.parse(v)
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .toLocalDateTime()
+        )
+      );
+    } catch (Exception ignored) {}
+    try {
+      return (
+        "Выйдет " +
+        dateLabel(
+          Instant.parse(v).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        )
+      );
+    } catch (Exception ignored) {}
+    try {
+      return "Выйдет " + dateLabel(LocalDateTime.parse(v));
+    } catch (Exception ignored) {}
+    return "Выйдет " + v.replace('T', ' ');
+  }
+
+  private static String dateLabel(LocalDateTime t) {
+    String[] m = {
+      "янв",
+      "фев",
+      "мар",
+      "апр",
+      "мая",
+      "июн",
+      "июл",
+      "авг",
+      "сен",
+      "окт",
+      "ноя",
+      "дек",
+    };
+    return String.format(
+      Locale.ROOT,
+      "%d %s, %02d:%02d",
+      t.getDayOfMonth(),
+      m[Math.max(0, Math.min(11, t.getMonthValue() - 1))],
+      t.getHour(),
+      t.getMinute()
+    );
+  }
+
+  private void enrichVisuals(Anime a) {
+    if (a == null) return;
+    int mal =
+      a.malId > 0 ? a.malId : "shikimori".equals(a.source) ? parseInt(a.id) : 0;
+    if (mal <= 0) return;
+    try {
+      JSONArray rows = new JSONArray(
+        shikiRest("/api/animes/" + mal + "/screenshots")
+      );
+      for (int i = 0; i < rows.length() && a.screenshots.size() < 12; i++) {
+        JSONObject row = rows.optJSONObject(i);
+        if (row == null) continue;
+        addScreenshot(
+          a,
+          shikiImage(row.optString("original", row.optString("preview", "")))
+        );
+      }
+    } catch (Exception ignored) {}
+    try {
+      JSONArray rows = new JSONArray(
+        shikiRest("/api/animes/" + mal + "/videos")
+      );
+      for (int i = 0; i < rows.length(); i++) {
+        JSONObject row = rows.optJSONObject(i);
+        if (row == null) continue;
+        String url = safeUrl(
+          first(row.optString("url", ""), row.optString("player_url", ""))
+        );
+        String kind = (
+          row.optString("kind", "") +
+          " " +
+          row.optString("name", "")
+        ).toLowerCase(Locale.ROOT);
+        if (
+          !url.isEmpty() &&
+          (a.trailerUrl.isEmpty() ||
+            kind.contains("pv") ||
+            kind.contains("trailer") ||
+            kind.contains("опенинг"))
+        ) {
+          a.trailerUrl = url;
+          if (kind.contains("trailer") || kind.contains("pv")) break;
+        }
+      }
+    } catch (Exception ignored) {}
+  }
+
+  private void enrichRelated(Anime a) {
+    if (a == null) return;
+    LinkedHashMap<String, Anime> map = new LinkedHashMap<>();
+    for (Anime row : a.related)
+      if (Anime.valid(row) && !row.key().equals(a.key())) map.put(
+        SourceEngine.identity(row),
+        row
+      );
+    int mal =
+      a.malId > 0 ? a.malId : "shikimori".equals(a.source) ? parseInt(a.id) : 0;
+    if (mal <= 0) try {
+      for (String term : searchTerms(a)) {
+        Anime.Page page = catalog("shikimori", term, 1, new Filter());
+        for (Anime item : page.items)
+          if (matchesAnime(item, a)) {
+            mal = item.malId > 0 ? item.malId : parseInt(item.id);
+            break;
+          }
+        if (mal > 0) break;
+      }
+    } catch (Exception ignored) {}
+    YoruCache relatedDb = YoruApp.app() == null ? null : YoruApp.app().cache;
+    if (mal > 0 && relatedDb != null) {
+      JSONArray cached = relatedDb.franchise(mal, 3 * DAY_MS);
+      for (int i = 0; i < cached.length(); i++) {
+        Anime item = Anime.from(cached.optJSONObject(i));
+        if (Anime.valid(item) && !item.key().equals(a.key())) map.put(
+          SourceEngine.identity(item),
+          item
+        );
+      }
+    }
+    if (mal > 0) try {
+      JSONArray rows = shiki(
+        "{animes(ids:" +
+          JSONObject.quote(String.valueOf(mal)) +
+          ",limit:1){related{relationKind anime{" +
+          SH_FIELDS +
+          "}}}}"
+      ).optJSONArray("animes");
+      JSONObject first =
+        rows != null && rows.length() > 0 ? rows.optJSONObject(0) : null;
+      JSONArray rel = first == null ? null : first.optJSONArray("related");
+      for (int i = 0; rel != null && i < rel.length(); i++) {
+        JSONObject r = rel.getJSONObject(i).optJSONObject("anime");
+        if (r == null) continue;
+        Anime item = remember(shikiAnime(r));
+        if (Anime.valid(item) && !item.key().equals(a.key())) map.put(
+          SourceEngine.identity(item),
+          item
+        );
+      }
+    } catch (Exception ignored) {}
+    if (mal > 0) try {
+      ArrayList<Integer> ids = franchiseIds(mal, map, a);
+      for (int from = 0; from < ids.size(); from += 45) {
+        List<Integer> part = ids.subList(from, Math.min(ids.size(), from + 45));
+        StringBuilder joined = new StringBuilder();
+        for (Integer id : part) {
+          if (id == null || id <= 0) continue;
+          if (joined.length() > 0) joined.append(',');
+          joined.append(id);
+        }
+        if (joined.length() == 0) continue;
+        JSONArray rows = shiki(
+          "{animes(ids:" +
+            JSONObject.quote(joined.toString()) +
+            ",limit:" +
+            part.size() +
+            "){" +
+            SH_FIELDS +
+            "}}"
+        ).optJSONArray("animes");
+        for (int i = 0; rows != null && i < rows.length(); i++) {
+          Anime item = remember(shikiAnime(rows.getJSONObject(i)));
+          if (Anime.valid(item) && !item.key().equals(a.key())) map.put(
+            SourceEngine.identity(item),
+            item
+          );
+        }
+      }
+    } catch (Exception ignored) {}
+    ArrayList<Anime> rows = new ArrayList<>(map.values());
+    rows.sort((x, y) -> {
+      int p = releaseOrder(x) - releaseOrder(y);
+      if (p != 0) return p;
+      p = franchiseKindRank(x) - franchiseKindRank(y);
+      if (p != 0) return p;
+      p = seasonNumber(x) - seasonNumber(y);
+      if (p != 0) return p;
+      return YoruBrain.title(x).compareToIgnoreCase(YoruBrain.title(y));
+    });
+    a.related.clear();
+    JSONArray relCache = new JSONArray();
+    for (Anime row : rows)
+      if (a.related.size() < 120) {
+        a.related.add(row);
+        relCache.put(row.json());
+      }
+    if (mal > 0 && relatedDb != null) relatedDb.franchise(mal, relCache);
+  }
+
+  private ArrayList<Integer> franchiseIds(
+    int mal,
+    LinkedHashMap<String, Anime> map,
+    Anime self
+  ) {
+    ArrayList<Integer> ids = new ArrayList<>();
+    try {
+      JSONObject root = new JSONObject(
+        shikiRest("/api/animes/" + mal + "/franchise")
+      );
+      JSONArray nodes = root.optJSONArray("nodes");
+      for (int i = 0; nodes != null && i < nodes.length(); i++) {
+        JSONObject n = nodes.optJSONObject(i);
+        if (n == null) continue;
+        int id = n.optInt("id", 0);
+        if (id <= 0) continue;
+        Anime item = new Anime();
+        item.source = "shikimori";
+        item.id = String.valueOf(id);
+        item.malId = id;
+        item.title = n.optString("name", n.optString("russian", "Аниме"));
+        item.original = n.optString("name", "");
+        item.year = n.optInt("year", n.optInt("date", 0));
+        item.type = kind(n.optString("kind", ""));
+        item.poster = shikiImage(
+          n.optString("image_url", n.optString("poster", ""))
+        );
+        if (Anime.valid(item) && !item.key().equals(self.key())) map.put(
+          SourceEngine.identity(item),
+          remember(item)
+        );
+        if (id != mal && !ids.contains(id)) ids.add(id);
+      }
+    } catch (Exception ignored) {}
+    return ids;
+  }
+
+  private static int franchiseKindRank(Anime a) {
+    String t = (a == null ? "" : a.type).toLowerCase(Locale.ROOT);
+    if (t.contains("тв") || t.contains("tv")) return 10;
+    if (t.contains("ona")) return 30;
+    if (t.contains("фильм") || t.contains("movie")) return 50;
+    if (t.contains("ova")) return 60;
+    if (t.contains("спеш") || t.contains("special")) return 70;
+    return 40;
+  }
+
+  private static int seasonNumber(Anime a) {
+    String t = (
+      (a == null ? "" : a.title) +
+      " " +
+      (a == null ? "" : a.original)
+    ).toLowerCase(Locale.ROOT);
+    Matcher m = Pattern.compile(
+      "(?:season|сезон)\\s*(\\d+)|(\\d+)\\s*(?:st|nd|rd|th|й|я)?\\s*сезон"
+    ).matcher(t);
+    if (m.find()) {
+      String n = m.group(1) != null ? m.group(1) : m.group(2);
+      try {
+        return Integer.parseInt(n);
+      } catch (Exception ignored) {}
+    }
+    if (t.contains("ii")) return 2;
+    if (t.contains("iii")) return 3;
+    if (t.contains("iv")) return 4;
+    return 1;
+  }
+
+  private static int releaseOrder(Anime a) {
+    if (a == null) return 99999999;
+    String d = a.airedDate == null ? "" : a.airedDate.replaceAll("[^0-9]", "");
+    if (d.length() >= 8) try {
+      return Integer.parseInt(d.substring(0, 8));
+    } catch (Exception ignored) {}
+    return a.year > 0 ? a.year * 10000 + 101 : 99999999;
+  }
+
+  private static void applyEpisodeVisuals(Anime a) {
+    if (a == null) return;
+    int i = 0;
+    for (Anime.Episode ep : a.episodeList) {
+      if (ep == null) continue;
+      if (ep.future) {
+        ep.poster = "";
+        i++;
+        continue;
+      }
+      if (ep.poster.isEmpty() && !a.screenshots.isEmpty()) ep.poster =
+        a.screenshots.get(
+          Math.abs((int) Math.floor(ep.number) - 1) % a.screenshots.size()
+        );
+      if (ep.poster.isEmpty()) ep.poster = a.poster;
+      if (
+        ep.duration <= 0 && a.type.toLowerCase(Locale.ROOT).contains("фильм")
+      ) ep.duration = 90 * 60;
+      i++;
+    }
+  }
+
+  private static void addScreenshot(Anime a, String url) {
+    String safe = safeUrl(url);
+    if (
+      a != null &&
+      !safe.isEmpty() &&
+      !a.screenshots.contains(safe) &&
+      a.screenshots.size() < 12
+    ) a.screenshots.add(safe);
+  }
+
+  private static String shikiImage(String raw) {
+    String s = raw == null ? "" : raw.trim();
+    if (s.startsWith("//")) s = "https:" + s;
+    if (s.startsWith("/")) s = "https://shikimori.one" + s;
+    return safeUrl(s);
+  }
+
+  private static String bestImage(JSONObject j) {
+    if (j == null) return "";
+    String[] keys = {
+      "preview",
+      "preview_url",
+      "thumbnail",
+      "thumbnail_url",
+      "screenshot",
+      "screenshot_url",
+      "image",
+      "image_url",
+      "poster",
+      "poster_url",
+      "frame",
+      "frame_url",
+      "cover",
+      "cover_url",
+    };
+    for (String key : keys) {
+      String v = j.optString(key, "");
+      String s = safeUrl(v);
+      if (!s.isEmpty()) return s;
+      if (v.startsWith("/")) return v;
+      JSONObject o = j.optJSONObject(key);
+      if (o != null) {
+        String x = bestImage(o);
+        if (!x.isEmpty()) return x;
+      }
+    }
+    return "";
+  }
+
+  private static String imageFrom(Object value) {
+    if (value instanceof JSONObject) return bestImage((JSONObject) value);
+    if (value instanceof String) return (String) value;
+    return "";
+  }
+
+  private Anime.Page animelib4kCatalog(String search, int page, Filter f)
+    throws Exception {
+    Anime.Page base = catalog("animelib", search, page, f);
+    Anime.Page out = new Anime.Page();
+    out.page = base.page;
+    out.total = base.total;
+    out.more = base.more;
+    for (Anime a : base.items) {
+      Anime copy = Anime.from(a.json());
+      copy.source = "animelib4k";
+      out.items.add(remember(copy));
+    }
+    return out;
+  }
+
+  private Anime.Page kodikCatalog(String search, int page, Filter f)
+    throws Exception {
+    Anime.Page base = catalog("shikimori", search, page, f);
+    Anime.Page out = new Anime.Page();
+    out.page = base.page;
+    out.total = base.total;
+    out.more = base.more;
+    for (Anime a : base.items) out.items.add(remember(kodikShell(a)));
+    return out;
+  }
+
+  private Anime kodikShell(Anime base) {
+    Anime a = new Anime();
+    a.source = "kodik";
+    a.id = String.valueOf(
+      base.malId > 0
+        ? base.malId
+        : base.id.matches("\\d+")
+          ? Integer.parseInt(base.id)
+          : (int) (1L +
+              (Integer.toUnsignedLong(base.key().hashCode()) % 999999999L))
+    );
+    a.title = base.title;
+    a.original = base.original;
+    a.alias = base.alias;
+    a.poster = base.poster;
+    a.description = base.description;
+    a.year = base.year;
+    a.type = base.type;
+    a.status = base.status;
+    a.age = base.age;
+    a.episodes = base.episodes;
+    a.malId = base.malId > 0 ? base.malId : parseInt(base.id);
+    a.anilistId = base.anilistId;
+    a.kpId = base.kpId;
+    a.libriaAlias = base.libriaAlias;
+    a.score = base.score;
+    a.trailerUrl = base.trailerUrl;
+    a.airedDate = base.airedDate;
+    a.screenshots.addAll(base.screenshots);
+    a.genres.addAll(base.genres);
+    return a;
+  }
+
+  private Anime kodikDetails(Anime base, boolean episodes) throws Exception {
+    Anime shell = kodikShell(base);
+    if (shell.description.isEmpty() || shell.poster.isEmpty()) {
+      try {
+        Anime sh = new Anime();
+        sh.source = "shikimori";
+        sh.id = String.valueOf(
+          shell.malId > 0 ? shell.malId : parseInt(shell.id)
+        );
+        sh.title = shell.title;
+        sh.original = shell.original;
+        Anime full = details(sh, false);
+        shell = kodikShell(full);
+      } catch (Exception ignored) {}
+    }
+    if (episodes) {
+      int mal = shell.malId > 0 ? shell.malId : parseInt(shell.id);
+      String url = directKodik(mal);
+      int count = Math.max(
+        1,
+        Math.min(250, shell.episodes > 0 ? shell.episodes : 1)
+      );
+      for (int i = 1; i <= count; i++) {
+        Anime.Episode ep = new Anime.Episode();
+        ep.id = shell.id + "-" + i;
+        ep.number = i;
+        ep.name = "";
+        ep.lazy = "kodik";
+        ep.resolverUrl = Uri.parse(url)
+          .buildUpon()
+          .appendQueryParameter("episode", String.valueOf(i))
+          .build()
+          .toString();
+        ep.variants.add(new Anime.Variant("", "YORU", ep.resolverUrl));
+        shell.episodeList.add(ep);
+      }
+    }
+    return remember(shell);
+  }
+
+  private static int parseInt(String s) {
+    try {
+      return Integer.parseInt(s == null ? "0" : s.replaceAll("\\D+", ""));
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  private Anime findAniLiberty(Anime a) throws Exception {
+    normalizeIds(a);
+    Anime y = null;
+    try {
+      y = findYummy(a);
+    } catch (Exception ignored) {}
+    String alias = a.libriaAlias.isEmpty()
+      ? y == null
+        ? ""
+        : y.libriaAlias
+      : a.libriaAlias;
+    if (!alias.isEmpty()) return libriaAnime(
+      get("https://anilibria.top/api/v1/anime/releases/" + enc(alias))
+    );
+    return searchSource(a, "anilibria");
+  }
+
+  private Anime searchSource(Anime a, String source) throws Exception {
+    for (String term : searchTerms(a)) {
+      Anime.Page page = catalog(source, term, 1, new Filter());
+      for (Anime item : page.items) if (matchesAnime(item, a)) return item;
+    }
+    return null;
+  }
+
+  private static boolean matchesAnime(Anime candidate, Anime base) {
+    if (candidate == null || base == null) return false;
+    if (
+      candidate.malId > 0 && base.malId > 0 && candidate.malId == base.malId
+    ) return true;
+    if (
+      candidate.anilistId > 0 &&
+      base.anilistId > 0 &&
+      candidate.anilistId == base.anilistId
+    ) return true;
+    String bt = plainName(base.title),
+      bo = plainName(base.original),
+      ct = plainName(candidate.title),
+      co = plainName(candidate.original);
+    boolean title =
+      (!bt.isEmpty() && (bt.equals(ct) || bt.equals(co))) ||
+      (!bo.isEmpty() && (bo.equals(ct) || bo.equals(co)));
+    if (!title && "anidub".equals(candidate.source)) title =
+      (!bt.isEmpty() && (ct.contains(bt) || bt.contains(ct))) ||
+      (!bo.isEmpty() &&
+        (co.contains(bo) || bo.contains(co) || ct.contains(bo)));
+    return (
+      title &&
+      (base.year == 0 ||
+        candidate.year == 0 ||
+        Math.abs(base.year - candidate.year) <= 1)
+    );
+  }
+
+  private static LinkedHashSet<String> searchTerms(Anime a) {
+    LinkedHashSet<String> terms = new LinkedHashSet<>();
+    ArrayList<String> raw = new ArrayList<>();
+    if (a != null) {
+      raw.add(a.title);
+      raw.add(a.original);
+      raw.add(a.alias);
+    }
+    for (String value : raw) {
+      if (value == null) continue;
+      String v = value.trim();
+      if (
+        v.isEmpty() ||
+        v.length() > 160 ||
+        (v.contains("/") && v.startsWith("http"))
+      ) continue;
+      addSearchTerm(terms, v);
+      addSearchTerm(terms, trimSearchNoise(v));
+      int cut = v.indexOf('/');
+      if (cut > 1) addSearchTerm(terms, v.substring(0, cut));
+      Matcher m = Pattern.compile("(.+?)(?:\\s+[-–—:]\\s+.+)$").matcher(v);
+      if (m.find()) addSearchTerm(terms, m.group(1));
+    }
+    if (terms.isEmpty() && a != null) addSearchTerm(terms, YoruBrain.title(a));
+    LinkedHashSet<String> limited = new LinkedHashSet<>();
+    for (String t : terms) {
+      limited.add(t);
+      if (limited.size() >= 8) break;
+    }
+    return limited;
+  }
+
+  private static void addSearchTerm(LinkedHashSet<String> terms, String value) {
+    String v = cleanTitle(value);
+    v = v
+      .replaceAll(
+        "(?iu)\\b(смотреть|онлайн|аниме|все серии|озвучка|субтитры)\\b",
+        ""
+      )
+      .replaceAll("\\s+", " ")
+      .trim();
+    if (
+      v.length() >= 2 &&
+      v.length() <= 120 &&
+      Pattern.compile("[\\p{L}]").matcher(v).find()
+    ) terms.add(v);
+  }
+
+  private static String trimSearchNoise(String value) {
+    String v = cleanTitle(value);
+    v = v
+      .replaceAll("\\s*\\([^)]*\\)\\s*", " ")
+      .replaceAll("\\s*\\[[^]]*]\\s*", " ");
+    v = v.replaceAll(
+      "(?iu)\\b(tv|ova|ona|movie|special|season|фильм|спешл|сезон)\\b",
+      " "
+    );
+    v = v
+      .replaceAll("(?iu)\\b[0-9]+(?:st|nd|rd|th)?\\s*(season|сезон)\\b", " ")
+      .replaceAll("\\s+", " ")
+      .trim();
+    return v;
+  }
+
+  private static boolean sameEpisode(double a, double b) {
+    return Math.abs(a - b) < 0.001;
+  }
+
+  private static String episodeParam(double n) {
+    return sameEpisode(n, Math.floor(n))
+      ? String.valueOf((int) Math.floor(n))
+      : String.valueOf(n);
+  }
+
+  public static String downloadSourceName(String id) {
+    String name = sourceNames.get(id);
+    if (name != null) return name;
+    if ("kodik".equals(id)) return "YORU";
+    if ("animelib4k".equals(id)) return "AniLib Ultra";
+    if ("player".equals(id)) return "Вариант";
+    if ("anixsekai".equals(id)) return "YORU";
+    return id == null || id.isEmpty() ? "YORU" : "YORU";
+  }
+
+  public static String cleanLabel(String value) {
+    String v = value == null ? "" : value.trim();
+    if (v.isEmpty()) return "";
+    String l = v.toLowerCase(Locale.ROOT);
+    if (l.contains("kodik") || l.contains("aniqit")) return "YORU";
+    if (
+      l.contains("yummy") ||
+      l.contains("yani") ||
+      l.contains("cvh") ||
+      l.contains("cdnvideohub")
+    ) return "YORU";
+    if (l.equals("player") || l.equals("плеер")) return "Вариант";
+    return v.replace("Kodik", "YORU").replace("kodik", "YORU");
+  }
+
+  private static int downloadSourceRank(String id) {
+    if ("yoru".equals(id)) return -1;
+    if ("yummy".equals(id)) return 0;
+    if ("anixsekai".equals(id)) return 1;
+    if ("animevost".equals(id)) return 2;
+    if ("anidub".equals(id)) return 3;
+    if ("animelib4k".equals(id)) return 4;
+    if ("anilibria".equals(id)) return 5;
+    if ("animelib".equals(id)) return 6;
+    if ("animedia".equals(id)) return 7;
+    if ("animetka".equals(id)) return 8;
+    if ("kodik".equals(id)) return 9;
+    return 20;
+  }
+
+  private static void normalizeIds(Anime a) {
+    if (a != null && a.malId == 0 && "shikimori".equals(a.source)) try {
+      a.malId = Integer.parseInt(a.id);
+    } catch (Exception ignored) {}
+  }
+
+  private Anime findYummy(Anime a) throws Exception {
+    normalizeIds(a);
+    String url =
+      a.malId > 0
+        ? "https://api.yani.tv/anime?shikimori_ids=" + a.malId + "&limit=20"
+        : "https://api.yani.tv/anime?q=" + enc(a.title) + "&limit=20";
+    JSONArray rows = get(url).optJSONArray("response");
+    Anime found = null;
+    for (int i = 0; rows != null && i < rows.length(); i++) {
+      Anime y = yummyAnime(rows.getJSONObject(i));
+      if (a.malId > 0) {
+        JSONObject remote = rows.getJSONObject(i).optJSONObject("remote_ids");
+        if (
+          remote != null &&
+          (remote.optInt("myanimelist_id") == a.malId ||
+            remote.optInt("shikimori_id") == a.malId)
+        ) return remember(y);
+      }
+      if (
+        a.malId == 0 &&
+        plainName(y.title).equals(plainName(a.title)) &&
+        (a.year == 0 || a.year == y.year)
+      ) {
+        if (found != null && found.malId != y.malId) return null;
+        found = y;
+      }
+    }
+    return found == null ? null : remember(found);
+  }
+
+  private Anime findAniLib(Anime a) throws Exception {
+    normalizeIds(a);
+    Anime best = null;
+    for (String q : searchTerms(a)) {
+      Anime.Page page = catalog("animelib", q, 1, new Filter());
+      for (Anime item : page.items) {
+        if (!matchesAnime(item, a)) continue;
+        Anime full = details(item, false);
+        if (a.malId > 0 && full.malId == a.malId) return item;
+        if (a.anilistId > 0 && full.anilistId == a.anilistId) return item;
+        if (best == null) best = item;
+      }
+    }
+    return best;
+  }
+
+  private JSONObject animelibDetail(String slug, Anime base) throws Exception {
+    String fields =
+      "?fields[]=genres&fields[]=releaseDate&fields[]=shiki_id&fields[]=anilist_id&fields[]=rate&fields[]=rate_avg";
+    String resolved = slug;
+    if (parseInt(slug) > 0 && !slug.contains("--")) {
+      String found = animelibSlug(base);
+      if (!found.isEmpty()) resolved = found;
+    }
+    try {
+      return get("https://api.cdnlibs.org/api/anime/" + enc(resolved) + fields);
+    } catch (Exception first) {
+      String found = animelibSlug(base);
+      if (!found.isEmpty() && !found.equals(resolved)) return get(
+        "https://api.cdnlibs.org/api/anime/" + enc(found) + fields
+      );
+      throw first;
+    }
+  }
+
+  private String animelibSlug(Anime base) {
+    try {
+      if (base == null) return "";
+      if (
+        base.alias != null && !base.alias.isEmpty() && base.alias.contains("--")
+      ) return base.alias;
+      for (String q : searchTerms(base)) {
+        Anime.Page page = catalog("animelib", q, 1, new Filter());
+        for (Anime item : page.items) {
+          if (
+            item.id.equals(base.id) || matchesAnime(item, base)
+          ) return item.alias;
+        }
+      }
+    } catch (Exception ignored) {}
+    return "";
+  }
+
+  private int resolveMal(Anime a) throws Exception {
+    if (a.malId > 0) return a.malId;
+    Anime y = findYummy(a);
+    if (y != null && y.malId > 0) {
+      a.malId = y.malId;
+      a.kpId = y.kpId;
+      return y.malId;
+    }
+    throw new IOException(
+      "Не удалось найти просмотр. Попробуйте открыть карточку позже."
+    );
+  }
+
+  private int resolveKp(Anime a) throws Exception {
+    if (a.kpId > 0) return a.kpId;
+    Anime y = findYummy(a);
+    if (y != null && y.kpId > 0) {
+      a.kpId = y.kpId;
+      return y.kpId;
+    }
+    throw new IOException("У этого просмотра пока нет подходящего варианта.");
+  }
+
+  private synchronized String token() throws Exception {
+    if (
+      !publicToken.isEmpty() && System.currentTimeMillis() - tokenAt < 300000
+    ) return publicToken;
+    String script = request(
+      "https://kodik-add.com/add-players.min.js?v=2",
+      "GET",
+      null,
+      false
+    );
+    String[] patterns = {
+      "token\\s*=\\s*[\"\\\']([A-Za-z0-9]{16,120})[\"\\\']",
+      "[\"\\\']token[\"\\\']\\s*:\\s*[\"\\\']([A-Za-z0-9]{16,120})[\"\\\']",
+      "token=\\\\?[\"\\\']([A-Za-z0-9]{16,120})[\"\\\']",
+    };
+    for (String pattern : patterns) {
+      Matcher m = Pattern.compile(pattern).matcher(script);
+      if (m.find()) {
+        publicToken = m.group(1);
+        tokenAt = System.currentTimeMillis();
+        return publicToken;
+      }
+    }
+    throw new IOException("Просмотр временно недоступен");
+  }
+
+  public String directKodik(int mal) throws Exception {
+    if (mal <= 0) throw new IOException(
+      "Не удалось найти аниме в этом каталоге"
+    );
+    String q = query(
+      "https://kodik-api.com/get-player",
+      params(
+        "title",
+        "Player",
+        "hasPlayer",
+        "false",
+        "url",
+        "https://kodikdb.com/find-player?shikimoriID=" + mal,
+        "token",
+        token(),
+        "shikimoriID",
+        String.valueOf(mal)
+      )
+    );
+    JSONObject j = get(q);
+    if (j.has("error") || !j.optBoolean("found")) throw new IOException(
+      "У этого каталога пока нет просмотра"
+    );
+    if (j.has("allowed") && j.optInt("allowed", 1) == 0) throw new IOException(
+      "Просмотр временно ограничен"
+    );
+    String u = embed(j.optString("link"));
+    if (u.isEmpty()) throw new IOException("Просмотр временно недоступен");
+    return u;
+  }
+
+  private String regional(String source, int kp) throws Exception {
+    if (source.equals("flixcdn")) return (
+      "https://tarantino.factorios.live/show/kinopoisk/" + kp
+    );
+    if (source.equals("gendit")) return "https://horsez.org/lat/" + kp;
+    JSONObject root = get("https://fbphdplay.top/api/players?kinopoisk=" + kp);
+    JSONArray list = root.optJSONArray("data");
+    for (int i = 0; list != null && i < list.length(); i++) {
+      JSONObject j = list.getJSONObject(i);
+      if (j.optString("type").equalsIgnoreCase(source)) {
+        String url = safeUrl(j.optString("iframeUrl"));
+        if (!url.isEmpty()) return url;
+      }
+    }
+    throw new IOException("Просмотр пока недоступен для этого аниме");
+  }
+
+  public static String embed(String input) {
+    if (input == null) return "";
+    String s = input.trim().replace("&amp;", "&");
+    Matcher html = Pattern.compile(
+      "src=[\"']([^\"']+)",
+      Pattern.CASE_INSENSITIVE
+    ).matcher(s);
+    if (html.find()) s = html.group(1);
+    if (s.startsWith("//")) s = "https:" + s;
+    try {
+      Uri u = Uri.parse(s);
+      String host = u.getHost();
+      if (
+        host != null &&
+        Arrays.asList(
+          "aniqit.com",
+          "kodik.info",
+          "kodik.cc",
+          "kodik.biz"
+        ).contains(host)
+      ) s = u
+        .buildUpon()
+        .scheme("https")
+        .authority("kodikplayer.com")
+        .build()
+        .toString();
+      return safeUrl(s);
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  private static String absolute(String base, String value) {
+    try {
+      if (value == null || value.trim().isEmpty()) return "";
+      value = value.trim().replace(" ", "%20").replace("&amp;", "&");
+      if (value.startsWith("//")) value = "https:" + value;
+      return safeUrl(new URL(new URL(base), value).toString());
+    } catch (Exception e) {
+      return "";
+    }
+  }
+
+  private static String hostName(String link) {
+    try {
+      String h = Uri.parse(
+        link.startsWith("//") ? "https:" + link : link
+      ).getHost();
+      return h == null ? "Вариант" : h.replace("www.", "");
+    } catch (Exception e) {
+      return "Вариант";
+    }
+  }
+
+  static String plain(String text) {
+    return Html.fromHtml(text == null ? "" : text, Html.FROM_HTML_MODE_LEGACY)
+      .toString()
+      .replaceAll("\\[/?[^\\]]+\\]", "")
+      .trim();
+  }
+
+  static String plainName(String text) {
+    return (text == null ? "" : text)
+      .toLowerCase(Locale.ROOT)
+      .replaceAll("[^\\p{L}\\p{N}]+", " ")
+      .trim();
+  }
+
+  private static double numberIn(String text, double fallback) {
+    Matcher m = Pattern.compile("[0-9]+(?:\\.[0-9]+)?").matcher(text);
+    try {
+      return m.find() ? Double.parseDouble(m.group()) : fallback;
+    } catch (Exception e) {
+      return fallback;
+    }
+  }
+
+  private static void putStream(Anime.Episode ep, int q, String url) {
+    String s = safeUrl(url);
+    if (!s.isEmpty()) ep.streams.put(q, s);
+  }
+
+  private static void genres(Anime a, JSONArray rows, String name) {
+    for (int i = 0; rows != null && i < rows.length(); i++) {
+      Object g = rows.opt(i);
+      if (g instanceof JSONObject) {
+        String value = ((JSONObject) g).optString(
+          name,
+          ((JSONObject) g).optString("name", "")
+        );
+        if (!value.isEmpty() && !a.genres.contains(value)) a.genres.add(value);
+      } else if (
+        g instanceof String && !a.genres.contains((String) g)
+      ) a.genres.add((String) g);
+    }
+  }
+
+  private static String joinJson(JSONObject j, String key, int limit) {
+    JSONArray arr = j.optJSONArray(key);
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; arr != null && i < arr.length() && i < limit; i++) {
+      String v = arr.optString(i, "").trim();
+      if (v.isEmpty()) continue;
+      if (b.length() > 0) b.append(", ");
+      b.append(v);
+    }
+    return b.toString();
+  }
+
+  private static String firstArray(JSONArray arr) {
+    for (int i = 0; arr != null && i < arr.length(); i++) {
+      String v = arr.optString(i, "").trim();
+      if (!v.isEmpty()) return v;
+    }
+    return "";
+  }
+
+  private static String crewJson(JSONObject j) {
+    StringBuilder b = new StringBuilder();
+    String d = joinJson(j, "directors", 4),
+      w = joinJson(j, "writers", 4),
+      c = joinJson(j, "composers", 3);
+    if (!d.isEmpty()) b.append("Режиссёр: ").append(d);
+    if (!w.isEmpty()) {
+      if (b.length() > 0) b.append(" · ");
+      b.append("Сценарий: ").append(w);
+    }
+    if (!c.isEmpty()) {
+      if (b.length() > 0) b.append(" · ");
+      b.append("Музыка: ").append(c);
+    }
+    return b.toString();
+  }
+
+  private static String ratingsJson(JSONObject j) {
+    StringBuilder b = new StringBuilder();
+    double sh = j.optDouble("shikimori_rating", 0),
+      kp = j.optDouble("kinopoisk_rating", 0),
+      im = j.optDouble("imdb_rating", 0);
+    if (sh > 0) b.append(String.format(Locale.US, "Shikimori %.2f", sh));
+    if (kp > 0) {
+      if (b.length() > 0) b.append(" · ");
+      b.append(String.format(Locale.US, "КП %.1f", kp));
+    }
+    if (im > 0) {
+      if (b.length() > 0) b.append(" · ");
+      b.append(String.format(Locale.US, "IMDb %.1f", im));
+    }
+    return b.toString();
+  }
+
+  private static Anime animetkaAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "animetka";
+    a.id = j.optString("animetka_id", j.optString("id"));
+    a.title = j.optString("anime_title", j.optString("title", "Аниме"));
+    if (a.title.isEmpty()) a.title = j.optString("title", "Аниме");
+    a.original = j.optString("title_orig", j.optString("title_en", ""));
+    a.alias = j.optString("title_en", "");
+    a.description = plain(
+      j.optString("anime_description", j.optString("description", ""))
+    );
+    String poster = j.optString(
+      "anime_poster_url",
+      j.optString("poster_url", "")
+    );
+    a.poster = safeUrl(poster);
+    a.year = j.optInt("year");
+    a.type = kind(j.optString("anime_kind", j.optString("kind", "")));
+    a.status = j.optString("all_status", j.optString("anime_status", ""));
+    int age = j.optInt("minimal_age", 0);
+    a.age = age > 0 ? age + "+" : j.optString("rating_mpaa", "");
+    a.episodes = j.optInt("episodes_total", j.optInt("episodes", 0));
+    a.episodesAired = j.optInt("episodes_aired", 0);
+    a.score = j.optDouble("shikimori_rating", j.optDouble("rating", 0));
+    if (!Double.isFinite(a.score)) a.score = 0;
+    a.malId = j.optInt("shikimori_id", j.optInt("malId", 0));
+    a.kpId = j.optInt("kinopoisk_id", j.optInt("kp_id", 0));
+    JSONArray studios = j.optJSONArray("anime_studios");
+    a.studio = firstArray(studios);
+    a.countries = joinJson(j, "countries", 5);
+    a.durationMinutes = j.optInt("duration", 0);
+    a.translationsCount = j.optInt("translation_count", 0);
+    a.franchise = j.optString("shikimori_franchise", "");
+    a.shikimoriOrder = j.optInt("shikimori_order", 0);
+    a.ratings = ratingsJson(j);
+    a.cast = joinJson(j, "actors", 10);
+    a.crew = crewJson(j);
+    a.airedDate = first(
+      j.optString("aired_at", ""),
+      first(j.optString("premiere_world", ""), j.optString("released_at", ""))
+    );
+    JSONArray ss = j.optJSONArray("screenshots");
+    for (
+      int i = 0;
+      ss != null && i < ss.length() && a.screenshots.size() < 12;
+      i++
+    ) {
+      String u = safeUrl(ss.optString(i));
+      if (!u.isEmpty() && !a.screenshots.contains(u)) a.screenshots.add(u);
+    }
+    for (String key : new String[] { "trailer", "trailer_url", "trailerUrl" }) {
+      String u = safeUrl(j.optString(key, ""));
+      if (!u.isEmpty()) {
+        a.trailerUrl = u;
+        break;
+      }
+    }
+    genres(a, j.optJSONArray("anime_genres"), "name");
+    genres(a, j.optJSONArray("all_genres"), "name");
+    genres(a, j.optJSONArray("Genres"), "name");
+    return a;
+  }
+
+  private static Anime shikiAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "shikimori";
+    a.id = j.optString("id");
+    a.malId = j.optInt("malId", 0);
+    if (a.malId == 0) try {
+      a.malId = Integer.parseInt(a.id);
+    } catch (Exception ignored) {}
+    a.title = j.optString("russian", "");
+    if (a.title.isEmpty()) a.title = j.optString("name", "Аниме");
+    a.original = j.optString("name", "");
+    a.type = kind(j.optString("kind"));
+    a.status = j.optString("status");
+    a.episodes = j.optInt("episodes");
+    a.episodesAired = j.optInt("episodesAired", 0);
+    a.nextEpisodeAt = j.optString("nextEpisodeAt", "");
+    a.score = j.optDouble("score", 0);
+    JSONObject date = j.optJSONObject("airedOn"),
+      poster = j.optJSONObject("poster");
+    a.year = date == null ? 0 : date.optInt("year");
+    a.airedDate = date == null ? "" : date.optString("date", "");
+    a.poster =
+      poster == null
+        ? ""
+        : safeUrl(poster.optString("mainUrl", poster.optString("originalUrl")));
+    a.age = j.optString("rating").equals("pg_13")
+      ? "13+"
+      : j.optString("rating").startsWith("r")
+        ? "18+"
+        : "";
+    JSONArray studios = j.optJSONArray("studios");
+    if (studios != null && studios.length() > 0) a.studio =
+      studios.optJSONObject(0) == null
+        ? ""
+        : studios.optJSONObject(0).optString("name", "");
+    genres(a, j.optJSONArray("genres"), "russian");
+    return a;
+  }
+
+  private static Anime vostAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "animevost";
+    a.id = j.optString("id");
+    String raw = j.optString("title", "Аниме"),
+      clean = raw.replaceAll("\\s*\\[[^\\]]*\\]\\s*$", "");
+    String[] names = clean.split(" / ", 2);
+    a.title = names[0];
+    a.original = names.length > 1 ? names[1] : "";
+    a.description = plain(j.optString("description"));
+    a.poster = safeUrl(j.optString("urlImagePreview"));
+    a.year = j.optInt("year");
+    a.type = j.optString("type", "Аниме");
+    Matcher m = Pattern.compile("из\\s*(\\d+)").matcher(raw);
+    if (m.find()) a.episodes = Integer.parseInt(m.group(1));
+    a.status = "published";
+    for (String g : j.optString("genre", "").split(","))
+      if (!g.trim().isEmpty() && !a.genres.contains(g.trim())) a.genres.add(
+        g.trim()
+      );
+    return a;
+  }
+
+  private static Anime yummyAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "yummy";
+    a.id = j.optString("anime_id");
+    a.title = j.optString("title", "Аниме");
+    a.alias = j.optString("anime_url");
+    a.year = j.optInt("year");
+    a.description = plain(j.optString("description"));
+    JSONObject p = j.optJSONObject("poster"),
+      type = j.optJSONObject("type"),
+      age = j.optJSONObject("min_age"),
+      rat = j.optJSONObject("rating"),
+      ids = j.optJSONObject("remote_ids"),
+      eps = j.optJSONObject("episodes"),
+      status = j.optJSONObject("anime_status");
+    a.poster =
+      p == null ? "" : safeUrl(p.optString("medium", p.optString("fullsize")));
+    a.type = type == null ? "Аниме" : type.optString("shortname", "Аниме");
+    a.age = age == null ? "" : age.optString("title");
+    a.score = rat == null ? 0 : rat.optDouble("average", 0);
+    a.status = status == null ? "" : status.optString("alias");
+    a.episodes = eps == null ? j.optInt("ep_count") : eps.optInt("count");
+    a.episodesAired = a.episodes;
+    a.malId = ids == null ? 0 : ids.optInt("myanimelist_id");
+    if (a.malId <= 0 && ids != null) a.malId = ids.optInt("shikimori_id");
+    a.kpId = ids == null ? 0 : ids.optInt("kp_id");
+    a.libriaAlias = ids == null ? "" : ids.optString("anilibria_alias", "");
+    a.blocked = j.optBoolean("blocked", false);
+    genres(a, j.optJSONArray("genres"), "title");
+    return a;
+  }
+
+  private static String animelibCover(JSONObject cover, String id) {
+    if (cover == null) return "";
+    String[] keys = { "default", "md", "thumbnail", "filename", "url", "src" };
+    for (String key : keys) {
+      String u = animelibCoverUrl(cover.optString(key, ""));
+      if (!u.isEmpty()) return u;
+    }
+    JSONObject optimized = cover.optJSONObject("optimized");
+    if (optimized != null) for (String key : keys) {
+      String u = animelibCoverUrl(optimized.optString(key, ""));
+      if (!u.isEmpty()) return u;
+    }
+    JSONObject images = cover.optJSONObject("images");
+    if (images != null) for (String key : keys) {
+      String u = animelibCoverUrl(images.optString(key, ""));
+      if (!u.isEmpty()) return u;
+    }
+    return animelibCoverUrl(id == null ? "" : cover.optString("path", id));
+  }
+
+  private static String animelibCoverUrl(String raw) {
+    String s =
+      raw == null ? "" : raw.trim().replace("\\/", "/").replace(" ", "%20");
+    if (s.isEmpty() || s.equalsIgnoreCase("null")) return "";
+    if (s.startsWith("http://") || s.startsWith("https://")) return safeUrl(s);
+    if (s.startsWith("//")) return safeUrl("https:" + s);
+    if (s.startsWith("/")) return safeUrl("https://cover.cdnlibs.org" + s);
+    return safeUrl("https://cover.cdnlibs.org/" + s.replaceAll("^/+", ""));
+  }
+
+  private static Anime amAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "animelib";
+    a.id = j.optString("id");
+    a.title = j.optString("rus_name", j.optString("name", "Аниме"));
+    a.original = j.optString("name", j.optString("eng_name", ""));
+    a.alias = j.optString("slug_url", a.id);
+    JSONObject p = j.optJSONObject("cover"),
+      type = j.optJSONObject("type"),
+      age = j.optJSONObject("ageRestriction"),
+      rating = j.optJSONObject("rating"),
+      status = j.optJSONObject("status"),
+      episodes = j.optJSONObject("episodes");
+    a.poster = animelibCover(p, j.optString("id"));
+    a.airedDate = j.optString("releaseDate", "");
+    try {
+      a.year = Integer.parseInt(j.optString("releaseDate", "").substring(0, 4));
+    } catch (Exception ignored) {}
+    a.type = type == null ? "Аниме" : type.optString("label");
+    a.age = age == null ? "" : age.optString("label");
+    a.score =
+      rating == null
+        ? j.optDouble("shiki_rate", 0)
+        : rating.optDouble("average", 0);
+    JSONObject studio = j.optJSONObject("studio");
+    if (studio != null) a.studio = studio.optString(
+      "name",
+      studio.optString("title", "")
+    );
+    a.status =
+      status != null && status.optInt("id") == 1 ? "ongoing" : "released";
+    a.malId = j.optInt(
+      "shiki_id",
+      parseTrailingId(
+        j.optString("shikimori_href", j.optString("shiki_href", ""))
+      )
+    );
+    a.anilistId = j.optInt(
+      "anilist_id",
+      parseTrailingId(j.optString("anilist_href", ""))
+    );
+    a.blocked = j.optBoolean("is_licensed", false);
+    a.description = plain(
+      first(j.optString("description", ""), prose(j.opt("summary"), 0))
+    );
+    a.episodes =
+      episodes == null
+        ? j.optInt("episodes_total", j.optInt("episodes_count", 0))
+        : episodes.optInt("total", episodes.optInt("count", 0));
+    a.episodesAired =
+      episodes == null
+        ? j.optInt("episodes_count", 0)
+        : episodes.optInt("count", 0);
+    genres(a, j.optJSONArray("genres"), "name");
+    return a;
+  }
+
+  private static String first(String a, String b) {
+    return a != null && !a.isEmpty() ? a : b == null ? "" : b;
+  }
+
+  private static String prose(Object value, int depth) {
+    if (value == null || depth > 12) return "";
+    if (value instanceof String) return plain((String) value);
+    if (!(value instanceof JSONObject)) return "";
+    JSONObject j = (JSONObject) value;
+    if (j.has("text")) return j.optString("text");
+    StringBuilder s = new StringBuilder();
+    JSONArray a = j.optJSONArray("content");
+    for (int i = 0; a != null && i < a.length(); i++) {
+      s.append(prose(a.opt(i), depth + 1));
+      if (j.optString("type").equals("doc")) s.append("\n\n");
+    }
+    return s.toString().trim();
+  }
+
+  private static int parseTrailingId(String value) {
+    try {
+      Matcher m = Pattern.compile("(\\d+)(?:/)?$").matcher(
+        value == null ? "" : value
+      );
+      return m.find() ? Integer.parseInt(m.group(1)) : 0;
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  private static Anime libriaAnime(JSONObject j) {
+    Anime a = new Anime();
+    a.source = "anilibria";
+    a.id = j.optString("id");
+    JSONObject name = j.optJSONObject("name"),
+      poster = j.optJSONObject("poster"),
+      type = j.optJSONObject("type"),
+      age = j.optJSONObject("age_rating");
+    a.title = name == null ? "Аниме" : name.optString("main", "Аниме");
+    a.original = name == null ? "" : name.optString("english");
+    a.alias = j.optString("alias");
+    a.year = j.optInt("year");
+    a.type = type == null ? "Аниме" : type.optString("description", "Аниме");
+    JSONObject opt = poster == null ? null : poster.optJSONObject("optimized");
+    String path =
+      opt == null
+        ? poster == null
+          ? ""
+          : poster.optString("preview")
+        : opt.optString("preview");
+    a.poster = path.startsWith("/")
+      ? "https://anilibria.top" + path
+      : safeUrl(path);
+    a.age = age == null ? "" : age.optString("label");
+    a.description = plain(j.optString("description"));
+    a.episodes = j.optInt("episodes_total");
+    a.episodesAired =
+      j.optJSONArray("episodes") == null
+        ? j.optInt("episodes_count", 0)
+        : j.optJSONArray("episodes").length();
+    a.status = j.optBoolean("is_ongoing") ? "ongoing" : "released";
+    a.blocked =
+      j.optBoolean("is_blocked_by_geo") ||
+      j.optBoolean("is_blocked_by_copyrights");
+    genres(a, j.optJSONArray("genres"), "name");
+    JSONArray eps = j.optJSONArray("episodes");
+    for (int i = 0; eps != null && i < eps.length(); i++) {
+      JSONObject e = eps.optJSONObject(i);
+      if (e == null) continue;
+      Anime.Episode ep = new Anime.Episode();
+      ep.id = e.optString("id");
+      ep.number = e.optDouble("ordinal");
+      ep.name = e.optString("name");
+      ep.poster = absolute("https://anilibria.top/", bestImage(e));
+      ep.duration = e.optInt("duration");
+      putStream(ep, 480, e.optString("hls_480"));
+      putStream(ep, 720, e.optString("hls_720"));
+      putStream(ep, 1080, e.optString("hls_1080"));
+      JSONObject op = e.optJSONObject("opening");
+      if (op != null) {
+        ep.openingStart = op.optInt("start");
+        ep.openingEnd = op.optInt("stop");
+      }
+      a.episodeList.add(ep);
+    }
+    a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
+    return a;
+  }
+
+  private static String kind(String value) {
+    switch (value.toLowerCase(Locale.ROOT)) {
+      case "tv":
+      case "tv_short":
+        return "ТВ";
+      case "movie":
+        return "Фильм";
+      case "ona":
+        return "ONA";
+      case "ova":
+        return "OVA";
+      case "special":
+      case "tv_special":
+        return "Спешл";
+      case "music":
+        return "Музыка";
+      default:
+        return "Аниме";
+    }
+  }
+}

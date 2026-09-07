@@ -1,0 +1,48 @@
+plugins { id 'com.android.application' }
+def owner = new Properties()
+def ownerFile = rootProject.file('owner-signing/signing.properties')
+if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
+def certHash = rootProject.file('owner-signing/certificate-sha256.txt').exists() ? rootProject.file('owner-signing/certificate-sha256.txt').text.trim() : ''
+android {
+ namespace 'app.yoru.mobile'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'app.yoru.mobile'
+  minSdk 26
+  targetSdk 36
+  versionCode 57
+  versionName '4.14.1'
+  buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
+  ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
+ }
+ signingConfigs { release {
+  if (ownerFile.exists()) {
+   storeFile rootProject.file('owner-signing/yoru-release.jks')
+   storePassword owner.getProperty('storePassword')
+   keyAlias owner.getProperty('keyAlias')
+   keyPassword owner.getProperty('keyPassword')
+  }
+  enableV1Signing false
+  enableV2Signing true
+  enableV3Signing true
+ } }
+ buildTypes {
+  release { minifyEnabled true; shrinkResources true; debuggable false; signingConfig signingConfigs.release; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' }
+  debug { applicationIdSuffix '.debug' }
+ }
+ buildFeatures { buildConfig true }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] }; jniLibs { useLegacyPackaging true } }
+}
+
+dependencies {
+ implementation 'androidx.media3:media3-exoplayer:1.5.1'
+ implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
+ implementation 'androidx.media3:media3-exoplayer-dash:1.5.1'
+ implementation 'androidx.media3:media3-ui:1.5.1'
+ implementation 'androidx.media3:media3-database:1.5.1'
+ implementation 'org.jsoup:jsoup:1.18.3'
+ implementation 'androidx.annotation:annotation:1.9.1'
+ implementation 'androidx.core:core:1.15.0'
+ implementation 'androidx.recyclerview:recyclerview:1.4.0'
+}

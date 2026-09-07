@@ -1,0 +1,132 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [arena/01a07b80-animmmemmemwm]
+    paths:
+      - 'yoru-android/**'
+      - '.github/workflows/build-apk.yml'
+      - 'tools/publish-build.py'
+  workflow_dispatch:
+    inputs:
+      publish_apk:
+        description: 'Sign, verify and publish the release APK to this working branch'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yoru-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-apk:
+    if: github.ref == 'refs/heads/arena/01a07b80-animmmemmemwm'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      PUBLISH_APK: ${{ inputs.publish_apk || false }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/01a07b80-animmmemmemwm
+          fetch-depth: 1
+      - name: Pin build provenance
+        run: echo "BUILD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            yoru-android/**/*.gradle
+            yoru-android/gradle/wrapper/gradle-wrapper.properties
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          java -version
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" version
+      - name: Restore existing release signing identity
+        if: env.PUBLISH_APK == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          allowed = ('signing.properties', 'yoru-release.jks', 'certificate-sha256.txt')
+          root = Path('yoru-android/owner-signing')
+          root.mkdir(parents=True, exist_ok=True)
+          with zipfile.ZipFile('YORU-android-2.0.1-source.zip') as z:
+              for name in allowed:
+                  path = root / name
+                  path.write_bytes(z.read('yoru-android/owner-signing/' + name))
+                  path.chmod(0o600)
+          PY
+      - name: Unit tests and Android build
+        id: build
+        working-directory: yoru-android
+        run: |
+          chmod +x gradlew
+          set +e
+          if [ "$PUBLISH_APK" = 'true' ]; then
+            ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease :app:lintRelease --stacktrace 2>&1 | tee ../build.log
+          else
+            ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
+          fi
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Verify release APK and original certificate
+        if: env.PUBLISH_APK == 'true' && success()
+        run: |
+          set -euo pipefail
+          mkdir -p apk-output
+          apk=yoru-android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk" | tee apk-output/APK-SIGNATURE.txt
+          expected=$(tr '[:upper:]' '[:lower:]' < yoru-android/owner-signing/certificate-sha256.txt | tr -d '\r\n :')
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' apk-output/APK-SIGNATURE.txt | tr '[:upper:]' '[:lower:]' | tr -d '\r\n :')
+          test -n "$expected" && test "$expected" = "$actual"
+          cp "$apk" apk-output/YORU-4.14.1-release.apk
+          sha256sum apk-output/YORU-4.14.1-release.apk > apk-output/YORU-4.14.1-release.apk.sha256
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | head -1 > apk-output/APK-PACKAGE.txt
+      - name: Upload build and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yoru-build-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            build.log
+            yoru-android/app/build/reports/
+            yoru-android/app/build/test-results/
+            apk-output/
+      - name: Publish status and requested APK to this branch only
+        if: always() && !cancelled()
+        env:
+          BUILD_OUTCOME: ${{ job.status }}
+          BUILD_EXIT_CODE: ${{ steps.build.outputs.exit_code }}
+        run: |
+          python3 tools/publish-build.py
+          if [ "$PUBLISH_APK" != 'true' ] && [ "$BUILD_OUTCOME" = 'success' ]; then exit 0; fi
+          branch=arena/01a07b80-animmmemmemwm
+          remote_sha=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
+          if [ "$remote_sha" != "$BUILD_SHA" ]; then
+            echo 'Branch advanced; reports remain in the run artifact. Not publishing stale output.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- apk-output/BUILD-STATUS.json apk-output/BUILD-LOG.txt
+          if [ "$BUILD_OUTCOME" = 'success' ] && [ "$PUBLISH_APK" = 'true' ]; then
+            git add -- apk-output/YORU-4.14.1-release.apk apk-output/YORU-4.14.1-release.apk.sha256 apk-output/APK-SIGNATURE.txt apk-output/APK-PACKAGE.txt
+          fi
+          git diff --cached --quiet && exit 0
+          git commit -m "build: publish YORU verification for ${BUILD_SHA:0:7} [skip ci]"
+          git push origin "HEAD:$branch"
+      - name: Remove restored signing material
+        if: always()
+        run: rm -rf yoru-android/owner-signing

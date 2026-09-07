@@ -1,0 +1,18 @@
+# Local toolchains and generated Android/Gradle output
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/
+.cache/
+__pycache__/
+*.pyc
+node_modules/
+
+# Signing material must never be added as loose source files.
+**/owner-signing/
+*.jks
+*.keystore
+
+# Release APKs are published intentionally by the branch-scoped build workflow
+# into apk-output/, following this repository's existing handoff convention.
