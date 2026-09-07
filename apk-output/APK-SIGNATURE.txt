@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): true
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=YORU Owner, OU=Application, O=YORU
+Signer #1 certificate SHA-256 digest: b471ccfd2af8e96cce6a74ee59382fcfa44d2639c314b59753755019a64d8004
+Signer #1 certificate SHA-1 digest: 7ce9437c4549c59f3355a5062a19d01220434541
+Signer #1 certificate MD5 digest: 4578b595b2df98ce8c994d0dd6f7c6d6
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: 83e1c23eaf359df3293f6834b2e7e5ead18dc157a3b61d8ada04f4ed5f11c05c
+Signer #1 public key SHA-1 digest: cf33be6112ca1e5fbad2088451d6cc44c33ec25f
+Signer #1 public key MD5 digest: aa903aa669405fc40a50ec0ab6ca4f47
