@@ -21,10 +21,14 @@ public class ImageStoragePolicyTest {
     ) {
       for (String prefix : Arrays.asList("", "yoru-android/app/")) {
         Path path = root.resolve(prefix + relative);
-        if (Files.isRegularFile(path)) return new String(
-          Files.readAllBytes(path),
-          StandardCharsets.UTF_8
-        );
+        if (
+          Files.isRegularFile(path) &&
+          Files.isRegularFile(
+            root.resolve(
+              prefix + "src/main/java/app/yoru/mobile/ImageLoader.java"
+            )
+          )
+        ) return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
       }
     }
     throw new IOException("Source fixture not found: " + relative);

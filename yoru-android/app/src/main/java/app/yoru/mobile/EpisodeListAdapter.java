@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.text.TextUtils;
 import android.view.*;
 import android.widget.*;
-import androidx.recyclerview.widget.*;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 
 /** Real holders, stable IDs and no full row teardown during a metadata update. */
 final class EpisodeListAdapter
