@@ -1,0 +1,3759 @@
+{
+  "source_commit": "7061deb04246cbb96de52cad6b3c5b0b32f17f37",
+  "workflow_run": "34123429861",
+  "branch": "arena/01a07b80-animmmemmemwm",
+  "outcome": "failure",
+  "gradle_exit_code": "1",
+  "recorded_at_utc": "2026-09-07T12:47:32.178221+00:00",
+  "requested_release": true,
+  "sdk_platform_36_present": true,
+  "unit_tests": {
+    "tests": 42,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint_errors": [
+    {
+      "id": "GestureBackNavigation",
+      "message": "`onBackPressed` is no longer called for back gestures; migrate to AndroidX's backward compatible `OnBackPressedDispatcher`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MainActivity.java",
+          "line": "2205",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "GestureBackNavigation",
+      "message": "`onBackPressed` is no longer called for back gestures; migrate to AndroidX's backward compatible `OnBackPressedDispatcher`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2686",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "NewApi",
+      "message": "`android:windowLightNavigationBar` requires API level 27 (current min is 26)",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/res/values/styles.xml",
+          "line": "1",
+          "column": "188"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "27",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "167",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "174",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "174",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "174",
+          "column": "67"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "174",
+          "column": "75"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "297",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "316",
+          "column": "19"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "316",
+          "column": "27"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "577",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "613",
+          "column": "51"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "613",
+          "column": "59"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "627",
+          "column": "51"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "627",
+          "column": "59"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "1282",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "1285",
+          "column": "49"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DetailsActivity.java",
+          "line": "1285",
+          "column": "57"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "22",
+          "column": "16"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "29",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "31",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "41",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "41",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "43",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "44",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "45",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "46",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "48",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "50",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "52",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "55",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "56",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "57",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "64",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "64",
+          "column": "39"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "64",
+          "column": "59"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "65",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "65",
+          "column": "58"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "65",
+          "column": "66"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "66",
+          "column": "35"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "75",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "76",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "77",
+          "column": "22"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "79",
+          "column": "28"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "85",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "86",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "87",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "89",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "89",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "89",
+          "column": "43"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "90",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "90",
+          "column": "51"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "93",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "95",
+          "column": "40"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "95",
+          "column": "55"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "99",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "101",
+          "column": "22"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "101",
+          "column": "41"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "107",
+          "column": "37"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "109",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "109",
+          "column": "50"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "115",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "116",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "117",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "119",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "121",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "123",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "125",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "127",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "129",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "176",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "177",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "177",
+          "column": "52"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "183",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "183",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "184",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "184",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "185",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "185",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "217",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "217",
+          "column": "46"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "220",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "223",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "226",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "226",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "228",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "228",
+          "column": "43"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "232",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "235",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "235",
+          "column": "44"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "236",
+          "column": "27"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "236",
+          "column": "45"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "239",
+          "column": "33"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "245",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "251",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "271",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "276",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "276",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "278",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "313",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "314",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "314",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "316",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "316",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "316",
+          "column": "39"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "317",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "317",
+          "column": "35"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "317",
+          "column": "43"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "322",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "332",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "336",
+          "column": "16"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "339",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "348",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "357",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "418",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "419",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "419",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "420",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "420",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "421",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "421",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "426",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "430",
+          "column": "18"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "433",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "444",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "444",
+          "column": "45"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "444",
+          "column": "63"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "445",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "445",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "451",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "451",
+          "column": "45"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "451",
+          "column": "63"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "452",
+          "column": "18"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "452",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "455",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "455",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "488",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "492",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "492",
+          "column": "45"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "492",
+          "column": "63"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "503",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "503",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "520",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "523",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "537",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "556",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "557",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "571",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "589",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "592",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadHub.java",
+          "line": "596",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "22",
+          "column": "27"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "174",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "180",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "180",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "181",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "181",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "183",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "183",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "185",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "187",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "237",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "238",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "251",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "251",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "253",
+          "column": "27"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "260",
+          "column": "18"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "260",
+          "column": "36"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "261",
+          "column": "16"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "261",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "264",
+          "column": "16"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "264",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "271",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "275",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "275",
+          "column": "19"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "281",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "284",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "287",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "288",
+          "column": "68"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "295",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "297",
+          "column": "58"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "297",
+          "column": "66"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "298",
+          "column": "52"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "298",
+          "column": "60"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "299",
+          "column": "67"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "299",
+          "column": "75"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "306",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "313",
+          "column": "22"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "313",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "336",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "338",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "338",
+          "column": "28"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "340",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "342",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "366",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "409",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "409",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "415",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "415",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "431",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "431",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "440",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "440",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "445",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "445",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "446",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "446",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "447",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "447",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "454",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "463",
+          "column": "22"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "465",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "465",
+          "column": "59"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "473",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "501",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "501",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "515",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "515",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "540",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "540",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "551",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "556",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "556",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "561",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "561",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "568",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "577",
+          "column": "31"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "588",
+          "column": "50"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "595",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "595",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "597",
+          "column": "48"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "597",
+          "column": "56"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "602",
+          "column": "57"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "602",
+          "column": "65"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "603",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "603",
+          "column": "38"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "605",
+          "column": "50"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "605",
+          "column": "58"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "610",
+          "column": "44"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/DownloadsScreen.java",
+          "line": "610",
+          "column": "52"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MainActivity.java",
+          "line": "2163",
+          "column": "36"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MainActivity.java",
+          "line": "2164",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "15",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "16",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "20",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "20",
+          "column": "16"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "23",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "33",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "34",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "35",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "36",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "37",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "40",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "41",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "42",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "43",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "46",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "46",
+          "column": "33"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "49",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "50",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "50",
+          "column": "36"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "52",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "58",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "59",
+          "column": "25"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "59",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "61",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "67",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "68",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "69",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "70",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "73",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "73",
+          "column": "33"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "76",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "77",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "78",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "79",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "80",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "80",
+          "column": "33"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "84",
+          "column": "22"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/MediaCache.java",
+          "line": "89",
+          "column": "14"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "54",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "229",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "229",
+          "column": "34"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "230",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "231",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "232",
+          "column": "8"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "233",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "236",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "237",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "237",
+          "column": "39"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "238",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "239",
+          "column": "49"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "242",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "985",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "998",
+          "column": "46"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "1649",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "1650",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "1652",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2054",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2055",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2064",
+          "column": "28"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2067",
+          "column": "24"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2067",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2071",
+          "column": "19"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2071",
+          "column": "27"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2087",
+          "column": "20"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2087",
+          "column": "28"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2105",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2106",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2108",
+          "column": "9"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2217",
+          "column": "7"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2220",
+          "column": "42"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2220",
+          "column": "50"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2297",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2299",
+          "column": "53"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2300",
+          "column": "53"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2311",
+          "column": "30"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2313",
+          "column": "53"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/PlayerActivity.java",
+          "line": "2314",
+          "column": "53"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "10",
+          "column": "48"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "12",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "15",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "19",
+          "column": "15"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "20",
+          "column": "11"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "21",
+          "column": "5"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "21",
+          "column": "21"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "25",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "25",
+          "column": "29"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "28",
+          "column": "17"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "33",
+          "column": "13"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "33",
+          "column": "23"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "34",
+          "column": "12"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "38",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "39",
+          "column": "10"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "42",
+          "column": "32"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "42",
+          "column": "48"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "57",
+          "column": "26"
+        }
+      ]
+    },
+    {
+      "id": "UnsafeOptInUsageError",
+      "message": "This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`",
+      "locations": [
+        {
+          "file": "/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/YoruDownloadService.java",
+          "line": "69",
+          "column": "39"
+        }
+      ]
+    }
+  ],
+  "device_performance_tested": false
+}
