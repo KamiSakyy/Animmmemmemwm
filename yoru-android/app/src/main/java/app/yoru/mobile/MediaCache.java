@@ -7,6 +7,9 @@ import androidx.media3.datasource.cache.*;
 import java.io.File;
 import java.util.*;
 
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
 public final class MediaCache {
 
   private static final String CHROME =

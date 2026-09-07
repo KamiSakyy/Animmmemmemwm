@@ -7,6 +7,9 @@ import androidx.media3.exoplayer.offline.*;
 import androidx.media3.exoplayer.scheduler.*;
 import java.util.List;
 
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
 public final class YoruDownloadService extends DownloadService {
 
   private DownloadNotificationHelper notifications;

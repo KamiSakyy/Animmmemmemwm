@@ -39,6 +39,7 @@
 - DownloadIndex публикуется целиком, без промежутка между clear/putAll.
 - BroadcastReceiver передаёт длительную проверку JobScheduler; остановка job отменяет Future. Проверки не конкурируют с открытым Player и не загружают дополнительно весь календарь перед каждым обходом избранного.
 - Календарные обращения объединяются и имеют короткий memory-cache. При старте приложения нет обязательной сетевой загрузки календаря.
+- Жест/кнопка «Назад» переведены на AndroidX OnBackPressedDispatcher; theme-атрибут API 27 вынесен из ресурсов Android 8.0. Использование Media3 UnstableApi явно оформлено через OptIn, без отключения lint.
 - Убрана ссылка настройки сборки на отсутствующий `:yuroguard`. Рабочий CI устанавливает JDK 17/SDK 36 и проверяет тесты, release и lint.
 - Добавлены 42 JVM regression tests: очереди, cancellation, coalescing, first-result selection, strict voice predicate, retry history, loading ownership, HLS master, headers, TTL, iframe cycles, snapshots и точный номер серии.
 

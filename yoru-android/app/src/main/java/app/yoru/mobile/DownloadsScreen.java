@@ -10,6 +10,9 @@ import java.util.*;
 import java.util.concurrent.Future;
 import org.json.*;
 
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
 public final class DownloadsScreen extends LinearLayout {
 
   private final Activity activity;

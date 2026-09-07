@@ -12,7 +12,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import org.json.*;
 
-public final class DetailsActivity extends Activity {
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
+public final class DetailsActivity extends androidx.activity.ComponentActivity {
 
   private Anime anime;
   private LinearLayout root, body;

@@ -23,7 +23,13 @@ import java.util.*;
 import java.util.concurrent.Future;
 import org.json.*;
 
-public final class PlayerActivity extends Activity {
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
+public final class PlayerActivity
+  extends androidx.activity.ComponentActivity
+  implements Ui.BackHandler
+{
 
   private Anime anime;
   private Future<?> playbackTask, prewarmTask;
@@ -2683,7 +2689,7 @@ public final class PlayerActivity extends Activity {
   }
 
   @Override
-  public void onBackPressed() {
+  public void handleBack() {
     if (customView != null) {
       hideCustom();
       return;
@@ -2692,7 +2698,7 @@ public final class PlayerActivity extends Activity {
       hideFullPlayer();
       return;
     }
-    super.onBackPressed();
+    finish();
   }
 
   @Override

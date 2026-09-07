@@ -16,6 +16,10 @@ import org.json.*;
 
 public final class Ui {
 
+  public interface BackHandler {
+    void handleBack();
+  }
+
   public static final int BG = 0xff0d0b12,
     CARD = 0xff1c1724,
     SURFACE = 0xff15111c,
@@ -282,12 +286,20 @@ public final class Ui {
     a.setContentView(root);
     root.requestApplyInsets();
     root.setAlpha(1f);
-    if (
-      Build.VERSION.SDK_INT >= 33
-    ) a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-      0,
-      a::onBackPressed
-    );
+    if (a instanceof androidx.activity.ComponentActivity) {
+      androidx.activity.ComponentActivity owner =
+        (androidx.activity.ComponentActivity) a;
+      owner.getOnBackPressedDispatcher().addCallback(
+        owner,
+        new androidx.activity.OnBackPressedCallback(true) {
+          @Override
+          public void handleOnBackPressed() {
+            if (a instanceof BackHandler) ((BackHandler) a).handleBack();
+            else a.finish();
+          }
+        }
+      );
+    }
     return root;
   }
 

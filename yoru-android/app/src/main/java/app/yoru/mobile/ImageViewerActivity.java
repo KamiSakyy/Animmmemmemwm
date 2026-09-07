@@ -6,7 +6,9 @@ import android.os.*;
 import android.view.*;
 import android.widget.*;
 
-public final class ImageViewerActivity extends Activity {
+public final class ImageViewerActivity
+  extends androidx.activity.ComponentActivity
+{
 
   private ZoomImage image;
 

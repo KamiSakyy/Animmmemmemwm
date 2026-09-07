@@ -15,7 +15,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import org.json.*;
 
-public final class MainActivity extends Activity {
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
+public final class MainActivity
+  extends androidx.activity.ComponentActivity
+  implements Ui.BackHandler
+{
 
   private LinearLayout root, header, bottom;
   private FrameLayout content;
@@ -2202,7 +2208,11 @@ public final class MainActivity extends Activity {
   }
 
   @Override
-  public void onBackPressed() {
+  public void handleBack() {
+    if (content == null) {
+      finish();
+      return;
+    }
     rememberScroll();
     if (profileView) {
       profileView = false;
@@ -2216,7 +2226,10 @@ public final class MainActivity extends Activity {
     } else if (tab != 0) {
       tab = 0;
       render();
-    } else super.onBackPressed();
+    } else if (Build.VERSION.SDK_INT >= 31 && isTaskRoot()) moveTaskToBack(
+      true
+    );
+    else finish();
   }
 
   @Override

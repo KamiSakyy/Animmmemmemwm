@@ -16,6 +16,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.*;
 
+@androidx.annotation.OptIn(
+  markerClass = androidx.media3.common.util.UnstableApi.class
+)
 public final class DownloadHub {
 
   public static final int USER_PAUSED = 1;
