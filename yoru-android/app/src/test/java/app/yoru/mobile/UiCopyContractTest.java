@@ -44,16 +44,17 @@ public class UiCopyContractTest {
   public void startupDoesNotCreateACustomLoadingPage() throws Exception {
     String ui = source("Ui");
     String gate = ui.substring(
-      ui.indexOf("if (!app.initialized)"),
-      ui.indexOf("if (app.original)")
+      ui.indexOf("public static void runWhenReady"),
+      ui.indexOf("public static boolean allow")
     );
     assertFalse(gate.contains("TextView"));
     assertFalse(gate.contains("ProgressBar"));
     assertFalse(gate.contains("setContentView"));
     assertFalse(gate.contains("store.preload"));
-    assertTrue(gate.contains("app.resumeWhenReady(a)"));
+    assertTrue(gate.contains("app.runWhenReady(a"));
     assertTrue(gate.contains("removeOnPreDrawListener(this)"));
     assertFalse(ui.contains("Открываем сохранённую библиотеку"));
+    assertFalse(source("YoruApp").contains(".recreate()"));
   }
 
   @Test

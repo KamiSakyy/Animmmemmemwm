@@ -630,7 +630,7 @@ public final class ApiRepository {
       v.contains("nextepisodeat") ||
       v.contains("episodesaired") ||
       v.contains("/api/animes/")
-    ) return 8 * 60 * 1000L;
+    ) return 60_000L;
     if (v.contains("graphql") || v.contains("/anime")) return 3 * 60 * 1000L;
     return 90000L;
   }
@@ -1120,11 +1120,21 @@ public final class ApiRepository {
   }
 
   public Anime quickDetails(Anime base) throws Exception {
+    return quickDetails(base, false);
+  }
+
+  public Anime quickDetails(Anime base, boolean freshMetadata)
+    throws Exception {
     if (!Anime.valid(base)) return base;
     YoruCache db = YoruApp.app() == null ? null : YoruApp.app().cache;
-    Anime cached = db == null ? null : db.detail(base, 18 * 60 * 60 * 1000L);
+    long ttl =
+      base.ongoing() || !EpisodeSchedule.clean(base.nextEpisodeAt).isEmpty()
+        ? 60_000L
+        : 18 * 60 * 60 * 1000L;
+    Anime cached = db == null || freshMetadata ? null : db.detail(base, ttl);
     if (Anime.valid(cached)) {
       SourceEngine.absorb(base, cached);
+      DetailsMetadata.apply(base, cached);
       if (base.related.isEmpty()) base.related.addAll(cached.related);
       return remember(base);
     }
@@ -2167,7 +2177,12 @@ public final class ApiRepository {
     LinkedHashMap<String, Anime.Episode> merged = new LinkedHashMap<>();
     for (Anime source : found) {
       fillYoruMeta(shell, source);
-      shell.episodesAired = Math.max(shell.episodesAired, source.episodesAired);
+      if (
+        !base.episodesAiredKnown && base.episodesAired <= 0
+      ) shell.episodesAired = Math.max(
+        shell.episodesAired,
+        EpisodeSchedule.aired(source)
+      );
       mergeYoruEpisodes(merged, source);
     }
     shell.episodeList.clear();
@@ -2175,7 +2190,11 @@ public final class ApiRepository {
     shell.episodeList.sort(
       Comparator.comparingDouble(episode -> episode.number)
     );
-    shell.episodes = Math.max(shell.episodes, shell.episodeList.size());
+    if (base.episodes > 0) shell.episodes = base.episodes;
+    if (base.episodesAiredKnown || base.episodesAired > 0) {
+      shell.episodesAired = base.episodesAired;
+      shell.episodesAiredKnown = base.episodesAiredKnown;
+    }
     appendFutureEpisodes(shell);
     applyEpisodeVisuals(shell);
     return remember(shell);
@@ -2195,7 +2214,10 @@ public final class ApiRepository {
     if (target.age.isEmpty()) target.age = source.age;
     if (target.studio.isEmpty()) target.studio = source.studio;
     if (target.episodes == 0) target.episodes = source.episodes;
-    if (target.episodesAired == 0) target.episodesAired = source.episodesAired;
+    if (!target.episodesAiredKnown && target.episodesAired == 0) {
+      target.episodesAired = source.episodesAired;
+      target.episodesAiredKnown = source.episodesAiredKnown;
+    }
     if (target.nextEpisodeAt.isEmpty()) target.nextEpisodeAt =
       source.nextEpisodeAt;
     if (target.malId == 0) target.malId = source.malId;
@@ -2372,6 +2394,13 @@ public final class ApiRepository {
     String route = downloadSourceName(source.source);
     for (Anime.Episode e : source.episodeList) {
       if (e == null || e.number < 0 || !Double.isFinite(e.number)) continue;
+      String episodeKey = episodeParam(e.number);
+      if (e.future) {
+        Anime.Episode old = map.get(episodeKey);
+        if (old == null) map.put(episodeKey, Anime.copyEpisode(e));
+        else if (old.airDate.isEmpty()) old.airDate = e.airDate;
+        continue;
+      }
       ArrayList<Anime.Variant> variants = new ArrayList<>();
       String baseVoice = sourceVoice(source.source);
       for (Map.Entry<Integer, String> stream : e.streams.entrySet()) {
@@ -2414,9 +2443,15 @@ public final class ApiRepository {
         ep.id = "yoru-" + key;
         ep.number = e.number;
         ep.name = "";
+        ep.synthetic = true;
         ep.lazy = "yoru";
         map.put(key, ep);
       }
+      ep.synthetic = ep.synthetic && e.synthetic;
+      ep.future = false;
+      ep.lazy = "yoru";
+      if (!e.airDate.isEmpty()) ep.airDate = e.airDate;
+      if (ep.poster.isEmpty()) ep.poster = e.poster;
       if (variants.isEmpty()) {
         Anime.Episode lazy = Anime.copyEpisode(e);
         lazy.source = source.source;
@@ -4111,130 +4146,12 @@ public final class ApiRepository {
   private static int playableEpisodes(Anime a) {
     int n = 0;
     if (a != null) for (Anime.Episode e : a.episodeList)
-      if (e != null && !e.future) n++;
+      if (e != null && !e.future && !e.synthetic) n++;
     return n;
   }
 
   private static void appendFutureEpisodes(Anime a) {
-    if (a == null || a.episodes <= 0) return;
-    boolean incomplete = a.episodesAired > 0 && a.episodesAired < a.episodes;
-    boolean scheduled =
-      !a.nextEpisodeAt.isEmpty() && !"null".equalsIgnoreCase(a.nextEpisodeAt);
-    if (!a.ongoing() && !incomplete && !scheduled) return;
-    int playable = 0;
-    for (Anime.Episode e : a.episodeList)
-      if (e != null && !e.future) playable++;
-    int aired = incomplete
-      ? a.episodesAired
-      : Math.max(a.episodesAired, playable);
-    if (aired <= 0 && playable > 0) aired = playable;
-    if (aired >= a.episodes) {
-      a.episodesAired = Math.max(a.episodesAired, a.episodes);
-      return;
-    }
-    a.episodesAired = aired;
-    LinkedHashSet<String> have = new LinkedHashSet<>();
-    for (Anime.Episode e : a.episodeList) {
-      if (e == null) continue;
-      String key = episodeParam(e.number);
-      have.add(key);
-      if (
-        e.number > aired + 0.001 &&
-        e.streams.isEmpty() &&
-        e.variants.isEmpty() &&
-        e.pending.isEmpty() &&
-        e.lazy.isEmpty()
-      ) markFuture(
-        e,
-        (int) Math.round(e.number) == aired + 1
-          ? formatAirDate(a.nextEpisodeAt)
-          : "Дата уточняется"
-      );
-    }
-    int max =
-      a.episodes - aired > 24 ? Math.min(a.episodes, aired + 24) : a.episodes;
-    for (int n = aired + 1; n <= max; n++) {
-      String key = episodeParam(n);
-      if (have.contains(key)) continue;
-      Anime.Episode ep = new Anime.Episode();
-      ep.id =
-        (a.id == null || a.id.isEmpty() ? "future" : a.id) + "-future-" + n;
-      ep.number = n;
-      markFuture(
-        ep,
-        n == aired + 1 ? formatAirDate(a.nextEpisodeAt) : "Дата уточняется"
-      );
-      a.episodeList.add(ep);
-    }
-  }
-
-  private static void markFuture(Anime.Episode ep, String date) {
-    if (ep == null) return;
-    String label =
-      date == null || date.trim().isEmpty() ? "Дата уточняется" : date.trim();
-    ep.future = true;
-    ep.airDate = label;
-    ep.name = label;
-    ep.poster = "";
-    ep.lazy = "";
-    ep.resolverUrl = "";
-    ep.duration = 0;
-    ep.openingStart = 0;
-    ep.openingEnd = 0;
-    ep.streams.clear();
-    ep.variants.clear();
-  }
-
-  private static String formatAirDate(String raw) {
-    String v = raw == null ? "" : raw.trim();
-    if (v.isEmpty() || v.equals("null")) return "Дата уточняется";
-    try {
-      return (
-        "Выйдет " +
-        dateLabel(
-          OffsetDateTime.parse(v)
-            .atZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime()
-        )
-      );
-    } catch (Exception ignored) {}
-    try {
-      return (
-        "Выйдет " +
-        dateLabel(
-          Instant.parse(v).atZone(ZoneId.systemDefault()).toLocalDateTime()
-        )
-      );
-    } catch (Exception ignored) {}
-    try {
-      return "Выйдет " + dateLabel(LocalDateTime.parse(v));
-    } catch (Exception ignored) {}
-    return "Выйдет " + v.replace('T', ' ');
-  }
-
-  private static String dateLabel(LocalDateTime t) {
-    String[] m = {
-      "янв",
-      "фев",
-      "мар",
-      "апр",
-      "мая",
-      "июн",
-      "июл",
-      "авг",
-      "сен",
-      "окт",
-      "ноя",
-      "дек",
-    };
-    return String.format(
-      Locale.ROOT,
-      "%d %s, %02d:%02d",
-      t.getDayOfMonth(),
-      m[Math.max(0, Math.min(11, t.getMonthValue() - 1))],
-      t.getHour(),
-      t.getMinute()
-    );
+    EpisodeSchedule.complete(a);
   }
 
   private void enrichVisuals(Anime a) {
@@ -4597,6 +4514,9 @@ public final class ApiRepository {
     a.status = base.status;
     a.age = base.age;
     a.episodes = base.episodes;
+    a.episodesAired = base.episodesAired;
+    a.episodesAiredKnown = base.episodesAiredKnown;
+    a.nextEpisodeAt = base.nextEpisodeAt;
     a.malId = base.malId > 0 ? base.malId : parseInt(base.id);
     a.anilistId = base.anilistId;
     a.kpId = base.kpId;
@@ -4635,6 +4555,7 @@ public final class ApiRepository {
         Anime.Episode ep = new Anime.Episode();
         ep.id = shell.id + "-" + i;
         ep.number = i;
+        ep.synthetic = true;
         ep.name = "";
         ep.lazy = "kodik";
         ep.resolverUrl = Uri.parse(url)
@@ -5244,6 +5165,7 @@ public final class ApiRepository {
     a.status = j.optString("status");
     a.episodes = j.optInt("episodes");
     a.episodesAired = j.optInt("episodesAired", 0);
+    a.episodesAiredKnown = j.has("episodesAired") && !j.isNull("episodesAired");
     a.nextEpisodeAt = j.optString("nextEpisodeAt", "");
     a.score = j.optDouble("score", 0);
     JSONObject date = j.optJSONObject("airedOn"),
@@ -5313,7 +5235,14 @@ public final class ApiRepository {
     a.score = rat == null ? 0 : rat.optDouble("average", 0);
     a.status = status == null ? "" : status.optString("alias");
     a.episodes = eps == null ? j.optInt("ep_count") : eps.optInt("count");
-    a.episodesAired = a.episodes;
+    a.episodesAired =
+      eps == null ? 0 : eps.optInt("aired", eps.optInt("aired_count", 0));
+    a.episodesAiredKnown =
+      eps != null && (eps.has("aired") || eps.has("aired_count"));
+    a.nextEpisodeAt = j.optString(
+      "next_episode_at",
+      j.optString("nextEpisodeAt", "")
+    );
     a.malId = ids == null ? 0 : ids.optInt("myanimelist_id");
     if (a.malId <= 0 && ids != null) a.malId = ids.optInt("shikimori_id");
     a.kpId = ids == null ? 0 : ids.optInt("kp_id");

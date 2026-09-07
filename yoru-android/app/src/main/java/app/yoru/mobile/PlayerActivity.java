@@ -142,6 +142,10 @@ public final class PlayerActivity
   @Override
   public void onCreate(Bundle state) {
     super.onCreate(state);
+    Ui.runWhenReady(this, () -> createContent(state));
+  }
+
+  private void createContent(Bundle state) {
     if (!Ui.allow(this)) return;
     offlineId = getIntent().getStringExtra("downloadId");
     anime = Ui.intentAnime(this);
@@ -358,6 +362,20 @@ public final class PlayerActivity
             pos < playback.video.episodeList.size()
           ) {
             Anime.Episode e = playback.video.episodeList.get(pos);
+            if (e.future) {
+              Ui.toast(
+                PlayerActivity.this,
+                "Не вышла · " + EpisodeSchedule.dateText(e.airDate)
+              );
+              int current = playback.video.episodeList.indexOf(episode);
+              if (current >= 0) {
+                boolean oldSetup = setup;
+                setup = true;
+                episodeSelect.setSelection(current);
+                setup = oldSetup;
+              }
+              return;
+            }
             if (episode != e) {
               seekMs = resumeFor(e.number);
               loadEpisode(e);
@@ -377,6 +395,12 @@ public final class PlayerActivity
             pos < voiceGroups.size() &&
             !voiceGroups.get(pos).isEmpty()
           ) {
+            ArrayList<String> groupKeys = new ArrayList<>();
+            for (Anime.Variant item : voiceGroups.get(pos))
+              groupKeys.add(ApiRepository.embed(item.url));
+            if (
+              PlaybackSelection.currentGroup(currentVariantKey, groupKeys)
+            ) return;
             Anime.Variant variant = voiceGroups.get(pos).get(0);
             String selectedVoice = ApiRepository.voiceTitle(
               variant.name.isEmpty() ? variant.label() : variant.name
@@ -385,7 +409,7 @@ public final class PlayerActivity
               YoruApp.app().store.voicePreference(selectedVoice);
               YoruApp.app().store.rememberVoice(selectedVoice);
             }
-            if (!variant.url.equals(currentUrl)) {
+            if (!ApiRepository.embed(variant.url).equals(currentVariantKey)) {
               save(true);
               seekMs = nativeMode
                 ? (int) player.getCurrentPosition()
@@ -1013,9 +1037,7 @@ public final class PlayerActivity
             for (int i = 0; i < ready.video.episodeList.size(); i++) {
               Anime.Episode e = ready.video.episodeList.get(i);
               labels.add(
-                YoruApp.app().store.spoilerSafe()
-                  ? "Серия " + number(e.number)
-                  : e.label()
+                EpisodeSchedule.label(e, YoruApp.app().store.spoilerSafe())
               );
               if (
                 Double.compare(e.number, wantedEpisode) == 0 && !e.future
@@ -1239,6 +1261,21 @@ public final class PlayerActivity
     return favorite != null ? favorite : first;
   }
 
+  private void syncVoiceSelection(String key) {
+    for (int i = 0; i < voiceGroups.size(); i++) {
+      for (Anime.Variant variant : voiceGroups.get(i))
+        if (key.equals(ApiRepository.embed(variant.url))) {
+          boolean wasSetup = setup;
+          setup = true;
+          if (
+            voiceSelect != null && voiceSelect.getSelectedItemPosition() != i
+          ) voiceSelect.setSelection(i);
+          setup = wasSetup;
+          return;
+        }
+    }
+  }
+
   private void startResolvedVariant(
     Anime.Variant v,
     TreeMap<Integer, String> streams
@@ -1259,6 +1296,7 @@ public final class PlayerActivity
     if (safe.isEmpty()) safe = ApiRepository.safeUrl(v.url);
     currentUrl = safe;
     currentVariantKey = safe;
+    syncVoiceSelection(safe);
     nativeMode = false;
     yummyFrame = false;
     trustedKodik = false;
@@ -1295,6 +1333,7 @@ public final class PlayerActivity
     );
     status.setText("Готовим озвучку…");
     currentVariantKey = safe;
+    syncVoiceSelection(safe);
     String expected = safe;
     work(() -> {
       try {

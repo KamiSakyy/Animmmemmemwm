@@ -55,10 +55,15 @@ public final class MainActivity
   private final ScreenWork screenWork = new ScreenWork();
   private final Handler handler = new Handler(Looper.getMainLooper());
   private Runnable searchTask;
+  private String navigationKey = "";
 
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
+    Ui.runWhenReady(this, () -> createContent(b));
+  }
+
+  private void createContent(Bundle b) {
     if (b != null) {
       tab = b.getInt("tab", 0);
       profileView = b.getBoolean("profile", false);
@@ -134,11 +139,15 @@ public final class MainActivity
       profileView = false;
     }
     render();
+    firstResume = !getLifecycle()
+      .getCurrentState()
+      .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
   }
 
   @Override
   protected void onResume() {
     super.onResume();
+    if (content == null) return;
     if (firstResume) {
       firstResume = false;
       return;
@@ -180,8 +189,13 @@ public final class MainActivity
     }
     String key = screenKey(tab);
     if (screenCache[tab] != null && key.equals(screenKeys[tab])) {
-      content.removeAllViews();
-      attach(screenCache[tab]);
+      if (
+        content.getChildCount() != 1 ||
+        content.getChildAt(0) != screenCache[tab]
+      ) {
+        content.removeAllViews();
+        attach(screenCache[tab]);
+      }
       if (tab == 4 && calendarScreen != null) calendarScreen.quickShow();
       restoreScroll();
       renderedTab = tab;
@@ -201,6 +215,10 @@ public final class MainActivity
   }
 
   private void navigation() {
+    String key =
+      tab + "|" + profileView + "|" + YoruApp.app().store.fontScale();
+    if (key.equals(navigationKey) && bottom.getChildCount() > 0) return;
+    navigationKey = key;
     bottom.removeAllViews();
     String[] names = {
         "Главная",
@@ -2158,7 +2176,7 @@ public final class MainActivity
     if (intent.getBooleanExtra("openDownloads", false)) {
       tab = 3;
       profileView = false;
-      render();
+      if (content != null) render();
     }
   }
 

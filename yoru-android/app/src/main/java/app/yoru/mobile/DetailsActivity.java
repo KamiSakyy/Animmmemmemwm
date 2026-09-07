@@ -31,6 +31,16 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
   > completed = new HashMap<>();
   private Future<?> detailFuture, downloadFuture, metadataFuture, enrichmentFuture;
   private boolean firstResume = true;
+  private Anime catalogSnapshot;
+  private long metadataRequestedAt;
+  private final RenderState renderState = new RenderState();
+  private final LinkedHashMap<String, LinearLayout> sections =
+    new LinkedHashMap<>();
+  private ScrollView pageScroll;
+  private ImageView heroImage;
+  private TextView heroTitle, heroMeta, heroScore, episodesSummary, episodesEmpty, episodesHint, batchButton;
+  private RecyclerView episodeRecycler;
+  private EpisodeListAdapter episodeAdapter;
 
   private static final class WatchPack {
 
@@ -43,12 +53,17 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
+    Ui.runWhenReady(this, () -> createContent(b));
+  }
+
+  private void createContent(Bundle b) {
     if (!Ui.allow(this)) return;
     anime = Ui.intentAnime(this);
     if (!Anime.valid(anime)) {
       finish();
       return;
     }
+    catalogSnapshot = Anime.from(anime.json());
     YoruApp.app().api.remember(anime);
     root = Ui.base(this);
     LinearLayout bar = Ui.row(this);
@@ -66,6 +81,7 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     Ui.gap(bar, label, -2, -2, 13);
     root.addView(bar, Ui.lp(this, -1, -2));
     ScrollView scroll = new ScrollView(this);
+    pageScroll = scroll;
     scroll.setFillViewport(false);
     scroll.setVerticalScrollBarEnabled(false);
     body = Ui.column(this);
@@ -80,11 +96,15 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     render();
     loadDownloads();
     loadFull();
+    firstResume = !getLifecycle()
+      .getCurrentState()
+      .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
   }
 
   @Override
   protected void onResume() {
     super.onResume();
+    if (body == null) return;
     if (firstResume) {
       firstResume = false;
       return;
@@ -92,6 +112,9 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     if (body != null) {
       render();
       loadDownloads();
+      if (
+        android.os.SystemClock.elapsedRealtime() - metadataRequestedAt >= 60_000
+      ) refreshMetadata(generation);
     }
   }
 
@@ -99,33 +122,14 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     final int gen = ++generation;
     final Anime seed = Anime.from(anime.json());
     if (detailFuture != null) detailFuture.cancel(true);
-    metadataFuture = YoruApp.app().ui.submit(() -> {
-      try {
-        Anime metadata = YoruApp.app().api.quickDetails(
-          Anime.from(seed.json())
-        );
-        YoruApp.app().main.post(() -> {
-          if (gen != generation || dead()) return;
-          if (!episodesLoaded) {
-            anime = metadata;
-            loaded = true;
-            render();
-          } else SourceEngine.absorb(anime, metadata);
-        });
-      } catch (Exception error) {
-        if (!Thread.currentThread().isInterrupted()) Perf.failure(
-          "details-metadata",
-          error
-        );
-      }
-    });
+    refreshMetadata(gen);
     detailFuture = YoruApp.app().ui.submit(() -> {
       try {
         Anime full = YoruApp.app().api.playback(seed, "yoru", -1, false).video;
-        final Anime snapshot = Anime.copy(full);
+        final Anime optionalSnapshot = Anime.copy(full);
         YoruApp.app().main.post(() -> {
           if (gen != generation || dead()) return;
-          SourceEngine.absorb(full, anime);
+          DetailsMetadata.apply(full, catalogSnapshot);
           anime = full;
           loaded = true;
           episodesLoaded = true;
@@ -133,13 +137,11 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
           loadDownloads();
           enrichmentFuture = YoruApp.app().discovery.submit(() -> {
             try {
-              Anime rich = YoruApp.app().api.enrichedDetails(snapshot);
+              Anime rich = YoruApp.app().api.enrichedDetails(optionalSnapshot);
               YoruApp.app().main.post(() -> {
-                if (gen == generation && !dead()) {
-                  SourceEngine.absorb(rich, anime);
-                  anime = rich;
-                  render();
-                }
+                if (gen != generation || dead()) return;
+                DetailsMetadata.applyVisuals(anime, rich);
+                render();
               });
             } catch (Exception error) {
               if (!Thread.currentThread().isInterrupted()) Perf.failure(
@@ -154,10 +156,35 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
           if (gen != generation || dead()) return;
           loaded = true;
           episodesLoaded = true;
-          if (state != null) state.setText(
-            "Сведения доступны. Нажмите «Смотреть», чтобы повторить подбор видео."
-          );
+          // The broadcast timeline remains visible even when no video source replied.
+          render();
         });
+      }
+    });
+  }
+
+  private void refreshMetadata(int gen) {
+    if (
+      metadataFuture != null && !metadataFuture.isDone()
+    ) metadataFuture.cancel(true);
+    metadataRequestedAt = android.os.SystemClock.elapsedRealtime();
+    final Anime seed = Anime.from(anime.json());
+    metadataFuture = YoruApp.app().ui.submit(() -> {
+      try {
+        Anime metadata = YoruApp.app().api.quickDetails(seed, true);
+        YoruApp.app().main.post(() -> {
+          if (gen != generation || dead()) return;
+          catalogSnapshot = metadata;
+          DetailsMetadata.apply(anime, metadata);
+          loaded = true;
+          // Late counts/date updates reconcile and notify the existing episode list.
+          render();
+        });
+      } catch (Exception error) {
+        if (!Thread.currentThread().isInterrupted()) Perf.failure(
+          "details-metadata",
+          error
+        );
       }
     });
   }
@@ -188,61 +215,242 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
   }
 
   private void render() {
-    progressCached = YoruApp.app().store.progress(anime);
-    bucketCached = YoruApp.app().store.bucket(anime);
-    favoriteCached = YoruApp.app().store.favorite(anime);
-    body.removeAllViews();
+    if (body == null || anime == null) return;
+    EpisodeSchedule.complete(anime);
+    SecureStore store = YoruApp.app().store;
+    progressCached = store.progress(anime);
+    bucketCached = store.bucket(anime);
+    favoriteCached = store.favorite(anime);
+    if (sections.isEmpty()) {
+      for (String name : Arrays.asList(
+        "hero",
+        "chips",
+        "about",
+        "screenshots",
+        "trailer",
+        "actions",
+        "progress",
+        "episodes",
+        "related",
+        "similar"
+      )) {
+        LinearLayout host = Ui.column(this);
+        sections.put(name, host);
+        body.addView(host, Ui.lp(this, -1, -2));
+      }
+      buildHero(sections.get("hero"));
+    }
+    String appearance =
+      store.fontScale() + "|" + store.fontName() + "|" + store.originalTitles();
+    bindHero();
+    updateSection(
+      "chips",
+      appearance +
+        "|" +
+        anime.original +
+        "|" +
+        anime.genres +
+        "|" +
+        anime.cardMeta() +
+        "|" +
+        anime.nextEpisodeAt +
+        "|" +
+        anime.age,
+      this::chips
+    );
+    updateSection(
+      "about",
+      appearance + "|" + anime.description + "|" + store.spoilerSafe(),
+      this::about
+    );
+    updateSection(
+      "screenshots",
+      appearance + "|" + anime.screenshots,
+      this::screenshots
+    );
+    updateSection(
+      "trailer",
+      appearance + "|" + anime.trailerUrl,
+      this::trailerBlock
+    );
+    String voices =
+      store.voicePreference() +
+      "|" +
+      store.onlyPreferredVoice() +
+      "|" +
+      store.favoriteVoiceSummary() +
+      "|" +
+      store.quality();
+    String downloads = downloadsSignature();
+    updateSection(
+      "actions",
+      appearance +
+        "|" +
+        voices +
+        "|" +
+        favoriteCached +
+        "|" +
+        anime.blocked +
+        "|" +
+        progressCached.optDouble("episode", 1) +
+        "|" +
+        progressCached.length() +
+        "|" +
+        downloads,
+      this::actions
+    );
+    updateSection(
+      "progress",
+      appearance +
+        "|" +
+        voices +
+        "|" +
+        progressCached.toString() +
+        "|" +
+        bucketCached +
+        "|" +
+        store.folderSummary(anime) +
+        "|" +
+        episodesLoaded +
+        "|" +
+        anime.episodeList.size(),
+      this::progress
+    );
+    // The RecyclerView and holders are never torn down for another API response.
+    bindEpisodes(sections.get("episodes"));
+    String related = relatedSignature();
+    updateSection(
+      "related",
+      appearance +
+        "|" +
+        related +
+        "|" +
+        relatedFilter +
+        "|" +
+        progressCached.optDouble("episode") +
+        "|" +
+        progressCached.optInt("time"),
+      this::related
+    );
+    updateSection(
+      "similar",
+      appearance +
+        "|" +
+        anime.genres +
+        "|" +
+        anime.studio +
+        "|" +
+        anime.year +
+        "|" +
+        store.libraryVersion() +
+        "|" +
+        store.hideSeen(),
+      this::similar
+    );
+  }
+
+  private void updateSection(String name, String signature, Runnable renderer) {
+    if (!renderState.changed(name, signature)) return;
+    LinearLayout host = sections.get(name),
+      page = body;
+    int scrollY = pageScroll.getScrollY();
+    LinearLayout anchor = null;
+    int anchorTop = 0;
+    if (scrollY > 0) for (LinearLayout section : sections.values()) {
+      if (section.getHeight() > 0 && section.getBottom() > scrollY) {
+        anchor = section;
+        anchorTop = section.getTop();
+        break;
+      }
+    }
+    host.removeAllViews();
+    body = host;
+    try {
+      renderer.run();
+    } finally {
+      body = page;
+    }
+    final LinearLayout keep = anchor;
+    final int previousTop = anchorTop;
+    if (keep != null) pageScroll.post(() -> {
+      if (!dead() && pageScroll.getScrollY() == scrollY) pageScroll.scrollTo(
+        0,
+        Math.max(0, scrollY + keep.getTop() - previousTop)
+      );
+    });
+  }
+
+  private void buildHero(LinearLayout host) {
     LinearLayout hero = Ui.row(this);
     hero.setGravity(Gravity.TOP);
-    ImageView image = new ImageView(this);
-    image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-    image.setBackground(Ui.gradient(0xff2a2135, 0xff18131f, 16, this));
-    image.setClipToOutline(true);
-    hero.addView(image, Ui.lp(this, 126, 184));
-    YoruApp.app().images.load(image, anime);
+    heroImage = new ImageView(this);
+    heroImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    heroImage.setBackground(Ui.gradient(0xff2a2135, 0xff18131f, 16, this));
+    heroImage.setClipToOutline(true);
+    hero.addView(heroImage, Ui.lp(this, 126, 184));
     LinearLayout info = Ui.column(this);
     info.setPadding(Ui.dp(this, 17), Ui.dp(this, 3), 0, 0);
-    TextView source = Ui.label(this, "ОЗВУЧКИ · QUALITY+");
-    source.setTextColor(Ui.PURPLE);
-    info.addView(source);
+    TextView label = Ui.label(this, "ОЗВУЧКИ · QUALITY+");
+    label.setTextColor(Ui.PURPLE);
+    info.addView(label);
     Ui.space(info, 11);
-    TextView title = Ui.text(this, YoruBrain.title(anime), 23, Ui.TEXT, true);
-    title.setMaxLines(6);
-    info.addView(title);
+    heroTitle = Ui.text(this, "", 23, Ui.TEXT, true);
+    heroTitle.setMaxLines(6);
+    info.addView(heroTitle);
     Ui.space(info, 12);
-    info.addView(
-      Ui.text(
-        this,
-        anime.cardMeta() + (anime.studio.isEmpty() ? "" : " · " + anime.studio),
-        11,
-        Ui.MUTED,
-        false
-      )
-    );
-    if (anime.score > 0) {
-      Ui.space(info, 9);
-      info.addView(
-        Ui.text(
-          this,
-          String.format(Locale.US, "★ %.2f", anime.score),
-          15,
-          Ui.PURPLE,
-          true
-        )
-      );
-    }
+    heroMeta = Ui.text(this, "", 11, Ui.MUTED, false);
+    info.addView(heroMeta);
+    Ui.space(info, 9);
+    heroScore = Ui.text(this, "", 15, Ui.PURPLE, true);
+    info.addView(heroScore);
     hero.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
-    body.addView(hero);
-    Ui.space(body, 18);
-    chips();
-    about();
-    screenshots();
-    trailerBlock();
-    actions();
-    progress();
-    episodes();
-    related();
-    similar();
+    host.addView(hero);
+    Ui.space(host, 18);
+  }
+
+  private void bindHero() {
+    setText(heroTitle, YoruBrain.title(anime));
+    setText(
+      heroMeta,
+      anime.cardMeta() + (anime.studio.isEmpty() ? "" : " · " + anime.studio)
+    );
+    setText(
+      heroScore,
+      anime.score > 0 ? String.format(Locale.US, "★ %.2f", anime.score) : ""
+    );
+    heroScore.setVisibility(anime.score > 0 ? View.VISIBLE : View.GONE);
+    YoruApp.app().images.load(heroImage, anime);
+  }
+
+  private static void setText(TextView view, String value) {
+    if (!android.text.TextUtils.equals(view.getText(), value)) view.setText(
+      value
+    );
+  }
+
+  private String downloadsSignature() {
+    ArrayList<String> values = new ArrayList<>();
+    for (String key : completed.keySet())
+      values.add(key + ":" + completed.get(key).request.id);
+    Collections.sort(values);
+    return values.toString();
+  }
+
+  private String relatedSignature() {
+    StringBuilder value = new StringBuilder();
+    for (Anime related : anime.related)
+      value
+        .append(related.key())
+        .append('|')
+        .append(related.title)
+        .append('|')
+        .append(related.poster)
+        .append('|')
+        .append(related.airedDate)
+        .append('|')
+        .append(related.type)
+        .append(';');
+    return value.toString();
   }
 
   private void chips() {
@@ -406,24 +614,21 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     }
   }
 
-  private void episodes() {
-    Ui.space(body, 24);
-    LinearLayout row = Ui.row(this);
-    row.addView(
-      Ui.text(this, "Серии", 21, Ui.TEXT, true),
-      new LinearLayout.LayoutParams(0, -2, 1)
-    );
-    if (!anime.episodeList.isEmpty()) {
-      TextView pack = Ui.text(this, "Скачать дальше", 10, Ui.PURPLE, true);
-      pack.setPadding(
-        Ui.dp(this, 9),
-        Ui.dp(this, 7),
-        Ui.dp(this, 9),
-        Ui.dp(this, 7)
+  private void bindEpisodes(LinearLayout host) {
+    if (episodeRecycler == null) {
+      Ui.space(host, 24);
+      LinearLayout header = Ui.row(this);
+      header.addView(
+        Ui.text(this, "Серии", 21, Ui.TEXT, true),
+        new LinearLayout.LayoutParams(0, -2, 1)
       );
-      pack.setBackground(Ui.stroke(Ui.SURFACE, 10, this));
-      Ui.press(pack);
-      pack.setOnClickListener(v ->
+      episodesSummary = Ui.text(this, "", 11, Ui.MUTED, false);
+      header.addView(episodesSummary);
+      host.addView(header);
+      Ui.space(host, 8);
+      batchButton = Ui.text(this, "Скачать дальше", 10, Ui.PURPLE, true);
+      batchButton.setPadding(0, Ui.dp(this, 5), 0, Ui.dp(this, 8));
+      batchButton.setOnClickListener(view ->
         DownloadActions.chooseBatchFast(
           this,
           anime,
@@ -432,247 +637,135 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
           anime.episodeList
         )
       );
-      row.addView(pack);
-    } else if (anime.episodes > 0) row.addView(
-      Ui.text(this, String.valueOf(anime.episodes), 13, Ui.PURPLE, true)
-    );
-    body.addView(row);
-    Ui.space(body, 12);
-    if (anime.episodeList.isEmpty()) {
-      LinearLayout card = card();
-      card.addView(
-        Ui.text(
-          this,
-          "Список серий появится здесь после загрузки каталога. Смотреть можно уже сейчас через кнопку выше.",
-          12,
-          Ui.MUTED,
-          false
-        )
+      host.addView(batchButton);
+      episodesEmpty = Ui.text(
+        this,
+        "Список серий пока недоступен.",
+        12,
+        Ui.MUTED,
+        false
       );
-      body.addView(card);
-      return;
-    }
-    RecyclerView rv = new RecyclerView(this);
-    rv.setLayoutManager(new LinearLayoutManager(this));
-    rv.setHasFixedSize(false);
-    rv.setItemViewCacheSize(10);
-    rv.setNestedScrollingEnabled(true);
-    rv.setClipToPadding(false);
-    rv.setPadding(0, 0, 0, Ui.dp(this, 6));
-    rv.setAdapter(new EpisodeAdapter());
-    int visible = Math.max(3, Math.min(8, anime.episodeList.size()));
-    body.addView(rv, Ui.lp(this, -1, visible * 78));
-    if (anime.episodeList.size() > visible) {
-      Ui.space(body, 7);
-      body.addView(
-        Ui.text(
-          this,
-          "Прокрутите список, чтобы увидеть остальные серии.",
-          10,
-          Ui.MUTED,
-          false
-        )
-      );
-    }
-  }
+      host.addView(episodesEmpty);
+      episodeRecycler = new RecyclerView(this);
+      episodeRecycler.setLayoutManager(new LinearLayoutManager(this));
+      episodeRecycler.setHasFixedSize(true);
+      episodeRecycler.setItemViewCacheSize(10);
+      episodeRecycler.setItemAnimator(null);
+      episodeRecycler.setNestedScrollingEnabled(true);
+      episodeAdapter = new EpisodeListAdapter(
+        this,
+        anime.key(),
+        new EpisodeListAdapter.Listener() {
+          public void watch(EpisodeRow row) {
+            if (upcoming(row.number)) {
+              Ui.toast(DetailsActivity.this, "Не вышла · " + row.date);
+              return;
+            }
+            openWatch(row.number, "yoru");
+          }
 
-  private View episodeView(Anime.Episode ep) {
-    boolean future =
-      ep != null &&
-      (ep.future ||
-        (anime.episodesAired > 0 &&
-          anime.episodes > anime.episodesAired &&
-          ep.number > anime.episodesAired + 0.001));
-    String computedFutureDate = ep == null ? "" : ep.airDate;
-    if (future && computedFutureDate.isEmpty()) computedFutureDate =
-      Math.round(ep.number) == anime.episodesAired + 1 &&
-      !anime.nextEpisodeAt.isEmpty()
-        ? "Выйдет " + airText(anime.nextEpisodeAt)
-        : "Дата уточняется";
-    final String futureDate = computedFutureDate;
-    LinearLayout outer = Ui.column(this);
-    outer.setPadding(0, 0, 0, Ui.dp(this, 8));
-    LinearLayout card = Ui.row(this);
-    card.setPadding(
-      Ui.dp(this, 10),
-      Ui.dp(this, 9),
-      Ui.dp(this, 10),
-      Ui.dp(this, 9)
-    );
-    card.setGravity(Gravity.CENTER_VERTICAL);
-    card.setBackground(Ui.stroke(Ui.CARD, 14, this));
-    FrameLayout preview = new FrameLayout(this);
-    preview.setBackground(Ui.shape(Ui.SURFACE, 12, this));
-    preview.setClipToOutline(true);
-    ImageView shot = new ImageView(this);
-    shot.setScaleType(ImageView.ScaleType.CENTER_CROP);
-    preview.addView(shot, new FrameLayout.LayoutParams(-1, -1));
-    if (future) {
-      shot.setVisibility(View.GONE);
-      TextView date = Ui.text(
-        this,
-        futureDate.isEmpty()
-          ? "Дата\nуточняется"
-          : futureDate.replace("Выйдет ", ""),
-        11,
-        Ui.PURPLE,
-        true
+          public void download(EpisodeRow row) {
+            if (upcoming(row.number)) return;
+            androidx.media3.exoplayer.offline.Download done = completed.get(
+              DownloadHub.episodeKey(row.number)
+            );
+            if (done != null) Ui.openOffline(
+              DetailsActivity.this,
+              done.request.id,
+              anime,
+              row.number
+            );
+            else DownloadActions.prepare(
+              DetailsActivity.this,
+              anime,
+              null,
+              row.number
+            );
+          }
+
+          public void markWatched(EpisodeRow row) {
+            if (upcoming(row.number)) return;
+            YoruApp.app().store.progress(
+              anime,
+              row.number,
+              0,
+              0,
+              "yoru",
+              "",
+              true
+            );
+            YoruWidgetProvider.refresh(DetailsActivity.this);
+            render();
+          }
+        }
       );
-      date.setGravity(Gravity.CENTER);
-      date.setMaxLines(3);
-      date.setPadding(Ui.dp(this, 5), 0, Ui.dp(this, 5), 0);
-      preview.addView(date, new FrameLayout.LayoutParams(-1, -1));
-    } else YoruApp.app().images.load(
-      shot,
-      episodePoster(ep),
-      anime.key() + ":ep:" + Ui.number(ep.number)
-    );
-    TextView play = Ui.text(this, future ? "⌛" : "▶", 17, 0xeeffffff, true);
-    play.setGravity(Gravity.CENTER);
-    play.setBackground(Ui.shape(0x66000000, 24, this));
-    if (!future) preview.addView(
-      play,
-      new FrameLayout.LayoutParams(
-        Ui.dp(this, 34),
-        Ui.dp(this, 34),
-        Gravity.CENTER
-      )
-    );
-    LinearLayout.LayoutParams pp = Ui.lp(this, 94, 56);
-    pp.rightMargin = Ui.dp(this, 11);
-    card.addView(preview, pp);
-    String episodeName = YoruApp.app().store.spoilerSafe() ? "" : ep.name;
-    JSONObject progress = progressCached;
-    boolean current =
-      Math.abs(progress.optDouble("episode", -9999) - ep.number) < 0.001;
-    LinearLayout text = Ui.column(this);
-    TextView title = Ui.text(
-      this,
-      (current ? "▶ " : "") +
-        "Серия " +
-        Ui.number(ep.number) +
-        (episodeName.isEmpty() ? "" : " · " + episodeName),
-      12,
-      current ? Ui.PURPLE : Ui.TEXT,
-      true
-    );
-    title.setMaxLines(2);
-    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    text.addView(title);
-    Ui.space(text, 4);
-    text.addView(
-      Ui.text(
+      episodeRecycler.setAdapter(episodeAdapter);
+      host.addView(episodeRecycler, Ui.lp(this, -1, 3 * 78));
+      Ui.space(host, 7);
+      episodesHint = Ui.text(
         this,
-        future
-          ? futureDate.isEmpty()
-            ? "Дата выхода уточняется"
-            : futureDate
-          : ep.duration > 0
-            ? Ui.time(ep.duration)
-            : "Видео-превью",
+        "Прокрутите список, чтобы увидеть остальные серии.",
         10,
         Ui.MUTED,
         false
-      )
-    );
-    card.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
-    androidx.media3.exoplayer.offline.Download done = completed.get(
-      DownloadHub.episodeKey(ep.number)
-    );
-    TextView load = Ui.text(
-      this,
-      future
-        ? "Ждём"
-        : done == null
-          ? "Скачать\n" + downloadVoiceName()
-          : "Скачана",
-      10,
-      future ? Ui.MUTED : Ui.PURPLE,
-      true
-    );
-    load.setGravity(Gravity.CENTER);
-    load.setMaxLines(2);
-    load.setPadding(
-      Ui.dp(this, 8),
-      Ui.dp(this, 7),
-      Ui.dp(this, 8),
-      Ui.dp(this, 7)
-    );
-    load.setBackground(Ui.stroke(Ui.SURFACE, 10, this));
-    Ui.press(load);
-    load.setEnabled(!future);
-    load.setAlpha(future ? 0.55f : 1f);
-    load.setOnClickListener(v -> {
-      if (future) {
-        Ui.toast(
-          this,
-          futureDate.isEmpty()
-            ? "Серия ещё не вышла"
-            : "Серия " + Ui.number(ep.number) + ": " + futureDate
-        );
-        return;
-      }
-      if (done != null) Ui.openOffline(this, done.request.id, anime, ep.number);
-      else DownloadActions.prepare(this, anime, null, ep.number);
-    });
-    card.addView(load);
-    card.setOnClickListener(v -> {
-      if (future) {
-        Ui.toast(
-          this,
-          futureDate.isEmpty()
-            ? "Серия ещё не вышла"
-            : "Серия " + Ui.number(ep.number) + ": " + futureDate
-        );
-        return;
-      }
-      if (done != null) Ui.openOffline(this, done.request.id, anime, ep.number);
-      else openWatch(ep.number, "yoru");
-    });
-    card.setOnLongClickListener(v -> {
-      if (future) return true;
-      YoruApp.app().store.progress(anime, ep.number, 0, 0, "yoru", "", true);
-      YoruWidgetProvider.refresh(this);
-      Ui.toast(this, "Отмечено: серия " + Ui.number(ep.number));
-      render();
-      return true;
-    });
-    Ui.press(card);
-    outer.addView(card);
-    return outer;
-  }
-
-  private final class EpisodeAdapter
-    extends RecyclerView.Adapter<EpisodeHolder>
-  {
-
-    public int getItemCount() {
-      return anime == null ? 0 : anime.episodeList.size();
+      );
+      host.addView(episodesHint);
     }
-
-    public EpisodeHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-      FrameLayout box = new FrameLayout(DetailsActivity.this);
-      box.setLayoutParams(new RecyclerView.LayoutParams(-1, -2));
-      return new EpisodeHolder(box);
-    }
-
-    public void onBindViewHolder(EpisodeHolder h, int p) {
-      h.box.removeAllViews();
-      if (p >= 0 && p < anime.episodeList.size()) h.box.addView(
-        episodeView(anime.episodeList.get(p)),
-        new FrameLayout.LayoutParams(-1, -2)
+    ArrayList<EpisodeRow> rows = new ArrayList<>();
+    boolean spoilers = YoruApp.app().store.spoilerSafe();
+    String downloadLabel = "Скачать\n" + downloadVoiceName();
+    for (Anime.Episode episode : anime.episodeList) {
+      androidx.media3.exoplayer.offline.Download done = completed.get(
+        DownloadHub.episodeKey(episode.number)
+      );
+      rows.add(
+        new EpisodeRow(
+          episode.number,
+          episode.future,
+          !episode.future &&
+            Math.abs(progressCached.optDouble("episode", -1) - episode.number) <
+              .001,
+          episode.future || spoilers ? "" : episode.name,
+          episode.future ? EpisodeSchedule.dateText(episode.airDate) : "",
+          episode.future
+            ? ""
+            : spoilers
+              ? anime.poster
+              : episodePoster(episode),
+          episode.duration,
+          done == null ? "" : done.request.id,
+          downloadLabel
+        )
       );
     }
+    setText(
+      episodesSummary,
+      anime.episodes > 0
+        ? anime.aired() + " / " + anime.episodes
+        : anime.aired() > 0
+          ? "Вышло " + anime.aired()
+          : ""
+    );
+    boolean empty = rows.isEmpty();
+    episodesEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+    episodeRecycler.setVisibility(empty ? View.GONE : View.VISIBLE);
+    batchButton.setVisibility(anime.aired() > 0 ? View.VISIBLE : View.GONE);
+    int visible = Math.max(3, Math.min(8, rows.size()));
+    int height = Ui.dp(this, visible * 78);
+    if (episodeRecycler.getLayoutParams().height != height) {
+      episodeRecycler.getLayoutParams().height = height;
+      episodeRecycler.requestLayout();
+    }
+    episodesHint.setVisibility(
+      rows.size() > visible ? View.VISIBLE : View.GONE
+    );
+    episodeAdapter.submitList(rows);
   }
 
-  private static final class EpisodeHolder extends RecyclerView.ViewHolder {
-
-    final FrameLayout box;
-
-    EpisodeHolder(FrameLayout v) {
-      super(v);
-      box = v;
-    }
+  private boolean upcoming(double number) {
+    for (Anime.Episode episode : anime.episodeList)
+      if (Math.abs(episode.number - number) < .001) return episode.future;
+    return true;
   }
 
   private LinearLayout card() {

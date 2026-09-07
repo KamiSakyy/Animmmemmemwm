@@ -170,15 +170,14 @@ public final class Ui {
       ) return false;
       if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) view
         .animate()
-        .scaleX(.965f)
-        .scaleY(.965f)
-        .alpha(.86f)
+        .scaleX(.985f)
+        .scaleY(.985f)
         .setDuration(45)
         .start();
       else if (
         e.getAction() == android.view.MotionEvent.ACTION_UP ||
         e.getAction() == android.view.MotionEvent.ACTION_CANCEL
-      ) view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(60).start();
+      ) view.animate().scaleX(1f).scaleY(1f).setDuration(60).start();
       return false;
     });
   }
@@ -303,29 +302,40 @@ public final class Ui {
     return root;
   }
 
+  public static void runWhenReady(Activity a, Runnable createContent) {
+    YoruApp app = YoruApp.app();
+    if (app.initialized) {
+      createContent.run();
+      return;
+    }
+    View decor = a.getWindow().getDecorView();
+    final boolean[] installed = { false };
+    ViewTreeObserver.OnPreDrawListener gate =
+      new ViewTreeObserver.OnPreDrawListener() {
+        @Override
+        public boolean onPreDraw() {
+          if (!installed[0]) return false;
+          ViewTreeObserver observer = decor.getViewTreeObserver();
+          if (observer.isAlive()) observer.removeOnPreDrawListener(this);
+          return true;
+        }
+      };
+    decor.getViewTreeObserver().addOnPreDrawListener(gate);
+    app.runWhenReady(a, () -> {
+      try {
+        createContent.run();
+      } finally {
+        installed[0] = true;
+        ViewTreeObserver observer = decor.getViewTreeObserver();
+        if (observer.isAlive()) observer.removeOnPreDrawListener(gate);
+        decor.requestLayout();
+      }
+    });
+  }
+
   public static boolean allow(Activity a) {
     YoruApp app = YoruApp.app();
-    if (!app.initialized) {
-      // Do not draw an empty intermediate Activity over Android's starting window.
-      // Keystore and disk work still run on YoruApp.local, never on main.
-      ViewTreeObserver observer = a
-        .getWindow()
-        .getDecorView()
-        .getViewTreeObserver();
-      observer.addOnPreDrawListener(
-        new ViewTreeObserver.OnPreDrawListener() {
-          @Override
-          public boolean onPreDraw() {
-            if (!app.initialized) return false;
-            // A recreated Activity may reuse its window: never leave a permanent draw gate.
-            if (observer.isAlive()) observer.removeOnPreDrawListener(this);
-            return true;
-          }
-        }
-      );
-      app.resumeWhenReady(a);
-      return false;
-    }
+    if (!app.initialized) return false;
     if (app.original) return true;
     LinearLayout root = base(a);
     root.setGravity(Gravity.CENTER);

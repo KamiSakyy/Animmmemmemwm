@@ -27,7 +27,7 @@ public final class Anime {
   public int year, episodes, episodesAired, malId, anilistId, kpId, durationMinutes, translationsCount, shikimoriOrder;
   public String libriaAlias = "";
   public double score;
-  public boolean blocked, cached;
+  public boolean blocked, cached, episodesAiredKnown;
   public final ArrayList<String> genres = new ArrayList<>();
   public final ArrayList<Anime> related = new ArrayList<>();
   public final ArrayList<String> screenshots = new ArrayList<>();
@@ -48,9 +48,7 @@ public final class Anime {
   }
 
   public int aired() {
-    int n = episodesAired > 0 ? episodesAired : episodeList.size();
-    if (episodes > 0 && n > episodes) n = episodes;
-    return Math.max(0, n);
+    return EpisodeSchedule.aired(this);
   }
 
   public boolean ongoing() {
@@ -130,6 +128,7 @@ public final class Anime {
       j.put("studio", studio);
       j.put("episodesTotal", episodes);
       j.put("episodesAired", episodesAired);
+      j.put("episodesAiredKnown", episodesAiredKnown);
       j.put("nextEpisodeAt", nextEpisodeAt);
       j.put("malId", malId);
       j.put("anilistId", anilistId);
@@ -186,6 +185,10 @@ public final class Anime {
     a.studio = j.optString("studio", "");
     a.episodes = j.optInt("episodesTotal", 0);
     a.episodesAired = j.optInt("episodesAired", 0);
+    a.episodesAiredKnown = j.optBoolean(
+      "episodesAiredKnown",
+      a.episodesAired > 0
+    );
     a.nextEpisodeAt = j.optString("nextEpisodeAt", "");
     a.malId = j.optInt("malId", 0);
     a.anilistId = j.optInt("anilistId", 0);
@@ -262,26 +265,12 @@ public final class Anime {
       airDate = "";
     public double number;
     public int duration, openingStart, openingEnd;
-    public boolean future;
+    public boolean future, synthetic;
     public final TreeMap<Integer, String> streams = new TreeMap<>();
     public final ArrayList<Variant> variants = new ArrayList<>();
 
     public String label() {
-      String n =
-        number == Math.floor(number)
-          ? String.valueOf((int) number)
-          : String.valueOf(number);
-      return (
-        "Серия " +
-        n +
-        (future
-          ? airDate.isEmpty()
-            ? " · дата уточняется"
-            : " · " + airDate
-          : name.isEmpty()
-            ? ""
-            : " · " + name)
-      );
+      return EpisodeSchedule.label(this, false);
     }
   }
 
@@ -330,6 +319,7 @@ public final class Anime {
     copy.openingStart = source.openingStart;
     copy.openingEnd = source.openingEnd;
     copy.future = source.future;
+    copy.synthetic = source.synthetic;
     copy.streams.putAll(source.streams);
     for (Variant variant : source.variants)
       copy.variants.add(copyVariant(variant));

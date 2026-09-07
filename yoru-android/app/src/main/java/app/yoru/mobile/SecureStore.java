@@ -136,8 +136,12 @@ public final class SecureStore {
   }
 
   private void write(String name, JSONObject json) {
+    write(name, json, true);
+  }
+
+  private void write(String name, JSONObject json, boolean invalidateViews) {
     if (key == null) return;
-    if (!"traffic".equals(name)) viewVersion++;
+    if (invalidateViews && !"traffic".equals(name)) viewVersion++;
     writer.submit(name, () -> {
       final String text;
       final javax.crypto.SecretKey secret;
@@ -821,7 +825,7 @@ public final class SecureStore {
       settings.put("lastEpisodeCheckCount", Math.max(0, checked));
       settings.put("lastEpisodeCheckAlerts", Math.max(0, alerts));
       settings.put("lastEpisodeCheckStatus", status == null ? "" : status);
-      write("settings", settings);
+      write("settings", settings, false);
     } catch (Exception ignored) {}
   }
 
@@ -1303,7 +1307,7 @@ public final class SecureStore {
     try {
       settings.remove("calendarCache");
       settings.put("calendarCacheAt", System.currentTimeMillis());
-      write("settings", settings);
+      write("settings", settings, false);
     } catch (JSONException error) {
       Perf.failure("calendar-timestamp", error);
     }
@@ -1325,7 +1329,7 @@ public final class SecureStore {
       if (json == null || json.length() < 20) settings.remove("sourceProfile");
       else settings.put("sourceProfile", json);
       settings.put("sourceProfileAt", System.currentTimeMillis());
-      write("settings", settings);
+      write("settings", settings, false);
     } catch (Exception ignored) {}
   }
 
@@ -1400,7 +1404,7 @@ public final class SecureStore {
         for (int i = 0; i < keys.size() - 36; i++) all.remove(keys.get(i));
       }
       settings.put("sourceStats", all);
-      write("settings", settings);
+      write("settings", settings, false);
     } catch (Exception ignored) {}
   }
 

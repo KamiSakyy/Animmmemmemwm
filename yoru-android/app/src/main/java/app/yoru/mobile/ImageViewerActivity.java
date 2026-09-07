@@ -15,6 +15,10 @@ public final class ImageViewerActivity
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
+    Ui.runWhenReady(this, () -> createContent(b));
+  }
+
+  private void createContent(Bundle b) {
     if (!Ui.allow(this)) return;
     getWindow().setStatusBarColor(Color.BLACK);
     getWindow().setNavigationBarColor(Color.BLACK);

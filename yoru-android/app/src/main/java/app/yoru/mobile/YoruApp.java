@@ -28,7 +28,43 @@ public final class YoruApp extends Application {
   private DownloadHub downloads;
   public volatile int activePlayers, calendarTodayCount;
   private boolean warmed;
-  private final ArrayList<WeakReference<Activity>> waiting = new ArrayList<>();
+  private final ArrayList<ReadyWork> waiting = new ArrayList<>();
+
+  private final class ReadyWork
+    implements androidx.lifecycle.DefaultLifecycleObserver
+  {
+
+    final WeakReference<Activity> owner;
+    Runnable action;
+
+    ReadyWork(Activity activity, Runnable action) {
+      owner = new WeakReference<>(activity);
+      this.action = action;
+    }
+
+    @Override
+    public void onDestroy(androidx.lifecycle.LifecycleOwner ignored) {
+      waiting.remove(this);
+      action = null;
+    }
+
+    void dispatch() {
+      Activity activity = owner.get();
+      if (activity instanceof androidx.lifecycle.LifecycleOwner) (
+        (androidx.lifecycle.LifecycleOwner) activity
+      )
+        .getLifecycle()
+        .removeObserver(this);
+      Runnable ready = action;
+      action = null;
+      if (
+        ready != null &&
+        activity != null &&
+        !activity.isFinishing() &&
+        !activity.isDestroyed()
+      ) ready.run();
+    }
+  }
 
   public synchronized DownloadHub downloads() {
     if (downloads == null) downloads = new DownloadHub(this, mediaCache);
@@ -75,16 +111,9 @@ public final class YoruApp extends Application {
         Perf.end("bootstrap", started);
         main.post(() -> {
           initialized = true;
-          ArrayList<WeakReference<Activity>> ready = new ArrayList<>(waiting);
+          ArrayList<ReadyWork> ready = new ArrayList<>(waiting);
           waiting.clear();
-          for (WeakReference<Activity> ref : ready) {
-            Activity activity = ref.get();
-            if (
-              activity != null &&
-              !activity.isFinishing() &&
-              !activity.isDestroyed()
-            ) activity.recreate();
-          }
+          for (ReadyWork work : ready) work.dispatch();
           main.postDelayed(this::warmStartup, 1000);
         });
       }
@@ -92,23 +121,25 @@ public final class YoruApp extends Application {
   }
 
   /** Called on main by the lightweight activity gate. Never blocks main. */
-  public void resumeWhenReady(Activity activity) {
+  public void runWhenReady(Activity activity, Runnable action) {
     if (initialized) {
-      main.post(() -> {
-        if (
-          !activity.isFinishing() && !activity.isDestroyed()
-        ) activity.recreate();
-      });
-    } else {
-      waiting.removeIf(ref -> ref.get() == null || ref.get() == activity);
-      waiting.add(new WeakReference<>(activity));
+      if (!activity.isFinishing() && !activity.isDestroyed()) action.run();
+      return;
     }
+    ReadyWork work = new ReadyWork(activity, action);
+    waiting.add(work);
+    if (activity instanceof androidx.lifecycle.LifecycleOwner) (
+      (androidx.lifecycle.LifecycleOwner) activity
+    )
+      .getLifecycle()
+      .addObserver(work);
   }
 
   /** Startup warms local data only. Network schedule refresh belongs to Calendar/jobs. */
   public void warmStartup() {
     if (warmed || !initialized || !original) return;
     warmed = true;
+    discovery.execute(images::removeLegacyDiskFiles);
     local.execute(() -> {
       try {
         calendarTodayCount = cache.todayScheduleCount();

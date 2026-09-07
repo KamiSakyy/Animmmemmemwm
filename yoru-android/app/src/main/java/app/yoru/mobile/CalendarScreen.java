@@ -63,11 +63,7 @@ public final class CalendarScreen extends FrameLayout {
     recycler.setVerticalScrollBarEnabled(false);
     recycler.setHorizontalScrollBarEnabled(false);
     recycler.setOverScrollMode(View.OVER_SCROLL_NEVER);
-    DefaultItemAnimator animator = new DefaultItemAnimator();
-    animator.setAddDuration(170);
-    animator.setMoveDuration(150);
-    animator.setChangeDuration(120);
-    recycler.setItemAnimator(animator);
+    recycler.setItemAnimator(null);
     adapter = new CalendarAdapter();
     recycler.setAdapter(adapter);
     recycler.addOnScrollListener(
@@ -187,7 +183,7 @@ public final class CalendarScreen extends FrameLayout {
     if (rows != null) items.addAll(rows);
     buildBuckets();
     if (selected >= DAYS) selected = -1;
-    rebuildVisible(true);
+    rebuildVisible(!keepPosition);
     adapter.notifyDataSetChanged();
     if (!keepPosition) recycler.scrollToPosition(0);
   }
@@ -837,8 +833,39 @@ public final class CalendarScreen extends FrameLayout {
     }
 
     public void onBindViewHolder(CalendarHolder h, int p) {
-      h.box.removeAllViews();
       int type = getItemViewType(p);
+      String signature;
+      if (type == 1) {
+        ApiRepository.AiringItem item = visible.get(p - 1);
+        signature =
+          item.time +
+          "|" +
+          item.episode +
+          "|" +
+          item.kind +
+          "|" +
+          item.precision +
+          "|" +
+          (item.anime == null ? "" : item.anime.json().toString());
+      } else signature =
+        type +
+        "|" +
+        selected +
+        "|" +
+        filter +
+        "|" +
+        state +
+        "|" +
+        allLimit +
+        "|" +
+        items.size() +
+        "|" +
+        starts[0];
+      signature +=
+        "|" + System.currentTimeMillis() / 60_000 + "|" + filterCounts;
+      if (signature.equals(h.signature) && h.box.getChildCount() > 0) return;
+      h.signature = signature;
+      h.box.removeAllViews();
       View v =
         type == 0
           ? header()
@@ -854,6 +881,7 @@ public final class CalendarScreen extends FrameLayout {
   private static final class CalendarHolder extends RecyclerView.ViewHolder {
 
     final FrameLayout box;
+    String signature = "";
 
     CalendarHolder(FrameLayout v) {
       super(v);

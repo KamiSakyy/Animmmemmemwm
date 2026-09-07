@@ -1,15 +1,19 @@
 package app.yoru.mobile;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Looper;
 import android.widget.ImageView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
 import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy;
+import com.bumptech.glide.request.Request;
+import com.bumptech.glide.signature.ObjectKey;
 import java.util.*;
 
 /** Glide owns target replacement, in-flight deduplication, sizing and lifecycle.
@@ -54,6 +58,33 @@ public final class ImageLoader {
     )
   );
   private final Context context;
+  private volatile int cacheGeneration;
+
+  private static final class Binding {
+
+    final String key, identity;
+    final Object model;
+    final int width, height, generation;
+    final Request request;
+
+    Binding(
+      String key,
+      String identity,
+      Object model,
+      int width,
+      int height,
+      int generation,
+      Request request
+    ) {
+      this.key = key;
+      this.identity = identity;
+      this.model = model;
+      this.width = width;
+      this.height = height;
+      this.generation = generation;
+      this.request = request;
+    }
+  }
 
   public ImageLoader(Context context) {
     this.context = context.getApplicationContext();
@@ -72,16 +103,95 @@ public final class ImageLoader {
     Object model = BUNDLED.contains(asset)
       ? Uri.parse("file:///android_asset/posters/" + asset + ".webp")
       : remote(anime.poster);
-    load(view, model, 600, 900);
+    load(view, model, 600, 900, SourceEngine.identity(anime));
   }
 
   public void load(ImageView view, String url, String fallback) {
-    load(view, remote(url), 1280, 1280);
+    load(view, remote(url), 1280, 1280, fallback == null ? "" : fallback);
   }
 
-  private void load(ImageView view, Object model, int width, int height) {
-    // All callers bind views on main. Glide.with(view) cancels on Activity destruction.
-    Glide.with(view)
+  private void load(
+    ImageView view,
+    Object model,
+    int width,
+    int height,
+    String identity
+  ) {
+    String key =
+      String.valueOf(model) +
+      "|" +
+      width +
+      "x" +
+      height +
+      "|" +
+      cacheGeneration;
+    Binding old = (Binding) view.getTag(R.id.yoru_image_request);
+    if (
+      old != null &&
+      old.request != null &&
+      ImageBindPolicy.keepRequest(
+        old.key,
+        key,
+        old.request.isRunning(),
+        old.request.isComplete()
+      )
+    ) {
+      view.setTag(
+        R.id.yoru_image_request,
+        new Binding(
+          key,
+          identity,
+          model,
+          width,
+          height,
+          cacheGeneration,
+          old.request
+        )
+      );
+      return;
+    }
+    RequestBuilder<Bitmap> next = request(
+      view,
+      model,
+      width,
+      height,
+      cacheGeneration
+    );
+    if (
+      old != null &&
+      old.model != null &&
+      old.request != null &&
+      ImageBindPolicy.retainThumbnail(
+        old.identity,
+        identity,
+        old.request.isComplete()
+      )
+    ) {
+      next = next.thumbnail(
+        request(
+          view,
+          old.model,
+          old.width,
+          old.height,
+          old.generation
+        ).onlyRetrieveFromCache(true)
+      );
+    }
+    Request active = next.into(view).getRequest();
+    view.setTag(
+      R.id.yoru_image_request,
+      new Binding(key, identity, model, width, height, cacheGeneration, active)
+    );
+  }
+
+  private RequestBuilder<Bitmap> request(
+    ImageView view,
+    Object model,
+    int width,
+    int height,
+    int generation
+  ) {
+    return Glide.with(view)
       .asBitmap()
       .load(model)
       .placeholder(R.drawable.ic_yoru)
@@ -89,9 +199,9 @@ public final class ImageLoader {
       .format(DecodeFormat.PREFER_RGB_565)
       .downsample(DownsampleStrategy.AT_MOST)
       .override(width, height)
-      .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-      .dontAnimate()
-      .into(view);
+      .signature(new ObjectKey(generation))
+      .diskCacheStrategy(DiskCacheStrategy.NONE)
+      .dontAnimate();
   }
 
   private static Object remote(String raw) {
@@ -117,17 +227,28 @@ public final class ImageLoader {
   }
 
   public void cancel(ImageView view) {
-    Glide.with(view).clear(view);
+    view.setTag(R.id.yoru_image_request, null);
+    // Clearing a recycled view must also be safe after its Activity was destroyed.
+    Glide.with(context).clear(view);
   }
 
   public void clear() {
+    cacheGeneration++;
     Runnable memory = () -> Glide.get(context).clearMemory();
     if (Looper.myLooper() == Looper.getMainLooper()) {
       memory.run();
-      YoruApp.app().local.execute(() -> Glide.get(context).clearDiskCache());
+      YoruApp.app().discovery.execute(this::removeLegacyDiskFiles);
     } else {
-      Glide.get(context).clearDiskCache();
+      removeLegacyDiskFiles();
       YoruApp.app().main.post(memory);
+    }
+  }
+
+  public void removeLegacyDiskFiles() {
+    try {
+      ImageCacheCleanup.clear(context.getCacheDir());
+    } catch (java.io.IOException error) {
+      Perf.failure("image-cache-cleanup", error);
     }
   }
 }
