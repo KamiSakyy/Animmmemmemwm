@@ -305,11 +305,32 @@ public final class Ui {
 
   public static boolean allow(Activity a) {
     YoruApp app = YoruApp.app();
-    if (app.initialized && app.original) return true;
+    if (!app.initialized) {
+      // Do not draw an empty intermediate Activity over Android's starting window.
+      // Keystore and disk work still run on YoruApp.local, never on main.
+      ViewTreeObserver observer = a
+        .getWindow()
+        .getDecorView()
+        .getViewTreeObserver();
+      observer.addOnPreDrawListener(
+        new ViewTreeObserver.OnPreDrawListener() {
+          @Override
+          public boolean onPreDraw() {
+            if (!app.initialized) return false;
+            // A recreated Activity may reuse its window: never leave a permanent draw gate.
+            if (observer.isAlive()) observer.removeOnPreDrawListener(this);
+            return true;
+          }
+        }
+      );
+      app.resumeWhenReady(a);
+      return false;
+    }
+    if (app.original) return true;
     LinearLayout root = base(a);
     root.setGravity(Gravity.CENTER);
     root.setPadding(dp(a, 28), dp(a, 40), dp(a, 28), dp(a, 40));
-    TextView name = new TextView(a); // Do not consult user settings before bootstrap.
+    TextView name = new TextView(a);
     name.setText("YORU");
     name.setTextColor(PURPLE);
     name.setTextSize(32);
@@ -320,12 +341,9 @@ public final class Ui {
     status.setTextSize(15);
     status.setGravity(Gravity.CENTER);
     status.setText(
-      app.initialized
-        ? "Подлинность приложения не подтверждена. Установите оригинальную сборку."
-        : "Открываем сохранённую библиотеку…"
+      "Подлинность приложения не подтверждена. Установите оригинальную сборку."
     );
     root.addView(status);
-    if (!app.initialized) app.resumeWhenReady(a);
     return false;
   }
 

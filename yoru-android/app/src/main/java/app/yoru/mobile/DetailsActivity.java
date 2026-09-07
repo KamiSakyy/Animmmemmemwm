@@ -235,7 +235,6 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     body.addView(hero);
     Ui.space(body, 18);
     chips();
-    richCard();
     about();
     screenshots();
     trailerBlock();
@@ -468,7 +467,7 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
       body.addView(
         Ui.text(
           this,
-          "Прокрутите список серий внутри блока — YORU больше не создаёт все строки сразу.",
+          "Прокрутите список, чтобы увидеть остальные серии.",
           10,
           Ui.MUTED,
           false
@@ -686,118 +685,6 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     );
     c.setBackground(Ui.stroke(Ui.CARD, 14, this));
     return c;
-  }
-
-  private void richCard() {
-    ArrayList<String[]> rows = new ArrayList<>();
-    addRich(rows, "Студия", anime.studio);
-    addRich(rows, "Страна", anime.countries);
-    addRich(rows, "Премьера", anime.airedDate);
-    if (anime.durationMinutes > 0) addRich(
-      rows,
-      "Серия",
-      anime.durationMinutes + " мин"
-    );
-    if (anime.translationsCount > 0) addRich(
-      rows,
-      "Озвучки",
-      String.valueOf(anime.translationsCount)
-    );
-    addRich(rows, "Рейтинги", anime.ratings);
-    if (anime.malId > 0) addRich(
-      rows,
-      "Shikimori",
-      String.valueOf(anime.malId)
-    );
-    if (anime.kpId > 0) addRich(rows, "Кинопоиск", String.valueOf(anime.kpId));
-    int q = maxQuality(anime);
-    addRich(
-      rows,
-      "Качество",
-      q > 0 ? QualityPlus.name(q) : "будет проверено в плеере"
-    );
-    if (!anime.franchise.isEmpty() || anime.shikimoriOrder > 0) addRich(
-      rows,
-      "Франшиза",
-      (anime.franchise.isEmpty() ? "порядок" : anime.franchise) +
-        (anime.shikimoriOrder > 0 ? " · #" + anime.shikimoriOrder : "")
-    );
-    addRich(
-      rows,
-      "Медиа",
-      (anime.screenshots.isEmpty()
-        ? "скриншотов нет"
-        : anime.screenshots.size() + " скриншотов") +
-        (ApiRepository.safeUrl(anime.trailerUrl).isEmpty() ? "" : " · трейлер")
-    );
-    addRich(rows, "Папки", YoruApp.app().store.folderSummary(anime));
-    addRich(
-      rows,
-      "Любимые озвучки",
-      YoruApp.app().store.favoriteVoiceSummary()
-    );
-    addRich(rows, "Авто-подбор", "по озвучкам во всей видеобазе YORU");
-    if (rows.isEmpty() && anime.cast.isEmpty() && anime.crew.isEmpty()) return;
-    Ui.space(body, 16);
-    LinearLayout c = card();
-    c.addView(Ui.text(this, "Карточка+", 17, Ui.TEXT, true));
-    Ui.space(c, 10);
-    for (String[] row : rows) {
-      TextView t = Ui.text(this, row[0] + ": " + row[1], 11, Ui.MUTED, false);
-      t.setLineSpacing(Ui.dp(this, 3), 1);
-      c.addView(t);
-      Ui.space(c, 6);
-    }
-    if (!anime.crew.isEmpty()) {
-      TextView t = Ui.text(this, anime.crew, 11, 0xffc8b8d6, false);
-      t.setLineSpacing(Ui.dp(this, 3), 1);
-      c.addView(t);
-      Ui.space(c, 6);
-    }
-    if (!anime.cast.isEmpty()) {
-      TextView t = Ui.text(
-        this,
-        "Актёры: " + anime.cast,
-        11,
-        0xffc8b8d6,
-        false
-      );
-      t.setLineSpacing(Ui.dp(this, 3), 1);
-      c.addView(t);
-    }
-    body.addView(c);
-  }
-
-  private void addRich(ArrayList<String[]> rows, String key, String value) {
-    String v = value == null ? "" : value.trim();
-    if (!v.isEmpty() && !v.equals("0")) rows.add(new String[] { key, v });
-  }
-
-  private int maxQuality(Anime a) {
-    int q = 0;
-    if (a != null) for (Anime.Episode e : a.episodeList) {
-      for (Integer k : e.streams.keySet()) if (k != null) q = Math.max(q, k);
-      for (Anime.Variant v : e.variants) {
-        String text = (
-          v.name +
-          " " +
-          v.displayName +
-          " " +
-          v.player +
-          " " +
-          v.url
-        ).toLowerCase(Locale.ROOT);
-        if (
-          text.contains("2160") || text.contains("4k") || text.contains("uhd")
-        ) q = Math.max(q, 2160);
-        else if (
-          text.contains("1440") || text.contains("2k") || text.contains("qhd")
-        ) q = Math.max(q, 1440);
-        else if (text.contains("1080")) q = Math.max(q, 1080);
-        else if (text.contains("720")) q = Math.max(q, 720);
-      }
-    }
-    return q;
   }
 
   private void about() {
@@ -1250,14 +1137,7 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
         : "Любимые озвучки: " + YoruApp.app().store.favoriteVoiceSummary()) +
       " · Разрешение: " +
       qualityName(YoruApp.app().store.quality());
-    TextView text = Ui.text(
-      this,
-      label +
-        "\nYORU ищет выбранную озвучку во всей видеобазе и берёт лучшее реальное качество.",
-      11,
-      Ui.TEXT,
-      false
-    );
+    TextView text = Ui.text(this, label, 11, Ui.TEXT, false);
     text.setLineSpacing(Ui.dp(this, 3), 1);
     row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
     TextView edit = Ui.text(this, "Изменить", 10, Ui.PURPLE, true);
@@ -1504,9 +1384,7 @@ public final class DetailsActivity extends androidx.activity.ComponentActivity {
     col.setPadding(Ui.dp(this, 4), 0, Ui.dp(this, 4), 0);
     TextView fav = Ui.text(
       this,
-      "Любимые озвучки: " +
-        YoruApp.app().store.favoriteVoiceSummary() +
-        "\nВыбранная озвучка ищется во всей видеобазе YORU. Авто-подбор остаётся по озвучкам и не привязан к одному месту хранения.",
+      "Любимые озвучки: " + YoruApp.app().store.favoriteVoiceSummary(),
       11,
       Ui.MUTED,
       false

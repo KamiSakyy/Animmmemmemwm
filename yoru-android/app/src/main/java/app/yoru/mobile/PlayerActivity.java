@@ -347,16 +347,7 @@ public final class PlayerActivity
     nextList = Ui.column(this);
     main.addView(nextList);
     renderNextEpisodes();
-    Ui.space(main, 10);
-    main.addView(
-      Ui.text(
-        this,
-        "Если текущий вариант не откроется, YORU подберёт запасной внутри выбранной озвучки.",
-        12,
-        Ui.MUTED,
-        false
-      )
-    );
+
     episodeSelect.setOnItemSelectedListener(
       new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
@@ -1065,7 +1056,7 @@ public final class PlayerActivity
       } catch (Exception e) {
         YoruApp.app().main.post(() -> {
           if (gen == generation && !isFinishing()) error(
-            "YORU сейчас не вернул видео. Нажмите «Обновить» — система подберёт другой маршрут."
+            "Не удалось открыть видео. Попробуйте ещё раз или выберите другую озвучку."
           );
         });
       }
@@ -1098,9 +1089,7 @@ public final class PlayerActivity
     int gen = ++generation;
     showLoading(
       "Готовим серию " + number(e.number),
-      "yoru".equals(e.lazy)
-        ? "Проверяем выбранную озвучку без лишних потоков"
-        : "Выбираем встроенное видео"
+      "yoru".equals(e.lazy) ? "Подготовка видео" : "Выбираем встроенное видео"
     );
     status.setText(
       "yoru".equals(e.lazy)

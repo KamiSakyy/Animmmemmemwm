@@ -1078,8 +1078,7 @@ public final class MainActivity
           chosenVoice +
           (YoruApp.app().store.onlyPreferredVoice()
             ? " · только выбранная"
-            : "") +
-          " · видеобаза скрыта",
+            : ""),
         11,
         Ui.MUTED,
         false

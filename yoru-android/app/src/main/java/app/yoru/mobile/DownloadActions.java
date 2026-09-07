@@ -357,7 +357,7 @@ public final class DownloadActions {
     Ui.space(col, 6);
     TextView note = Ui.text(
       activity,
-      "Список озвучек собран именно для этой серии. YORU проверит только выбранную озвучку и нужное разрешение.",
+      "Выберите озвучку и качество для скачивания.",
       10,
       Ui.MUTED,
       false

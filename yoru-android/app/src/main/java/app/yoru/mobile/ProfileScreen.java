@@ -1,9 +1,7 @@
 package app.yoru.mobile;
 
-import android.Manifest;
 import android.app.*;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.*;
 import android.view.*;
 import android.webkit.WebView;
@@ -20,7 +18,7 @@ public final class ProfileScreen extends ScrollView {
 
   private final Activity activity;
   private final LinearLayout body;
-  private TextView mobile, wifi, other, since, cacheSize, offlineSize, free, updatesStatus;
+  private TextView mobile, wifi, other, since, cacheSize, offlineSize, free;
   private long cacheBytes;
   private final Handler timer = new Handler(Looper.getMainLooper());
   private boolean attached, refreshing;
@@ -41,61 +39,11 @@ public final class ProfileScreen extends ScrollView {
     body.addView(Ui.label(a, "YORU"));
     Ui.space(body, 10);
     body.addView(Ui.text(a, "Настройки", 28, Ui.TEXT, true));
-    Ui.space(body, 8);
-    body.addView(
-      Ui.text(
-        a,
-        "Только полезное: новые серии, сеть, загрузки, внешний вид и память.",
-        12,
-        Ui.MUTED,
-        false
-      )
-    );
-    updates(a);
     network(a);
     stability(a);
     comfort(a);
     storage(a);
     appBlock(a, actions);
-  }
-
-  private void updates(Activity a) {
-    Ui.space(body, 24);
-    body.addView(Ui.text(a, "Новые серии", 20, Ui.TEXT, true));
-    Ui.space(body, 12);
-    body.addView(
-      Ui.button(a, "Проверить избранное сейчас", true, () -> {
-        if (
-          Build.VERSION.SDK_INT >= 33 &&
-          a.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) a.requestPermissions(
-          new String[] { Manifest.permission.POST_NOTIFICATIONS },
-          4201
-        );
-        EpisodeUpdateReceiver.checkNow(a);
-        Ui.toast(a, "Проверяем избранное…");
-      })
-    );
-    Ui.space(body, 8);
-    updatesStatus = Ui.text(
-      a,
-      "Фоновые уведомления: ждём первой проверки",
-      11,
-      Ui.PURPLE,
-      true
-    );
-    body.addView(updatesStatus);
-    Ui.space(body, 8);
-    body.addView(
-      Ui.text(
-        a,
-        "Проверка теперь работает не только при входе: YORU ставит периодический JobScheduler с требованием сети, AlarmManager-дубль, восстановление после перезагрузки/обновления и тихий кэш календаря. Android всё равно может сдвигать фон ради батареи, но вход в приложение больше не является главным триггером.",
-        10,
-        Ui.MUTED,
-        false
-      )
-    );
   }
 
   private void network(Activity a) {
@@ -189,19 +137,6 @@ public final class ProfileScreen extends ScrollView {
     Ui.space(body, 25);
     body.addView(Ui.text(a, "Комфорт", 20, Ui.TEXT, true));
     Ui.space(body, 12);
-    Switch priv = switchRow(
-      "Не сохранять новую историю",
-      YoruApp.app().store.privateMode()
-    );
-    body.addView(priv);
-    priv.setOnCheckedChangeListener((button, on) -> {
-      YoruApp.app().store.smartSetting("privateMode", on);
-      Ui.toast(
-        a,
-        on ? "Новая история не будет сохраняться" : "История снова сохраняется"
-      );
-    });
-    Ui.space(body, 8);
     Switch spoiler = switchRow(
       "Без спойлеров",
       YoruApp.app().store.spoilerSafe()
@@ -343,23 +278,6 @@ public final class ProfileScreen extends ScrollView {
   }
 
   private void refresh() {
-    if (updatesStatus != null) {
-      long at = YoruApp.app().store.lastEpisodeCheckAt();
-      String status = YoruApp.app().store.lastEpisodeCheckStatus();
-      updatesStatus.setText(
-        at <= 0
-          ? "Фоновые уведомления: ждём первой проверки"
-          : "Последняя проверка: " +
-              new SimpleDateFormat("dd.MM HH:mm", new Locale("ru")).format(
-                new Date(at)
-              ) +
-              " · " +
-              YoruApp.app().store.lastEpisodeCheckCount() +
-              " тайтлов · уведомлений " +
-              YoruApp.app().store.lastEpisodeCheckAlerts() +
-              (status.isEmpty() ? "" : " · " + status)
-      );
-    }
     JSONObject t = YoruApp.app().traffic.snapshot();
     boolean supported = t.optBoolean("supported", true);
     mobile.setText(

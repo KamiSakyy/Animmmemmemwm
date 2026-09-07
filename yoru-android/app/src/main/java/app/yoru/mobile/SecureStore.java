@@ -54,8 +54,10 @@ public final class SecureStore {
     favorites = read("favorites");
     history = read("history");
     settings = read("settings");
+    boolean changed = removeRetiredPreferences(settings);
     rebuildIndexes();
     loaded = true;
+    if (changed) write("settings", settings);
   }
 
   public void preload() {
@@ -603,12 +605,7 @@ public final class SecureStore {
     boolean tracked
   ) {
     ensure();
-    if (
-      !Anime.valid(a) ||
-      episode < 0 ||
-      !Double.isFinite(episode) ||
-      privateMode()
-    ) return;
+    if (!Anime.valid(a) || episode < 0 || !Double.isFinite(episode)) return;
     try {
       String voice = dubbing == null ? "" : dubbing.trim();
       if (
@@ -966,9 +963,9 @@ public final class SecureStore {
     return b.toString();
   }
 
-  public synchronized boolean privateMode() {
-    ensure();
-    return settings.optBoolean("privateMode", false);
+  /** Retire removed UI options without clearing any library or playback data. */
+  static boolean removeRetiredPreferences(JSONObject preferences) {
+    return preferences.remove("privateMode") != null;
   }
 
   public synchronized boolean spoilerSafe() {
@@ -1554,7 +1551,6 @@ public final class SecureStore {
           "wifiDownloads",
           "directOnly",
           "liteMode",
-          "privateMode",
           "spoilerSafe",
           "hideSeen",
           "autoSkipOpening",
