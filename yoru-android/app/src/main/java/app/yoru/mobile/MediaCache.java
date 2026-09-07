@@ -25,15 +25,25 @@ public final class MediaCache {
   }
 
   public DefaultHttpDataSource.Factory http() {
-    HashMap<String, String> headers = new HashMap<>();
-    headers.put("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.5");
-    headers.put("Referer", "https://yani.tv/");
+    return http("");
+  }
+
+  public DefaultHttpDataSource.Factory http(String mediaUrl) {
     return new DefaultHttpDataSource.Factory()
       .setUserAgent(CHROME)
-      .setDefaultRequestProperties(headers)
+      .setDefaultRequestProperties(MediaHeaders.forUrl(mediaUrl))
       .setConnectTimeoutMs(6500)
       .setReadTimeoutMs(12000)
       .setAllowCrossProtocolRedirects(true);
+  }
+
+  public CacheDataSource.Factory downloadFactory(String mediaUrl) {
+    return new CacheDataSource.Factory()
+      .setCache(offline())
+      .setUpstreamDataSourceFactory(
+        new DefaultDataSource.Factory(context, http(mediaUrl))
+      )
+      .setFlags(CacheDataSource.FLAG_BLOCK_ON_CACHE);
   }
 
   public synchronized SimpleCache offline() {
@@ -54,11 +64,11 @@ public final class MediaCache {
     return stream;
   }
 
-  public CacheDataSource.Factory onlineFactory() {
+  public CacheDataSource.Factory onlineFactory(String mediaUrl) {
     return new CacheDataSource.Factory()
       .setCache(temporary())
       .setUpstreamDataSourceFactory(
-        new DefaultDataSource.Factory(context, http())
+        new DefaultDataSource.Factory(context, http(mediaUrl))
       )
       .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
   }
@@ -116,7 +126,8 @@ public final class MediaCache {
   public void clearTemporary() {
     clearVideoCache();
     File[] kids = context.getCacheDir().listFiles();
-    if (kids != null) for (File f : kids) erase(f);
+    if (kids != null) for (File f : kids)
+      if (!"image_manager_disk_cache".equals(f.getName())) erase(f);
     File web = new File(context.getDataDir(), "app_webview/Default");
     for (String path : new String[] {
       "Cache",

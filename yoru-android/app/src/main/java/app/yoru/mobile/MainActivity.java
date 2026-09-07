@@ -46,13 +46,13 @@ public final class MainActivity extends Activity {
   private final String[] screenKeys = new String[5];
   private final ArrayList<Future<?>> uiTasks = new ArrayList<>();
   private Future<?> catalogFuture;
+  private final ScreenWork screenWork = new ScreenWork();
   private final Handler handler = new Handler(Looper.getMainLooper());
   private Runnable searchTask;
 
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
-    if (!Ui.allow(this)) return;
     if (b != null) {
       tab = b.getInt("tab", 0);
       profileView = b.getBoolean("profile", false);
@@ -69,6 +69,7 @@ public final class MainActivity extends Activity {
         Math.min(saved.length, scrollState.length)
       );
     }
+    if (!Ui.allow(this)) return;
     root = Ui.base(this);
     header = Ui.row(this);
     header.setPadding(
@@ -236,6 +237,7 @@ public final class MainActivity extends Activity {
   }
 
   private String screenKey(int t) {
+    if (t == 0) return "home:" + YoruApp.app().store.viewVersion();
     if (t == 1) return (
       "catalog:" +
       selectedSource +
@@ -285,18 +287,38 @@ public final class MainActivity extends Activity {
   }
 
   private Future<?> uiTask(Runnable r) {
-    Future<?> f = YoruApp.app().ui.submit(r);
-    uiTasks.add(f);
-    return f;
+    ScreenWork.Ticket ticket = screenWork.begin(tab);
+    Future<?> future = YoruApp.app().ui.submit(() -> {
+      try {
+        r.run();
+      } finally {
+        YoruApp.app().main.post(() -> screenWork.finish(ticket));
+      }
+    });
+    uiTasks.removeIf(Future::isDone);
+    uiTasks.add(future);
+    return future;
   }
 
   private void cancelUiTasks() {
-    for (Future<?> f : new ArrayList<>(uiTasks))
-      if (f != null && !f.isDone()) f.cancel(true);
+    for (int screen : screenWork.cancelAll()) invalidateScreen(screen);
+    boolean unfinished = false;
+    for (Future<?> future : new ArrayList<>(uiTasks)) {
+      if (future != null && !future.isDone()) {
+        unfinished = true;
+        future.cancel(true);
+      }
+    }
     uiTasks.clear();
-    if (catalogFuture != null && !catalogFuture.isDone()) catalogFuture.cancel(
-      true
-    );
+    if (catalogFuture != null && !catalogFuture.isDone()) {
+      unfinished = true;
+      catalogFuture.cancel(true);
+    }
+    if (unfinished && !renderedProfileView) invalidateScreen(renderedTab);
+    if (searchTask != null) {
+      handler.removeCallbacks(searchTask);
+      searchTask = null;
+    }
   }
 
   private int slot(boolean profile, int value) {
@@ -304,31 +326,41 @@ public final class MainActivity extends Activity {
   }
 
   private void rememberScroll() {
-    try {
-      if (content == null || content.getChildCount() == 0) return;
-      View v = content.getChildAt(0);
-      ScrollView sc = findScroll(v);
-      int slot = slot(renderedProfileView, renderedTab);
-      if (sc != null) scrollState[slot] = sc.getScrollY();
-      else if (grid != null && slot == 1) scrollState[slot] =
-        grid.getFirstVisiblePosition();
-    } catch (Exception ignored) {}
+    if (content == null || content.getChildCount() == 0) return;
+    View view = content.getChildAt(0);
+    int at = slot(renderedProfileView, renderedTab);
+    ScrollView scroll = findScroll(view);
+    if (scroll != null) scrollState[at] = scroll.getScrollY();
+    else {
+      AbsListView list = findList(view);
+      if (list != null) scrollState[at] = list.getFirstVisiblePosition();
+    }
+  }
+
+  private AbsListView findList(View view) {
+    if (view instanceof AbsListView) return (AbsListView) view;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) {
+        AbsListView found = findList(group.getChildAt(i));
+        if (found != null) return found;
+      }
+    }
+    return null;
   }
 
   private void restoreScroll() {
-    try {
-      int slot = slot(profileView, tab),
-        y = scrollState[slot];
-      View v =
-        content == null || content.getChildCount() == 0
-          ? null
-          : content.getChildAt(0);
-      ScrollView sc = findScroll(v);
-      if (sc != null) sc.post(() -> sc.scrollTo(0, y));
-      else if (grid != null && slot == 1) grid.post(() ->
-        grid.setSelection(Math.max(0, y))
+    if (content == null || content.getChildCount() == 0) return;
+    int position = scrollState[slot(profileView, tab)];
+    View view = content.getChildAt(0);
+    ScrollView scroll = findScroll(view);
+    if (scroll != null) scroll.post(() -> scroll.scrollTo(0, position));
+    else {
+      AbsListView list = findList(view);
+      if (list != null) list.post(() ->
+        list.setSelection(Math.max(0, position))
       );
-    } catch (Exception ignored) {}
+    }
   }
 
   private ScrollView findScroll(View v) {
@@ -1105,10 +1137,15 @@ public final class MainActivity extends Activity {
           int before,
           int count
         ) {
+          generation++;
+          if (catalogFuture != null) catalogFuture.cancel(true);
+          loading = false;
           query = s.toString().trim().replaceAll("\\s+", " ");
-          renderSearchPanel();
+
           if (searchTask != null) handler.removeCallbacks(searchTask);
           searchTask = () -> {
+            if (tab != 1 || profileView || isFinishing()) return;
+            renderSearchPanel();
             if (query.length() == 1) {
               catalog.clear();
               more = false;
@@ -1552,6 +1589,7 @@ public final class MainActivity extends Activity {
   }
 
   private void libraryHistory() {
+    cancelUiTasks();
     historyView = true;
     generation++;
     content.removeAllViews();
@@ -1559,151 +1597,143 @@ public final class MainActivity extends Activity {
   }
 
   private void library(boolean history) {
-    LinearLayout col = scrolling();
-    LinearLayout title = Ui.row(this);
-    title.addView(
+    LinearLayout col = Ui.column(this);
+    col.setPadding(Ui.dp(this, 17), Ui.dp(this, 13), Ui.dp(this, 17), 0);
+    content.addView(col, new FrameLayout.LayoutParams(-1, -1));
+    LinearLayout header = Ui.row(this);
+    header.addView(
       Ui.text(this, history ? "История" : "Моя коллекция", 25, Ui.TEXT, true),
       new LinearLayout.LayoutParams(0, -2, 1)
     );
-    TextView action = Ui.text(
+    TextView action = Ui.chip(
       this,
       history ? "Коллекция" : "История",
-      11,
-      Ui.PURPLE,
-      true
+      false,
+      () -> {
+        if (history) {
+          tab = 2;
+          render();
+        } else libraryHistory();
+      }
     );
-    action.setOnClickListener(v -> {
-      if (history) {
-        tab = 2;
-        render();
-      } else libraryHistory();
-    });
-    title.addView(action);
-    col.addView(title);
-    Ui.space(col, 9);
-    col.addView(
-      Ui.text(
-        this,
-        history
-          ? "Продолжайте с сохранённого места."
-          : "Ваши планы, любимые истории и личные папки.",
-        12,
-        Ui.MUTED,
-        false
-      )
-    );
-    Ui.space(col, 18);
+    header.addView(action);
+    col.addView(header);
+    Ui.space(col, 12);
     if (!history) {
-      HorizontalScrollView h = new HorizontalScrollView(this);
+      HorizontalScrollView scroll = new HorizontalScrollView(this);
+      scroll.setHorizontalScrollBarEnabled(false);
       LinearLayout chips = Ui.row(this);
       ArrayList<String> labels = new ArrayList<>(),
         values = new ArrayList<>();
       labels.add("Все");
       values.add("");
-      for (int i = 0; i < 5; i++) {
-        labels.add(SecureStore.BUCKET_LABELS[i]);
-        values.add(SecureStore.BUCKETS[i]);
+      labels.addAll(Arrays.asList(SecureStore.BUCKET_LABELS));
+      values.addAll(Arrays.asList(SecureStore.BUCKETS));
+      for (String folder : YoruApp.app().store.libraryFolders()) {
+        labels.add("Папка: " + folder);
+        values.add("folder:" + folder);
       }
-      for (String f : YoruApp.app().store.libraryFolders()) {
-        labels.add("Папка: " + f);
-        values.add("folder:" + f);
-      }
-      for (int i = 0; i < labels.size(); i++) {
-        String value = values.get(i),
-          label = labels.get(i);
-        TextView t = Ui.button(this, label, bucket.equals(value), () -> {
-          bucket = value;
-          invalidateScreen(2);
-          content.removeAllViews();
-          library(false);
-          capture(2, screenKey(2));
-        });
-        LinearLayout.LayoutParams cp = Ui.lp(this, -2, -2);
-        cp.rightMargin = Ui.dp(this, 6);
-        chips.addView(t, cp);
-      }
-      h.setHorizontalScrollBarEnabled(false);
-      h.addView(chips);
-      col.addView(h);
-      Ui.space(col, 9);
-      if (!YoruApp.app().store.libraryFolders().isEmpty()) col.addView(
-        Ui.text(
+      for (int i = 0; i < values.size(); i++) {
+        String value = values.get(i);
+        TextView chip = Ui.chip(
           this,
-          "Папки редактируются из карточки тайтла: В коллекцию → Папки / полки.",
-          10,
-          Ui.MUTED,
-          false
-        )
-      );
-      Ui.space(col, 17);
-    }
-    List<Anime> rows = YoruBrain.visible(
-      history
-        ? YoruApp.app().store.recent()
-        : YoruApp.app().store.favorites(bucket, "")
-    );
-    if (rows.isEmpty()) {
-      Ui.space(col, 40);
-      TextView empty = Ui.text(
-        this,
-        history ? "Пока нет просмотров" : "Здесь начнётся ваша коллекция",
-        18,
-        Ui.TEXT,
-        true
-      );
-      empty.setGravity(Gravity.CENTER);
-      col.addView(empty);
-      Ui.space(col, 12);
-      col.addView(
-        Ui.button(this, "Найти аниме", true, () -> {
-          tab = 1;
-          render();
-        })
-      );
-    } else if (history) {
-      for (Anime a : rows) {
-        JSONObject progress = YoruApp.app().store.progress(a);
-        LinearLayout line = Ui.row(this);
-        line.setPadding(
-          Ui.dp(this, 13),
-          Ui.dp(this, 13),
-          Ui.dp(this, 13),
-          Ui.dp(this, 13)
+          labels.get(i),
+          bucket.equals(value),
+          () -> {
+            bucket = value;
+            invalidateScreen(2);
+            render();
+          }
         );
-        line.setBackground(Ui.stroke(Ui.CARD, 13, this));
-        ImageView image = new ImageView(this);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        line.addView(image, Ui.lp(this, 48, 68));
-        YoruApp.app().images.load(image, a);
-        LinearLayout txt = Ui.column(this);
-        txt.setPadding(Ui.dp(this, 13), 0, 0, 0);
-        txt.addView(Ui.text(this, YoruBrain.title(a), 13, Ui.TEXT, true));
-        Ui.space(txt, 8);
-        txt.addView(
-          Ui.text(
-            this,
-            "Серия " +
-              (int) progress.optDouble("episode", 1) +
-              " · " +
-              Ui.time(progress.optInt("time")),
-            11,
-            Ui.MUTED,
-            false
-          )
-        );
-        line.addView(txt, new LinearLayout.LayoutParams(0, -2, 1));
-        line.setOnClickListener(v ->
-          Ui.openPlayer(
-            this,
-            a,
-            progress.optString("playerMode", "auto"),
-            progress.optDouble("episode", 1)
-          )
-        );
-        col.addView(line);
-        Ui.space(col, 10);
+        LinearLayout.LayoutParams params = Ui.lp(this, -2, -2);
+        params.rightMargin = Ui.dp(this, 7);
+        chips.addView(chip, params);
       }
-    } else renderCards(col, rows);
+      scroll.addView(chips);
+      col.addView(scroll);
+      Ui.space(col, 10);
+    }
+    TextView status = Ui.text(
+      this,
+      "Открываем сохранённые тайтлы…",
+      12,
+      Ui.MUTED,
+      false
+    );
+    col.addView(status);
+    Ui.space(col, 10);
+    GridView list = new GridView(this);
+    int columns =
+      getResources().getConfiguration().screenWidthDp >= 650 ? 3 : 2;
+    list.setNumColumns(columns);
+    list.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
+    list.setVerticalSpacing(Ui.dp(this, 8));
+    list.setHorizontalSpacing(Ui.dp(this, 5));
+    list.setVerticalScrollBarEnabled(false);
+    list.setClipToPadding(false);
+    list.setPadding(0, 0, 0, Ui.dp(this, 16));
+    col.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
+    final int gen = generation;
+    final String selectedBucket = bucket;
+    uiTask(() -> {
+      List<Anime> rows = YoruBrain.visible(
+        history
+          ? YoruApp.app().store.recent()
+          : YoruApp.app().store.favorites(selectedBucket, "")
+      );
+      YoruApp.app().main.post(() -> {
+        if (gen != generation || isFinishing()) return;
+        status.setText(
+          rows.isEmpty()
+            ? history
+              ? "Пока нет просмотров"
+              : "Коллекция пуста. Добавьте аниме из каталога."
+            : "Тайтлов: " + rows.size()
+        );
+        list.setAdapter(
+          new BaseAdapter() {
+            public int getCount() {
+              return rows.size();
+            }
+
+            public Object getItem(int position) {
+              return rows.get(position);
+            }
+
+            public long getItemId(int position) {
+              return position;
+            }
+
+            public View getView(int position, View old, ViewGroup parent) {
+              Ui.Card card =
+                old instanceof Ui.Card
+                  ? (Ui.Card) old
+                  : new Ui.Card(
+                      MainActivity.this,
+                      ((getResources().getConfiguration().screenWidthDp /
+                        columns -
+                        25) *
+                        3) /
+                        2
+                    );
+              Anime anime = rows.get(position);
+              card.bind(anime);
+              if (history) card.setOnClickListener(v -> {
+                JSONObject progress = YoruApp.app().store.progress(anime);
+                Ui.openPlayer(
+                  MainActivity.this,
+                  anime,
+                  "auto",
+                  progress.optDouble("episode", 1)
+                );
+              });
+              return card;
+            }
+          }
+        );
+        list.setSelection(Math.max(0, scrollState[slot(false, tab)]));
+      });
+    });
   }
 
   private void settings() {
@@ -2099,6 +2129,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onPause() {
     rememberScroll();
+    YoruApp.app().store.flushAsync();
     super.onPause();
   }
 

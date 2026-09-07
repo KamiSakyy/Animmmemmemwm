@@ -252,6 +252,8 @@ public final class Anime {
 
   public static final class Episode {
 
+    public String source = "";
+    public final ArrayList<Episode> pending = new ArrayList<>();
     public String id = "",
       name = "",
       lazy = "",
@@ -289,7 +291,7 @@ public final class Anime {
       player = "Плеер",
       url = "",
       displayName = "";
-    public int duration, openingStart, openingEnd;
+    public int duration, openingStart, openingEnd, quality;
 
     public Variant(String n, String p, String u) {
       name = n;
@@ -300,6 +302,50 @@ public final class Anime {
     public String label() {
       return displayName.isEmpty() ? name : displayName;
     }
+  }
+
+  /** Worker-side deep copy: do not put the episode graph into an Android Intent. */
+  static Anime copy(Anime source) {
+    Anime copy = Anime.from(source.json());
+    copy.blocked = source.blocked;
+    copy.cached = source.cached;
+    for (Anime relative : source.related)
+      copy.related.add(Anime.from(relative.json()));
+    for (Episode episode : source.episodeList)
+      copy.episodeList.add(copyEpisode(episode));
+    return copy;
+  }
+
+  static Episode copyEpisode(Episode source) {
+    Episode copy = new Episode();
+    copy.source = source.source;
+    copy.id = source.id;
+    copy.name = source.name;
+    copy.lazy = source.lazy;
+    copy.resolverUrl = source.resolverUrl;
+    copy.poster = source.poster;
+    copy.airDate = source.airDate;
+    copy.number = source.number;
+    copy.duration = source.duration;
+    copy.openingStart = source.openingStart;
+    copy.openingEnd = source.openingEnd;
+    copy.future = source.future;
+    copy.streams.putAll(source.streams);
+    for (Variant variant : source.variants)
+      copy.variants.add(copyVariant(variant));
+    for (Episode pending : source.pending)
+      copy.pending.add(copyEpisode(pending));
+    return copy;
+  }
+
+  static Variant copyVariant(Variant source) {
+    Variant copy = new Variant(source.name, source.player, source.url);
+    copy.displayName = source.displayName;
+    copy.duration = source.duration;
+    copy.openingStart = source.openingStart;
+    copy.openingEnd = source.openingEnd;
+    copy.quality = source.quality;
+    return copy;
   }
 
   public static final class Page {

@@ -7,12 +7,18 @@ import android.view.*;
 import android.widget.*;
 import androidx.media3.exoplayer.offline.*;
 import java.util.*;
+import java.util.concurrent.Future;
 import org.json.*;
 
 public final class DownloadsScreen extends LinearLayout {
 
   private final Activity activity;
-  private final DownloadHub hub;
+  private DownloadHub hub;
+  private Future<?> refreshFuture;
+  private boolean attached;
+  private int refreshGeneration;
+  private String lastSnapshot = "";
+  private final ArrayList<View> actionGroups = new ArrayList<>();
   private final ArrayList<Download> rows = new ArrayList<>();
   private final TextView summary, empty;
   private final ListView list;
@@ -28,7 +34,7 @@ public final class DownloadsScreen extends LinearLayout {
   public DownloadsScreen(Activity a) {
     super(a);
     activity = a;
-    hub = YoruApp.app().downloads();
+    // DownloadManager and its disk index initialize on the local worker.
     setOrientation(VERTICAL);
     setPadding(Ui.dp(a, 17), Ui.dp(a, 15), Ui.dp(a, 17), Ui.dp(a, 8));
     addView(Ui.label(a, "ОФЛАЙН-БИБЛИОТЕКА"));
@@ -66,6 +72,8 @@ public final class DownloadsScreen extends LinearLayout {
       ap
     );
     addView(actions);
+    actionGroups.add(actions);
+    setEnabledTree(actions, false);
     Ui.space(this, 8);
     LinearLayout tools = Ui.row(a);
     tools.addView(
@@ -94,6 +102,8 @@ public final class DownloadsScreen extends LinearLayout {
       cp
     );
     addView(tools);
+    actionGroups.add(tools);
+    setEnabledTree(tools, false);
     Ui.space(this, 12);
     list = new ListView(a);
     list.setDivider(null);
@@ -128,11 +138,15 @@ public final class DownloadsScreen extends LinearLayout {
   @Override
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
+    attached = true;
     handler.post(update);
   }
 
   @Override
   protected void onDetachedFromWindow() {
+    attached = false;
+    refreshGeneration++;
+    if (refreshFuture != null) refreshFuture.cancel(true);
     handler.removeCallbacksAndMessages(null);
     super.onDetachedFromWindow();
   }
@@ -152,25 +166,72 @@ public final class DownloadsScreen extends LinearLayout {
   }
 
   private void refresh() {
-    rows.clear();
-    rows.addAll(hub.all());
-    int complete = 0,
-      active = 0;
-    for (Download d : new ArrayList<>(rows)) {
-      if (d == null || d.request == null) continue;
-      if (d.state == Download.STATE_COMPLETED) complete++;
-      if (d.state == Download.STATE_DOWNLOADING) active++;
+    if (!attached || (refreshFuture != null && !refreshFuture.isDone())) return;
+    final int gen = ++refreshGeneration;
+    refreshFuture = YoruApp.app().local.submit(() -> {
+      try {
+        DownloadHub ready = YoruApp.app().downloads();
+        List<Download> snapshot = ready.all();
+        long bytes = YoruApp.app().mediaCache.offlineBytes();
+        int complete = 0,
+          active = 0;
+        StringBuilder fingerprint = new StringBuilder();
+        for (Download download : snapshot) {
+          if (download.state == Download.STATE_COMPLETED) complete++;
+          if (download.state == Download.STATE_DOWNLOADING) active++;
+          fingerprint
+            .append(download.request.id)
+            .append(':')
+            .append(download.state)
+            .append(':')
+            .append(download.getBytesDownloaded())
+            .append(';');
+        }
+        String label =
+          "Готово: " +
+          complete +
+          " · скачивается: " +
+          active +
+          " · " +
+          Ui.bytes(bytes);
+        String signature = fingerprint.toString();
+        handler.post(() -> {
+          if (
+            !attached || activity.isFinishing() || gen != refreshGeneration
+          ) return;
+          hub = ready;
+          for (View group : actionGroups) setEnabledTree(group, true);
+          summary.setText(label);
+          empty.setVisibility(snapshot.isEmpty() ? VISIBLE : GONE);
+          if (
+            !signature.equals(lastSnapshot) || rows.size() != snapshot.size()
+          ) {
+            lastSnapshot = signature;
+            rows.clear();
+            rows.addAll(snapshot);
+            adapter.notifyDataSetChanged();
+          }
+        });
+      } catch (Exception error) {
+        Perf.failure("downloads-snapshot", error);
+        handler.post(() -> {
+          if (attached && gen == refreshGeneration) summary.setText(
+            "Не удалось прочитать загрузки. Повторяем…"
+          );
+        });
+      }
+    });
+  }
+
+  private static void setEnabledTree(View view, boolean enabled) {
+    view.setEnabled(enabled);
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) setEnabledTree(
+        group.getChildAt(i),
+        enabled
+      );
     }
-    summary.setText(
-      "Готово: " +
-        complete +
-        " · скачивается: " +
-        active +
-        " · " +
-        Ui.bytes(YoruApp.app().mediaCache.offlineBytes())
-    );
-    empty.setVisibility(rows.isEmpty() ? VISIBLE : GONE);
-    adapter.notifyDataSetChanged();
   }
 
   private void actions(Download d) {
@@ -272,7 +333,17 @@ public final class DownloadsScreen extends LinearLayout {
 
     public View getView(int position, View old, ViewGroup parent) {
       try {
-        return row(position);
+        Download download = rows.get(position);
+        String signature =
+          download.request.id +
+          "|" +
+          download.state +
+          "|" +
+          download.getBytesDownloaded();
+        if (old != null && signature.equals(old.getTag())) return old;
+        View view = row(position);
+        view.setTag(signature);
+        return view;
       } catch (Throwable e) {
         TextView t = Ui.text(
           activity,

@@ -15,7 +15,15 @@ public final class SecureStore {
   private final SharedPreferences prefs;
   private javax.crypto.SecretKey key;
   private volatile boolean loaded;
+  private volatile long viewVersion;
+  private final CoalescingWork writer = new CoalescingWork(
+    "yoru-store-writer",
+    250,
+    error -> Perf.failure("store-write", error)
+  );
   private JSONObject favorites, history, settings;
+  private final LinkedHashSet<String> favoriteMisses = new LinkedHashSet<>(),
+    historyMisses = new LinkedHashSet<>();
   private final HashMap<String, String> favoriteIndex = new HashMap<>(),
     historyIndex = new HashMap<>();
   public static final String[] BUCKETS = {
@@ -52,6 +60,26 @@ public final class SecureStore {
 
   public void preload() {
     ensure();
+    String legacy;
+    synchronized (this) {
+      legacy = settings.optString("calendarCache", "");
+    }
+    if (
+      !legacy.isEmpty() && YoruApp.app() != null && YoruApp.app().cache != null
+    ) {
+      try {
+        JSONArray rows = new JSONArray(legacy);
+        YoruApp.app().cache.schedule(rows);
+        if (YoruApp.app().cache.schedule(60_000).length() == rows.length()) {
+          synchronized (this) {
+            settings.remove("calendarCache");
+            write("settings", settings);
+          }
+        }
+      } catch (Exception error) {
+        Perf.failure("calendar-cache-migration", error);
+      }
+    }
   }
 
   private javax.crypto.SecretKey getKey() {
@@ -107,20 +135,45 @@ public final class SecureStore {
 
   private void write(String name, JSONObject json) {
     if (key == null) return;
-    try {
-      Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-      c.init(Cipher.ENCRYPT_MODE, key);
-      byte[] iv = c.getIV(),
-        cipher = c.doFinal(json.toString().getBytes(StandardCharsets.UTF_8));
-      byte[] all = new byte[1 + iv.length + cipher.length];
-      all[0] = (byte) iv.length;
-      System.arraycopy(iv, 0, all, 1, iv.length);
-      System.arraycopy(cipher, 0, all, 1 + iv.length, cipher.length);
-      prefs
-        .edit()
-        .putString(name, Base64.encodeToString(all, Base64.NO_WRAP))
-        .apply();
-    } catch (Exception ignored) {}
+    if (!"traffic".equals(name)) viewVersion++;
+    writer.submit(name, () -> {
+      final String text;
+      final javax.crypto.SecretKey secret;
+      // Snapshot mutable JSON under the store lock; crypto and disk I/O are outside it.
+      synchronized (SecureStore.this) {
+        text = json.toString();
+        secret = key;
+      }
+      long started = Perf.start();
+      try {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, secret);
+        byte[] iv = cipher.getIV(),
+          encrypted = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
+        byte[] packed = new byte[1 + iv.length + encrypted.length];
+        packed[0] = (byte) iv.length;
+        System.arraycopy(iv, 0, packed, 1, iv.length);
+        System.arraycopy(encrypted, 0, packed, 1 + iv.length, encrypted.length);
+        if (
+          !prefs
+            .edit()
+            .putString(name, Base64.encodeToString(packed, Base64.NO_WRAP))
+            .commit()
+        ) throw new IllegalStateException("Cannot persist encrypted state");
+      } catch (Exception error) {
+        Perf.failure("store-persist", error);
+      } finally {
+        Perf.end("store-persist", started);
+      }
+    });
+  }
+
+  public void flushAsync() {
+    writer.flush();
+  }
+
+  public long viewVersion() {
+    return viewVersion;
   }
 
   public boolean ready() {
@@ -201,11 +254,13 @@ public final class SecureStore {
 
   private void rebuildFavoriteIndex() {
     favoriteIndex.clear();
+    favoriteMisses.clear();
     indexRows(favorites, favoriteIndex);
   }
 
   private void rebuildHistoryIndex() {
     historyIndex.clear();
+    historyMisses.clear();
     indexRows(history, historyIndex);
   }
 
@@ -260,36 +315,48 @@ public final class SecureStore {
   }
 
   private String favoriteKey(Anime a) {
-    String k = indexedKey(a, favoriteIndex);
-    if (!k.isEmpty()) return k;
-    if (!Anime.valid(a)) return "";
+    String key = indexedKey(a, favoriteIndex);
+    if (!key.isEmpty() || !Anime.valid(a)) return key;
+    String lookup = a.key() + "|" + a.year + "|" + a.title;
+    if (favoriteMisses.contains(lookup)) return "";
     Iterator<String> keys = favorites.keys();
     while (keys.hasNext()) {
       String rowKey = keys.next();
       JSONObject row = favorites.optJSONObject(rowKey);
       Anime old = row == null ? null : Anime.from(row.optJSONObject("release"));
       if (sameAnime(a, old)) {
-        for (String id : identityKeys(a)) favoriteIndex.put(id, rowKey);
+        for (String identity : identityKeys(a))
+          favoriteIndex.put(identity, rowKey);
         return rowKey;
       }
     }
+    if (favoriteMisses.size() >= 512) favoriteMisses.remove(
+      favoriteMisses.iterator().next()
+    );
+    favoriteMisses.add(lookup);
     return "";
   }
 
   private String historyKey(Anime a) {
-    String k = indexedKey(a, historyIndex);
-    if (!k.isEmpty()) return k;
-    if (!Anime.valid(a)) return "";
+    String key = indexedKey(a, historyIndex);
+    if (!key.isEmpty() || !Anime.valid(a)) return key;
+    String lookup = a.key() + "|" + a.year + "|" + a.title;
+    if (historyMisses.contains(lookup)) return "";
     Iterator<String> keys = history.keys();
     while (keys.hasNext()) {
       String rowKey = keys.next();
       JSONObject row = history.optJSONObject(rowKey);
       Anime old = row == null ? null : Anime.from(row.optJSONObject("release"));
       if (sameAnime(a, old)) {
-        for (String id : identityKeys(a)) historyIndex.put(id, rowKey);
+        for (String identity : identityKeys(a))
+          historyIndex.put(identity, rowKey);
         return rowKey;
       }
     }
+    if (historyMisses.size() >= 512) historyMisses.remove(
+      historyMisses.iterator().next()
+    );
+    historyMisses.add(lookup);
     return "";
   }
 
@@ -543,15 +610,24 @@ public final class SecureStore {
       privateMode()
     ) return;
     try {
+      String voice = dubbing == null ? "" : dubbing.trim();
       if (
-        dubbing != null && !dubbing.trim().isEmpty() && !onlyPreferredVoice()
+        !voice.isEmpty() &&
+        !onlyPreferredVoice() &&
+        !voice.equals(voicePreference())
       ) {
-        settings.put("voicePreference", dubbing.trim());
-        rememberVoiceLocked(dubbing.trim());
+        settings.put("voicePreference", voice);
+        rememberVoiceLocked(voice);
+        write("settings", settings);
       }
       String hKey = historyKey(a);
       if (hKey.isEmpty()) hKey = a.key();
-      JSONObject j = new JSONObject()
+      JSONObject old = history.optJSONObject(hKey);
+      boolean wasFinished =
+        old != null &&
+        Math.abs(old.optDouble("episode") - episode) < .001 &&
+        PlaybackProgress.finished(old.optInt("time"), old.optInt("duration"));
+      JSONObject row = new JSONObject()
         .put("release", a.json())
         .put("episode", episode)
         .put("time", Math.max(0, seconds))
@@ -559,45 +635,52 @@ public final class SecureStore {
         .put("updated", System.currentTimeMillis())
         .put("tracked", tracked)
         .put("playerMode", mode == null ? "" : mode)
-        .put("dubbing", dubbing == null ? "" : dubbing);
-      history.put(hKey, j);
+        .put("dubbing", voice);
+      history.put(hKey, row);
+      for (String identity : identityKeys(a)) historyIndex.put(identity, hKey);
+      historyIndex.put(hKey, hKey);
       if (
+        !wasFinished &&
         a.episodes > 0 &&
         episode >= a.episodes &&
-        !"ongoing".equalsIgnoreCase(a.status)
+        !a.ongoing() &&
+        PlaybackProgress.finished(seconds, duration)
       ) {
         removeWatch(a);
         String favKey = favoriteKey(a);
         JSONObject fav = favKey.isEmpty()
           ? null
           : favorites.optJSONObject(favKey);
-        if (fav != null) fav.put("bucket", "completed");
+        if (fav != null && !"completed".equals(fav.optString("bucket"))) {
+          fav.put("bucket", "completed");
+          touchLibrary();
+          write("favorites", favorites);
+          write("settings", settings);
+        }
       }
       if (history.length() > 100) {
         String oldest = null;
         long at = Long.MAX_VALUE;
         Iterator<String> keys = history.keys();
         while (keys.hasNext()) {
-          String k = keys.next();
-          long t = history.optJSONObject(k).optLong("updated");
-          if (t < at) {
-            oldest = k;
-            at = t;
+          String key = keys.next();
+          JSONObject value = history.optJSONObject(key);
+          long updated = value == null ? 0 : value.optLong("updated");
+          if (updated < at) {
+            oldest = key;
+            at = updated;
           }
         }
-        if (oldest != null) history.remove(oldest);
+        if (oldest != null) {
+          history.remove(oldest);
+          rebuildHistoryIndex();
+        }
       }
-      write("favorites", favorites);
+      // The encrypted history is authoritative. Do not mirror every tick to plaintext SQLite.
       write("history", history);
-      write("settings", settings);
-      try {
-        if (
-          YoruApp.app() != null && YoruApp.app().cache != null
-        ) YoruApp.app().cache.progressMirror(hKey, j);
-      } catch (Exception ignored) {}
-      rebuildFavoriteIndex();
-      rebuildHistoryIndex();
-    } catch (Exception ignored) {}
+    } catch (Exception error) {
+      Perf.failure("progress-update", error);
+    }
   }
 
   public synchronized List<Anime> recent() {
@@ -1221,10 +1304,12 @@ public final class SecureStore {
   public synchronized void calendarCache(JSONArray rows) {
     ensure();
     try {
-      settings.put("calendarCache", rows == null ? "" : rows.toString());
+      settings.remove("calendarCache");
       settings.put("calendarCacheAt", System.currentTimeMillis());
       write("settings", settings);
-    } catch (Exception ignored) {}
+    } catch (JSONException error) {
+      Perf.failure("calendar-timestamp", error);
+    }
   }
 
   public synchronized long calendarCacheAt() {
@@ -1500,6 +1585,9 @@ public final class SecureStore {
     }
     write("favorites", favorites);
     write("history", history);
+    write("settings", settings);
+    rebuildIndexes();
+    touchLibrary();
     write("settings", settings);
     return count;
   }

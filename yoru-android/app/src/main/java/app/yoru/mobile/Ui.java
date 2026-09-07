@@ -292,21 +292,28 @@ public final class Ui {
   }
 
   public static boolean allow(Activity a) {
-    if (YoruApp.app().original) return true;
+    YoruApp app = YoruApp.app();
+    if (app.initialized && app.original) return true;
     LinearLayout root = base(a);
     root.setGravity(Gravity.CENTER);
     root.setPadding(dp(a, 28), dp(a, 40), dp(a, 28), dp(a, 40));
-    root.addView(text(a, "YORU", 32, PURPLE, true));
+    TextView name = new TextView(a); // Do not consult user settings before bootstrap.
+    name.setText("YORU");
+    name.setTextColor(PURPLE);
+    name.setTextSize(32);
+    root.addView(name);
     space(root, 20);
-    root.addView(
-      text(
-        a,
-        "Подлинность приложения не подтверждена. Установите оригинальную сборку.",
-        16,
-        TEXT,
-        false
-      )
+    TextView status = new TextView(a);
+    status.setTextColor(TEXT);
+    status.setTextSize(15);
+    status.setGravity(Gravity.CENTER);
+    status.setText(
+      app.initialized
+        ? "Подлинность приложения не подтверждена. Установите оригинальную сборку."
+        : "Открываем сохранённую библиотеку…"
     );
+    root.addView(status);
+    if (!app.initialized) app.resumeWhenReady(a);
     return false;
   }
 
@@ -328,23 +335,14 @@ public final class Ui {
   }
 
   public static void openPlayer(
-    Context c,
-    Anime a,
+    Context context,
+    Anime anime,
     String mode,
     double episode
   ) {
-    if (mode == null || mode.equals("auto") || mode.equals("offline")) {
-      androidx.media3.exoplayer.offline.Download d = YoruApp.app()
-        .downloads()
-        .findCompleted(a, episode);
-      if (d != null) {
-        openOffline(c, d.request.id, a, episode);
-        return;
-      }
-    }
-    c.startActivity(
-      new Intent(c, PlayerActivity.class)
-        .putExtra("anime", a.json().toString())
+    context.startActivity(
+      new Intent(context, PlayerActivity.class)
+        .putExtra("anime", anime.json().toString())
         .putExtra("mode", mode)
         .putExtra("episode", episode)
     );

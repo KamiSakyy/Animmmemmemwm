@@ -12,21 +12,21 @@ final class YummyParser {
     HttpURLConnection c = (HttpURLConnection) new URL(
       "https://api.yani.tv/anime/" + id + "/videos"
     ).openConnection();
-    c.setConnectTimeout(3500);
-    c.setReadTimeout(7000);
+    c.setConnectTimeout(NetworkScope.timeout(3500));
+    c.setReadTimeout(NetworkScope.timeout(7000));
     c.setRequestProperty("User-Agent", "YORU-Android/2.1");
     c.setRequestProperty("Accept", "application/json");
     c.setRequestProperty("Accept-Language", "ru");
     TreeMap<Double, Anime.Episode> groups = new TreeMap<>();
     HashMap<Double, HashSet<String>> seen = new HashMap<>();
     try {
-      if (c.getResponseCode() != 200) throw new IOException(
+      if (NetworkScope.responseCode(c) != 200) throw new IOException(
         "Каталог временно не ответил"
       );
       try (
         JsonReader r = new JsonReader(
           new InputStreamReader(
-            c.getInputStream(),
+            NetworkScope.inputStream(c),
             java.nio.charset.StandardCharsets.UTF_8
           )
         )
@@ -163,7 +163,7 @@ final class YummyParser {
         if (!response) throw new IOException("YORU не вернул список серий");
       }
     } finally {
-      c.disconnect();
+      NetworkScope.disconnect(c);
     }
     ArrayList<Anime.Episode> result = new ArrayList<>(groups.values());
     for (Anime.Episode ep : result) {

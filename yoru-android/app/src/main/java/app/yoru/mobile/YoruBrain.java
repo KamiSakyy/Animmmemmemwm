@@ -169,7 +169,11 @@ final class YoruBrain {
       if (hasNew) map.put(a.key(), a);
     }
     ArrayList<Anime> out = new ArrayList<>(map.values());
-    out.sort((a, b) -> Integer.compare(newEpisodeScore(b), newEpisodeScore(a)));
+    HashMap<String, Integer> scores = new HashMap<>();
+    for (Anime anime : out) scores.put(anime.key(), newEpisodeScore(anime));
+    out.sort((a, b) ->
+      Integer.compare(scores.get(b.key()), scores.get(a.key()))
+    );
     return limit(out, max);
   }
 
@@ -201,15 +205,32 @@ final class YoruBrain {
   }
 
   static ArrayList<Anime> priorities(int max) {
+    SecureStore store = YoruApp.app().store;
     LinkedHashMap<String, Anime> rows = new LinkedHashMap<>();
-    for (Anime a : YoruApp.app().store.watchQueue())
-      if (visible(a)) rows.put(a.key(), a);
-    for (Anime a : YoruApp.app().store.recent())
-      if (visible(a)) rows.put(a.key(), a);
-    for (Anime a : YoruApp.app().store.favorites())
-      if (visible(a)) rows.put(a.key(), a);
+    HashSet<String> queued = new HashSet<>();
+    for (Anime anime : store.watchQueue()) {
+      queued.add(anime.key());
+      if (visible(anime)) rows.put(anime.key(), anime);
+    }
+    for (Anime anime : store.recent())
+      if (visible(anime)) rows.put(anime.key(), anime);
+    for (Anime anime : store.favorites())
+      if (visible(anime)) rows.put(anime.key(), anime);
+    HashMap<String, Integer> scores = new HashMap<>();
+    for (Anime anime : rows.values()) {
+      int value =
+        score(anime, "forYou") + (queued.contains(anime.key()) ? 60 : 0);
+      if (store.pinned(anime)) value += 120;
+      if (store.progress(anime).length() > 0) value += 40;
+      if ("watching".equals(store.bucket(anime))) value += 35;
+      if (anime.ongoing()) value += 20;
+      if (anime.episodes > 0 && anime.episodes <= 13) value += 12;
+      scores.put(anime.key(), value);
+    }
     ArrayList<Anime> out = new ArrayList<>(rows.values());
-    out.sort((a, b) -> Integer.compare(priorityScore(b), priorityScore(a)));
+    out.sort((a, b) ->
+      Integer.compare(scores.get(b.key()), scores.get(a.key()))
+    );
     return limit(out, max);
   }
 

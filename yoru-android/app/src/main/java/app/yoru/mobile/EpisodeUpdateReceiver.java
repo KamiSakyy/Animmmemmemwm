@@ -143,31 +143,16 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
 
   @Override
   public void onReceive(Context context, Intent intent) {
-    Context c = context.getApplicationContext();
-    schedule(c);
+    Context app = context.getApplicationContext();
+    schedule(app);
     String action = intent == null ? "" : intent.getAction();
     if (
       Intent.ACTION_BOOT_COMPLETED.equals(action) ||
       Intent.ACTION_MY_PACKAGE_REPLACED.equals(action) ||
       Intent.ACTION_TIME_CHANGED.equals(action) ||
       Intent.ACTION_TIMEZONE_CHANGED.equals(action)
-    ) {
-      checkSoon(c);
-      return;
-    }
-    BroadcastReceiver.PendingResult pending = goAsync();
-    Runnable work = () -> {
-      try {
-        performCheck(c, "alarm");
-      } finally {
-        try {
-          pending.finish();
-        } catch (Exception ignored) {}
-      }
-    };
-    YoruApp app = YoruApp.app();
-    if (app != null && app.discovery != null) app.discovery.execute(work);
-    else new Thread(work, "yoru-update-alarm").start();
+    ) checkSoon(app);
+    else scheduleOneShotJob(app, 0);
   }
 
   public static CheckResult performCheck(Context context, String reason) {
@@ -183,6 +168,10 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
         return result;
       }
       YoruApp app = YoruApp.app();
+      if (NetworkScope.cancelled() || (app != null && app.activePlayers > 0)) {
+        result.shouldRetry = true;
+        return result;
+      }
       SecureStore store =
         app != null && app.store != null ? app.store : new SecureStore(c);
       ApiRepository api =
@@ -206,20 +195,14 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
       int checked = 0,
         alerts = 0,
         errors = 0;
-      ArrayList<ApiRepository.AiringItem> airings = null;
-      try {
-        airings = api.airingSchedule(28, rows);
-        JSONArray json = ApiRepository.airingJson(airings);
-        if (cache != null) cache.schedule(json);
-        store.calendarCache(json);
-        if (app != null) app.calendarTodayCount = ApiRepository.todayCount(
-          airings
-        );
-      } catch (Exception ignored) {}
       ArrayList<Anime> priority = new ArrayList<>(rows);
       priority.sort((a, b) -> Boolean.compare(b.ongoing(), a.ongoing()));
       for (Anime base : priority) {
-        if (System.currentTimeMillis() > deadline || checked >= 90) break;
+        if (
+          NetworkScope.cancelled() ||
+          System.currentTimeMillis() > deadline ||
+          checked >= 90
+        ) break;
         if (!Anime.valid(base)) continue;
         checked++;
         try {
@@ -228,7 +211,7 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
           if (
             released <= 0 && "Закончен".equals(fresh.statusLabel())
           ) released = Math.max(fresh.episodes, base.episodes);
-          if (released <= 0 || base.metadataOnly()) try {
+          if (released <= 0 && !base.metadataOnly()) try {
             Anime.Playback ready = api.playback(base, "auto");
             if (ready != null && ready.video != null) released = Math.max(
               released,
@@ -263,7 +246,9 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
       } catch (Exception ignored) {}
       result.checked = checked;
       result.alerts = alerts;
-      result.shouldRetry = errors > 0 && checked < Math.min(5, rows.size());
+      result.shouldRetry =
+        NetworkScope.cancelled() ||
+        (errors > 0 && checked < Math.min(5, rows.size()));
       return result;
     } finally {
       RUNNING.set(false);
@@ -380,13 +365,13 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
     HttpURLConnection c = null;
     try {
       c = (HttpURLConnection) new URL(safe).openConnection();
-      c.setConnectTimeout(1800);
-      c.setReadTimeout(2400);
+      c.setConnectTimeout(NetworkScope.timeout(1800));
+      c.setReadTimeout(NetworkScope.timeout(2400));
       c.setRequestProperty(
         "User-Agent",
         "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/149 Mobile Safari/537.36"
       );
-      try (InputStream in = c.getInputStream()) {
+      try (InputStream in = NetworkScope.inputStream(c)) {
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inSampleSize = 2;
         return BitmapFactory.decodeStream(in, null, o);
@@ -394,7 +379,7 @@ public final class EpisodeUpdateReceiver extends BroadcastReceiver {
     } catch (Exception e) {
       return null;
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null) NetworkScope.disconnect(c);
     }
   }
 

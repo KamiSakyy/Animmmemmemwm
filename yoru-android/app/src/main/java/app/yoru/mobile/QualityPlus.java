@@ -63,7 +63,8 @@ final class QualityPlus {
   }
 
   static String streamLabel(int value) {
-    return value <= 0 ? "Оригинал" : name(value);
+    if (value <= 0) return "Оригинал";
+    return value + "p" + (value == 1440 || value == 2160 ? " Quality+" : "");
   }
 
   static int bestAtOrBelow(Collection<Integer> rows, int cap) {

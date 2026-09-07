@@ -28,20 +28,24 @@ public final class DownloadHub {
   );
   private final Map<String, DownloadRequest> replacement =
     new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, Download> completedIndex =
-    new ConcurrentHashMap<>();
+  private volatile Map<String, Download> completedIndex =
+    Collections.emptyMap();
+  private final Object indexLock = new Object();
   private volatile long indexAt;
   private final AtomicBoolean indexing = new AtomicBoolean(false);
 
   public DownloadHub(Context c, MediaCache cache) {
     context = c.getApplicationContext();
     caches = cache;
+    ExecutorService workers = TaskExecutors.fixed("yoru-download", 3);
     manager = new DownloadManager(
       context,
-      caches.database(),
-      caches.offline(),
-      caches.http(),
-      Executors.newFixedThreadPool(3)
+      new DefaultDownloadIndex(caches.database()),
+      request ->
+        new DefaultDownloaderFactory(
+          caches.downloadFactory(request.uri.toString()),
+          workers
+        ).createDownloader(request)
     );
     manager.setMaxParallelDownloads(3);
     applyRequirements();
@@ -214,7 +218,7 @@ public final class DownloadHub {
         item,
         selection.build(),
         new DefaultRenderersFactory(context),
-        caches.http()
+        caches.http(url)
       );
       helper.prepare(
         new DownloadHelper.Callback() {
@@ -449,34 +453,35 @@ public final class DownloadHub {
   }
 
   public Download neighbour(Download current, int direction) {
-    JSONObject own = metadata(current);
-    Anime a = Anime.from(own.optJSONObject("anime"));
-    double number = own.optDouble("episode", 1) + direction;
-    Download best = null;
-    for (Download d : all()) {
-      if (d.state != Download.STATE_COMPLETED) continue;
-      JSONObject m = metadata(d);
-      Anime b = Anime.from(m.optJSONObject("anime"));
-      if (
-        a.key().equals(b.key()) &&
-        Double.compare(m.optDouble("episode", -1), number) == 0
-      ) {
-        best = d;
-        if (m.optInt("quality") == own.optInt("quality")) break;
-      }
-    }
-    return best;
+    JSONObject metadata = metadata(current);
+    Anime anime = Anime.from(metadata.optJSONObject("anime"));
+    return findCompleted(anime, metadata.optDouble("episode", 1) + direction);
   }
 
   public void refreshIndexAsync() {
     if (!indexing.compareAndSet(false, true)) return;
-    YoruApp.app().ui.execute(() -> {
+    YoruApp.app().local.execute(() -> {
       try {
-        rebuildIndex();
+        synchronized (indexLock) {
+          rebuildIndex();
+        }
       } finally {
         indexing.set(false);
       }
     });
+  }
+
+  private void ensureIndex() {
+    if (indexAt != 0 && System.currentTimeMillis() - indexAt <= 90_000) return;
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      refreshIndexAsync();
+      return;
+    }
+    synchronized (indexLock) {
+      if (
+        indexAt == 0 || System.currentTimeMillis() - indexAt > 90_000
+      ) rebuildIndex();
+    }
   }
 
   private void rebuildIndex() {
@@ -504,8 +509,7 @@ public final class DownloadHub {
         );
       } catch (Exception ignored) {}
     }
-    completedIndex.clear();
-    completedIndex.putAll(next);
+    completedIndex = Collections.unmodifiableMap(next);
     indexAt = System.currentTimeMillis();
     try {
       YoruApp.app().cache.offline(mirror.toString());
@@ -552,9 +556,7 @@ public final class DownloadHub {
   public HashMap<String, Download> completedEpisodes(Anime a) {
     HashMap<String, Download> out = new HashMap<>();
     if (!Anime.valid(a)) return out;
-    if (
-      indexAt == 0 || System.currentTimeMillis() - indexAt > 90_000
-    ) refreshIndexAsync();
+    ensureIndex();
     String[] prefixes = {
       a.key() + "|",
       SourceEngine.identity(a) + "|",
@@ -585,9 +587,7 @@ public final class DownloadHub {
   }
 
   public Download findCompleted(Anime a, double episode) {
-    if (
-      indexAt == 0 || System.currentTimeMillis() - indexAt > 90_000
-    ) refreshIndexAsync();
+    ensureIndex();
     for (String key : lookupKeys(a, episode)) {
       Download d = completedIndex.get(key);
       if (d != null) return d;

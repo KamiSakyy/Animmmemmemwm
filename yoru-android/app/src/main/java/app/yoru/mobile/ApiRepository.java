@@ -223,6 +223,30 @@ public final class ApiRepository {
     "id malId name russian english kind rating score status episodes episodesAired nextEpisodeAt airedOn{year date} poster{mainUrl originalUrl} genres{id russian name} studios{name}";
   private static final long DAY_MS = 24L * 60 * 60 * 1000;
   private final Context context;
+  private final SingleFlight<String, ArrayList<AiringItem>> scheduleFlights =
+    new SingleFlight<>();
+  private final TimedCache<String, ArrayList<AiringItem>> schedules =
+    new TimedCache<>(4, 300_000, android.os.SystemClock::elapsedRealtimeNanos);
+  private final SingleFlight<String, String> httpFlights = new SingleFlight<>();
+  private final SingleFlight<String, TreeMap<Integer, String>> streamFlights =
+    new SingleFlight<>();
+  private final SingleFlight<String, Anime> playbackFlights =
+    new SingleFlight<>();
+  private final SingleFlight<String, String> tokenFlights =
+    new SingleFlight<>();
+  private final TimedCache<String, Anime> prepared = new TimedCache<>(
+    4,
+    180_000
+  );
+  private final TimedCache<String, Anime> providerDetails = new TimedCache<>(
+    6,
+    180_000
+  );
+  private final TimedCache<String, Boolean> failedStreams = new TimedCache<>(
+    64,
+    5000
+  );
+  private final Set<String> prefetching = ConcurrentHashMap.newKeySet();
   private static final int MEMORY_CACHE_LIMIT = 96,
     STREAM_CACHE_LIMIT = 64,
     MEMORY_CACHE_MAX_TEXT = 50_000;
@@ -353,9 +377,17 @@ public final class ApiRepository {
     shield = new YoruShield(context);
   }
 
-  private synchronized void ensureBoot() {
+  private final Object bootLock = new Object();
+
+  private void ensureBoot() {
     if (bootLoaded) return;
-    bootLoaded = true;
+    synchronized (bootLock) {
+      loadBootLocked();
+    }
+  }
+
+  private void loadBootLocked() {
+    if (bootLoaded) return;
     try {
       JSONObject boot = new JSONObject(
         readStream(context.getAssets().open("boot.json"), 3 * 1024 * 1024)
@@ -383,6 +415,7 @@ public final class ApiRepository {
         if (n >= 0) counts.put(key, n);
       }
     } catch (Exception ignored) {}
+    bootLoaded = true;
   }
 
   public long countOf(String source) {
@@ -403,6 +436,9 @@ public final class ApiRepository {
   public void clearMemory() {
     cache.clear();
     streamCache.clear();
+    prepared.clear();
+    providerDetails.clear();
+    failedStreams.clear();
   }
 
   public JSONObject sourceDiagnostics() {
@@ -440,21 +476,47 @@ public final class ApiRepository {
 
   public TreeMap<Integer, String> resolveStreams(String input)
     throws Exception {
-    String key = embed(input);
-    if (key.isEmpty()) key = safeUrl(input);
-    if (key.isEmpty()) throw new IOException("Просмотр не передал данные");
-    long now = System.currentTimeMillis();
+    NetworkScope.check();
+    String safe = embed(input);
+    if (safe.isEmpty()) safe = safeUrl(input);
+    if (safe.isEmpty()) throw new IOException("Просмотр не передал данные");
+    final String key = safe;
     StreamCache hit = streamCache.get(key);
-    if (hit != null) {
-      if (now - hit.at < 20 * 60 * 1000) return new TreeMap<>(hit.streams);
-      streamCache.remove(key, hit);
+    if (
+      hit != null && System.currentTimeMillis() - hit.at < 5 * 60_000
+    ) return new TreeMap<>(hit.streams);
+    if (failedStreams.get(key) != null) throw new IOException(
+      "Этот вариант только что не ответил"
+    );
+    try {
+      TreeMap<Integer, String> result = streamFlights.run(key, () -> {
+        StreamCache cached = streamCache.get(key);
+        if (
+          cached != null && System.currentTimeMillis() - cached.at < 5 * 60_000
+        ) return cached.streams;
+        TreeMap<Integer, String> streams = VideoResolver.resolve(this, key);
+        if (streams.isEmpty()) throw new IOException(
+          "Источник не вернул видео"
+        );
+        streamCache.put(key, new StreamCache(streams));
+        trimStreamCache();
+        return streams;
+      });
+      return new TreeMap<>(result);
+    } catch (Exception error) {
+      NetworkScope.check();
+      failedStreams.put(key, true);
+      throw error;
     }
-    TreeMap<Integer, String> streams = VideoResolver.resolve(this, key);
-    if (!streams.isEmpty()) {
-      streamCache.put(key, new StreamCache(streams));
-      trimStreamCache();
-    }
-    return new TreeMap<>(streams);
+  }
+
+  public void invalidateStream(String key) {
+    streamCache.remove(embed(key));
+    failedStreams.remove(embed(key));
+  }
+
+  public void invalidatePrepared(Anime anime) {
+    prepared.remove(SourceEngine.identity(anime));
   }
 
   static String readStream(InputStream in, int max) throws IOException {
@@ -465,6 +527,7 @@ public final class ApiRepository {
       byte[] b = new byte[8192];
       int n;
       while ((n = input.read(b)) != -1) {
+        NetworkScope.check();
         if (out.size() + n > max) throw new IOException(
           "Слишком большой ответ каталога"
         );
@@ -521,32 +584,42 @@ public final class ApiRepository {
     boolean form,
     Map<String, String> headers
   ) throws Exception {
-    String ck = cacheKey(method, url, body, headers);
-    long now = System.currentTimeMillis(),
-      ttl = cacheTtl(url, body);
-    Cache hit = cache.get(ck);
-    if (hit != null) {
-      if (now - hit.at < ttl) return hit.text;
-      cache.remove(ck, hit);
-    }
-    Exception last = null;
-    ArrayList<String> attempts = shield.routes(url);
-    for (String start : attempts) {
+    NetworkScope.check();
+    String key = cacheKey(method, url, body, headers);
+    Cache hit = cache.get(key);
+    if (
+      hit != null && System.currentTimeMillis() - hit.at < cacheTtl(url, body)
+    ) return hit.text;
+    return httpFlights.run(key, () -> {
+      Cache cached = cache.get(key);
+      if (
+        cached != null &&
+        System.currentTimeMillis() - cached.at < cacheTtl(url, body)
+      ) return cached.text;
+      Exception failure = null;
+      long started = Perf.start();
       try {
-        String text = requestNetwork(start, method, body, form, headers);
-        if (text.length() < MEMORY_CACHE_MAX_TEXT) {
-          cache.put(ck, new Cache(text));
-          trimMemoryCache();
+        for (String route : shield.routes(url)) {
+          NetworkScope.check();
+          try {
+            String text = requestNetwork(route, method, body, form, headers);
+            if (text.length() < MEMORY_CACHE_MAX_TEXT) {
+              cache.put(key, new Cache(text));
+              trimMemoryCache();
+            }
+            return text;
+          } catch (Exception error) {
+            NetworkScope.check();
+            failure = error;
+            shield.fail(route);
+          }
         }
-        shield.ok(start);
-        return text;
-      } catch (Exception e) {
-        last = e;
-        shield.fail(start);
+        if (failure != null) throw failure;
+        throw new IOException("Каталог не ответил");
+      } finally {
+        Perf.end("http", started);
       }
-    }
-    if (last != null) throw last;
-    throw new IOException("Каталог не ответил");
+    });
   }
 
   private static long cacheTtl(String url, String body) {
@@ -654,8 +727,8 @@ public final class ApiRepository {
       );
       URL target = new URL(current);
       HttpURLConnection c = (HttpURLConnection) target.openConnection();
-      c.setConnectTimeout(2200);
-      c.setReadTimeout(3600);
+      c.setConnectTimeout(NetworkScope.timeout(2200));
+      c.setReadTimeout(NetworkScope.timeout(3600));
       c.setInstanceFollowRedirects(false);
       c.setRequestMethod(currentMethod);
       c.setRequestProperty(
@@ -681,11 +754,11 @@ public final class ApiRepository {
               ? "application/x-www-form-urlencoded; charset=UTF-8"
               : "application/json; charset=UTF-8"
           );
-          try (OutputStream out = c.getOutputStream()) {
+          try (OutputStream out = NetworkScope.outputStream(c)) {
             out.write(currentBody.getBytes(StandardCharsets.UTF_8));
           }
         }
-        int code = c.getResponseCode();
+        int code = NetworkScope.responseCode(c);
         if (code >= 300 && code < 400) {
           String loc = c.getHeaderField("Location");
           if (loc == null) throw new IOException("Каталог не ответил");
@@ -702,12 +775,16 @@ public final class ApiRepository {
         if (code < 200 || code >= 300) throw new IOException(
           "Каталог сейчас недоступен. Попробуйте другой вариант."
         );
-        return readStream(c.getInputStream(), 12 * 1024 * 1024);
+        return readStream(NetworkScope.inputStream(c), 12 * 1024 * 1024);
       } finally {
-        c.disconnect();
+        NetworkScope.disconnect(c);
       }
     }
     throw new IOException("Каталог не ответил");
+  }
+
+  public void restoreProtection() {
+    shield.restore();
   }
 
   public void refreshProtection(boolean force) {
@@ -1048,7 +1125,8 @@ public final class ApiRepository {
     Anime cached = db == null ? null : db.detail(base, 18 * 60 * 60 * 1000L);
     if (Anime.valid(cached)) {
       SourceEngine.absorb(base, cached);
-      return remember(cached);
+      if (base.related.isEmpty()) base.related.addAll(cached.related);
+      return remember(base);
     }
     Anime result = null;
     if (base.source.equals("shikimori")) {
@@ -1090,14 +1168,26 @@ public final class ApiRepository {
   }
 
   public void prefetchQuickDetails(Collection<Anime> rows, int max) {
-    if (rows == null) return;
-    int n = 0;
-    for (Anime a : rows) {
-      if (!Anime.valid(a)) continue;
-      if (++n > max) break;
+    YoruApp app = YoruApp.app();
+    if (rows == null || app.activePlayers > 0 || app.savingMobile()) return;
+    int count = 0;
+    for (Anime anime : rows) {
+      if (
+        ++count > Math.min(max, 4) ||
+        Thread.currentThread().isInterrupted() ||
+        app.activePlayers > 0
+      ) break;
+      if (
+        !Anime.valid(anime) ||
+        prefetching.size() >= 8 ||
+        !prefetching.add(anime.key())
+      ) continue;
       try {
-        quickDetails(a);
-      } catch (Exception ignored) {}
+        quickDetails(anime);
+      } catch (Exception ignored) {
+      } finally {
+        prefetching.remove(anime.key());
+      }
     }
   }
 
@@ -1124,6 +1214,11 @@ public final class ApiRepository {
   }
 
   public Anime details(Anime base, boolean episodes) throws Exception {
+    NetworkScope.check();
+    if (episodes && !"yoru".equals(base.source)) {
+      Anime cached = providerDetails.get(base.key());
+      if (cached != null) return Anime.copy(cached);
+    }
     if (base.source.equals("animedia")) return new NativeSources(this).details(
       base,
       episodes
@@ -1276,61 +1371,104 @@ public final class ApiRepository {
         !a.screenshots.contains(shot) &&
         a.screenshots.size() < 12
       ) a.screenshots.add(shot);
-    enrichSchedule(a);
-    enrichVisuals(a);
-    enrichRelated(a);
+    // Optional visuals/franchise are loaded separately by DetailsActivity.
     appendFutureEpisodes(a);
     applyEpisodeVisuals(a);
     YoruCache db = YoruApp.app() == null ? null : YoruApp.app().cache;
     if (db != null) db.detail(a);
+    if (
+      episodes && !"yoru".equals(a.source) && !a.episodeList.isEmpty()
+    ) providerDetails.put(base.key(), Anime.copy(a));
     return remember(a);
   }
 
   public Anime.Playback playback(Anime input, String selectedMode)
     throws Exception {
-    normalizeIds(input);
-    String selected =
-      selectedMode == null || selectedMode.trim().isEmpty()
-        ? "auto"
-        : selectedMode.trim();
-    if (selected.equals("all")) selected = "auto";
-    if (!selected.equals("auto")) {
+    return playback(input, selectedMode, -1, false);
+  }
+
+  public Anime.Playback playback(
+    Anime input,
+    String selectedMode,
+    double number,
+    boolean allVoices
+  ) throws Exception {
+    NetworkScope.check();
+    String selected = selectedMode == null ? "auto" : selectedMode;
+    if (
+      !selected.isEmpty() &&
+      !Arrays.asList("auto", "all", "yoru").contains(selected)
+    ) {
       Anime video = findPlayableSource(input, selected);
       if (video == null) throw new IOException(
         "Просмотр сейчас не вернул серии"
       );
       return playbackResult(input, video, selected);
     }
-    ArrayList<String> order = SourceEngine.playbackOrder(input);
-    ExecutorService pool = Executors.newFixedThreadPool(
-      Math.max(1, Math.min(4, order.size()))
-    );
-    CompletionService<Anime.Playback> done = new ExecutorCompletionService<>(
-      pool
-    );
-    for (String source : order) {
-      final String src = source;
-      done.submit(() -> {
-        Anime video = findPlayableSource(input, src);
-        return video == null ? null : playbackResult(input, video, src);
-      });
+    String identity = SourceEngine.identity(input);
+    Anime cached = allVoices ? null : prepared.get(identity);
+    String voice = YoruApp.app().store.voicePreference();
+    if (
+      cached != null && sourceReady(cached, number, voice)
+    ) return playbackResult(input, Anime.copy(cached), "yoru");
+    String flight =
+      identity +
+      "|" +
+      number +
+      "|" +
+      voice +
+      "|" +
+      allVoices +
+      "|" +
+      YoruApp.app().store.onlyPreferredVoice();
+    Anime video = playbackFlights.run(flight, () -> {
+      Anime loaded = yoruDetails(input, true, number, allVoices);
+      if (!sourceReady(loaded, number, "")) throw new IOException(
+        "Для этой серии пока нет доступного видео"
+      );
+      prepared.put(identity, Anime.copy(loaded));
+      return loaded;
+    });
+    return playbackResult(input, Anime.copy(video), "yoru");
+  }
+
+  public Anime enrichedDetails(Anime base) throws Exception {
+    NetworkScope.check();
+    Anime result = Anime.copy(base);
+    if (
+      result.screenshots.isEmpty() || result.trailerUrl.isEmpty()
+    ) enrichVisuals(result);
+    NetworkScope.check();
+    enrichRelated(result);
+    if (YoruApp.app().cache != null) YoruApp.app().cache.detail(result);
+    return result;
+  }
+
+  private boolean sourceReady(Anime anime, double number, String voice) {
+    if (anime == null || anime.blocked) return false;
+    for (Anime.Episode episode : anime.episodeList) {
+      if (
+        episode == null ||
+        episode.future ||
+        (number >= 0 && !sameEpisode(episode.number, number))
+      ) continue;
+      boolean any =
+        !episode.streams.isEmpty() ||
+        !episode.variants.isEmpty() ||
+        !episode.pending.isEmpty() ||
+        !episode.lazy.isEmpty();
+      if (!any) continue;
+      if (voiceKey(voice).isEmpty()) return true;
+      if (
+        !episode.streams.isEmpty() &&
+        voiceMatches(voice, sourceVoice(anime.source))
+      ) return true;
+      for (Anime.Variant variant : episode.variants)
+        if (
+          voiceMatches(voice, variant.name + " " + variant.displayName)
+        ) return true;
     }
-    long deadline = System.currentTimeMillis() + 9500;
-    try {
-      for (int i = 0; i < order.size(); i++) {
-        long left = deadline - System.currentTimeMillis();
-        if (left <= 0) break;
-        Future<Anime.Playback> f = done.poll(left, TimeUnit.MILLISECONDS);
-        if (f == null) break;
-        try {
-          Anime.Playback r = f.get();
-          if (r != null) return r;
-        } catch (Exception ignored) {}
-      }
-    } finally {
-      pool.shutdownNow();
-    }
-    throw new IOException("YORU сейчас не нашёл серии");
+    return false;
   }
 
   private Anime.Playback playbackResult(
@@ -1442,7 +1580,14 @@ public final class ApiRepository {
     return null;
   }
 
-  public synchronized void loadEpisode(Anime.Episode ep) throws Exception {
+  public void loadEpisode(Anime.Episode ep) throws Exception {
+    NetworkScope.check();
+    synchronized (ep) {
+      loadEpisodeLocked(ep);
+    }
+  }
+
+  private void loadEpisodeLocked(Anime.Episode ep) throws Exception {
     if (ep.lazy.equals("yoru")) {
       loadYoruEpisode(ep);
       return;
@@ -1498,7 +1643,7 @@ public final class ApiRepository {
     if (ep.variants.isEmpty()) throw new IOException(
       "У серии пока нет доступного просмотра"
     );
-    ep.variants.sort(Comparator.comparingInt(v -> SourceEngine.variantRank(v)));
+    SourceEngine.sortVariantsInPlace(ep.variants);
   }
 
   public static final class DownloadOption {
@@ -1851,19 +1996,9 @@ public final class ApiRepository {
   }
 
   private static Anime.Episode findEpisode(Anime anime, double number) {
-    if (anime == null) return null;
-    Anime.Episode fallback = null;
-    double best = Double.MAX_VALUE;
-    for (Anime.Episode ep : anime.episodeList) {
-      if (ep == null || ep.future) continue;
-      if (sameEpisode(ep.number, number)) return ep;
-      double diff = Math.abs(ep.number - number);
-      if (diff < best) {
-        best = diff;
-        fallback = ep;
-      }
-    }
-    return fallback;
+    return anime == null
+      ? null
+      : EpisodeLookup.exact(anime.episodeList, number);
   }
 
   public List<DownloadOption> downloadOptions(
@@ -2011,35 +2146,39 @@ public final class ApiRepository {
   }
 
   private Anime yoruDetails(Anime base, boolean episodes) throws Exception {
-    Anime a = yoruShell(base);
-    Anime y = null;
-    try {
-      y = findYummy(base);
-      if (y != null) fillYoruMeta(a, y);
-    } catch (Exception ignored) {}
-    try {
-      int mal = a.malId > 0 ? a.malId : y == null ? 0 : y.malId;
-      if (mal > 0) {
-        Anime sh = new Anime();
-        sh.source = "shikimori";
-        sh.id = String.valueOf(mal);
-        Anime meta = details(sh, false);
-        fillYoruMeta(a, meta);
-        for (Anime r : meta.related) a.related.add(r);
-      }
-    } catch (Exception ignored) {}
-    if (episodes) {
-      ArrayList<Anime> found = yoruFoundSources(base, a, y);
-      LinkedHashMap<String, Anime.Episode> map = new LinkedHashMap<>();
-      for (Anime source : found) mergeYoruEpisodes(map, source);
-      a.episodeList.clear();
-      a.episodeList.addAll(map.values());
-      a.episodeList.sort(Comparator.comparingDouble(e -> e.number));
-      a.episodes = Math.max(a.episodes, a.episodeList.size());
-      appendFutureEpisodes(a);
-      applyEpisodeVisuals(a);
+    if (episodes) return playback(base, "yoru", -1, false).video;
+    Anime shell = yoruShell(base);
+    if (shell.malId > 0) fillYoruMeta(shell, shikiQuick(shell.malId, "yoru"));
+    else {
+      Anime yummy = findYummy(base);
+      if (yummy != null) fillYoruMeta(shell, yummy);
     }
-    return remember(a);
+    return shell;
+  }
+
+  private Anime yoruDetails(
+    Anime base,
+    boolean episodes,
+    double number,
+    boolean allVoices
+  ) throws Exception {
+    Anime shell = yoruShell(base);
+    ArrayList<Anime> found = yoruFoundSources(base, shell, number, allVoices);
+    LinkedHashMap<String, Anime.Episode> merged = new LinkedHashMap<>();
+    for (Anime source : found) {
+      fillYoruMeta(shell, source);
+      shell.episodesAired = Math.max(shell.episodesAired, source.episodesAired);
+      mergeYoruEpisodes(merged, source);
+    }
+    shell.episodeList.clear();
+    shell.episodeList.addAll(merged.values());
+    shell.episodeList.sort(
+      Comparator.comparingDouble(episode -> episode.number)
+    );
+    shell.episodes = Math.max(shell.episodes, shell.episodeList.size());
+    appendFutureEpisodes(shell);
+    applyEpisodeVisuals(shell);
+    return remember(shell);
   }
 
   private void fillYoruMeta(Anime target, Anime source) {
@@ -2079,67 +2218,51 @@ public final class ApiRepository {
   private ArrayList<Anime> yoruFoundSources(
     Anime original,
     Anime shell,
-    Anime yummy
-  ) {
-    ArrayList<Anime> out = new ArrayList<>();
-    LinkedHashSet<String> seen = new LinkedHashSet<>();
-    ArrayList<String> sources = SourceEngine.discoveryOrder(original, shell);
-    String pref = "";
-    boolean concrete = false;
-    try {
-      pref = YoruApp.app().store.voicePreference();
-      concrete = !voiceKey(pref).isEmpty();
-    } catch (Exception ignored) {}
-    if (concrete) {
-      ArrayList<String> focused = new ArrayList<>();
-      for (String s : sources)
-        if (sourceLikelyHasVoice(s, pref)) focused.add(s);
-      for (String s : sources) if (!focused.contains(s)) focused.add(s);
-      sources = focused;
-    }
-    ExecutorService pool = Executors.newFixedThreadPool(
-      Math.max(1, Math.min(5, sources.size() + 1))
+    double number,
+    boolean allVoices
+  ) throws Exception {
+    ArrayList<String> order = SourceEngine.discoveryOrder(original, shell);
+    order.add(0, "yummy");
+    final String voice = YoruApp.app().store.voicePreference();
+    final boolean strict =
+      YoruApp.app().store.onlyPreferredVoice() && !voiceKey(voice).isEmpty();
+    order.sort(
+      Comparator.comparingInt(source ->
+        sourceLikelyHasVoice(source, voice) ? 0 : 1
+      )
     );
-    CompletionService<Anime> done = new ExecutorCompletionService<>(pool);
-    int jobs = 0;
-    if (yummy != null && (!concrete || sourceLikelyHasVoice("yummy", pref))) {
-      Anime y = yummy;
-      done.submit(() -> details(y, true));
-      jobs++;
-    }
-    for (String source : sources) {
-      done.submit(() -> yoruFindSource(original, shell, source));
-      jobs++;
-    }
-    long deadline = System.currentTimeMillis() + (concrete ? 12500 : 15000);
-    try {
-      for (int i = 0; i < jobs; i++) {
-        long left = deadline - System.currentTimeMillis();
-        if (left <= 0) break;
-        Future<Anime> f;
-        try {
-          f = done.poll(left, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          break;
-        }
-        if (f == null) break;
-        try {
-          Anime a = f.get();
-          if (
-            a != null &&
-            !a.episodeList.isEmpty() &&
-            seen.add(a.source + ":" + a.id)
-          ) out.add(a);
-        } catch (Exception ignored) {}
-      }
-    } finally {
-      pool.shutdownNow();
-    }
-    out.sort(
-      Comparator.comparingInt(a -> 1000 - SourceEngine.score(a.source, a))
+    ArrayList<Callable<Anime>> jobs = new ArrayList<>();
+    for (String source : order)
+      jobs.add(() -> {
+        Anime result = yoruFindSource(original, shell, source);
+        if (result == null) return null;
+        Anime.Episode target = null;
+        for (Anime.Episode row : result.episodeList)
+          if (!row.future && (number < 0 || sameEpisode(row.number, number))) {
+            target = row;
+            break;
+          }
+        if (
+          target != null &&
+          target.streams.isEmpty() &&
+          target.variants.isEmpty() &&
+          !target.lazy.isEmpty()
+        ) loadEpisode(target);
+        return sourceReady(result, number, "") ? result : null;
+      });
+    List<Anime> collected = FirstResults.collect(
+      YoruApp.app().sources,
+      jobs,
+      anime -> sourceReady(anime, number, voice),
+      strict,
+      allVoices,
+      allVoices ? 12_000 : 8_000,
+      150,
+      1500
     );
-    return out;
+    LinkedHashMap<String, Anime> unique = new LinkedHashMap<>();
+    for (Anime anime : collected) unique.put(anime.key(), anime);
+    return new ArrayList<>(unique.values());
   }
 
   private boolean sourceLikelyHasVoice(String source, String voice) {
@@ -2176,7 +2299,11 @@ public final class ApiRepository {
     long started = System.currentTimeMillis();
     try {
       Anime candidate;
-      if (source.equals("kodik")) candidate = kodikShell(shell);
+      if (
+        source.equals(original.source) && !original.source.equals("yoru")
+      ) candidate = Anime.copy(original);
+      else if (source.equals("yummy")) candidate = findYummy(shell);
+      else if (source.equals("kodik")) candidate = kodikShell(shell);
       else if (source.equals("anixsekai")) candidate = findAnix(shell);
       else if (source.equals("anilibria")) candidate = findAniLiberty(shell);
       else if (
@@ -2225,6 +2352,7 @@ public final class ApiRepository {
       );
       return full;
     } catch (Exception e) {
+      if (Thread.currentThread().isInterrupted()) return null;
       SourceEngine.record(
         source,
         false,
@@ -2251,6 +2379,7 @@ public final class ApiRepository {
         if (url.isEmpty()) continue;
         Anime.Variant v = new Anime.Variant(baseVoice, route, url);
         v.duration = e.duration;
+        v.quality = stream.getKey();
         v.openingStart = e.openingStart;
         v.openingEnd = e.openingEnd;
         v.displayName = baseVoice;
@@ -2271,12 +2400,13 @@ public final class ApiRepository {
           url
         );
         v.duration = row.duration;
+        v.quality = row.quality;
         v.openingStart = row.openingStart;
         v.openingEnd = row.openingEnd;
         v.displayName = voice;
         variants.add(v);
       }
-      if (variants.isEmpty()) continue;
+      if (variants.isEmpty() && (e.future || e.lazy.isEmpty())) continue;
       String key = episodeParam(e.number);
       Anime.Episode ep = map.get(key);
       if (ep == null) {
@@ -2287,46 +2417,62 @@ public final class ApiRepository {
         ep.lazy = "yoru";
         map.put(key, ep);
       }
+      if (variants.isEmpty()) {
+        Anime.Episode lazy = Anime.copyEpisode(e);
+        lazy.source = source.source;
+        ep.pending.add(lazy);
+      }
       ep.duration = Math.max(ep.duration, e.duration);
       if (ep.openingEnd <= 0 && e.openingEnd > 0) {
         ep.openingStart = e.openingStart;
         ep.openingEnd = e.openingEnd;
       }
       for (Anime.Variant v : variants) addVariant(ep, v);
-      ep.variants.sort(
-        Comparator.comparingInt(v -> SourceEngine.variantRank(v))
-      );
+      SourceEngine.sortVariantsInPlace(ep.variants);
     }
   }
 
-  private void loadYoruEpisode(Anime.Episode ep) throws Exception {
-    if ("yoru-ready".equals(ep.resolverUrl)) return;
-    if (ep.variants.isEmpty() && !ep.streams.isEmpty()) {
-      ep.resolverUrl = "yoru-ready";
-      return;
+  private void loadYoruEpisode(Anime.Episode episode) throws Exception {
+    String voice = YoruApp.app().store.voicePreference();
+    boolean strict =
+      YoruApp.app().store.onlyPreferredVoice() && !voiceKey(voice).isEmpty();
+    boolean match = !strict;
+    for (Anime.Variant variant : episode.variants)
+      if (voiceMatches(voice, variant.name + " " + variant.displayName)) match =
+        true;
+    if ((episode.variants.isEmpty() && episode.streams.isEmpty()) || !match) {
+      Iterator<Anime.Episode> pending = episode.pending.iterator();
+      while (pending.hasNext()) {
+        NetworkScope.check();
+        Anime.Episode lazy = pending.next();
+        try {
+          loadEpisode(lazy);
+          for (Map.Entry<Integer, String> stream : lazy.streams.entrySet()) {
+            Anime.Variant variant = new Anime.Variant(
+              sourceVoice(lazy.source),
+              downloadSourceName(lazy.source),
+              stream.getValue()
+            );
+            variant.quality = stream.getKey();
+            variant.duration = lazy.duration;
+            variant.openingStart = lazy.openingStart;
+            variant.openingEnd = lazy.openingEnd;
+            addVariant(episode, variant);
+          }
+          for (Anime.Variant variant : lazy.variants)
+            addVariant(episode, Anime.copyVariant(variant));
+          pending.remove();
+          if (!strict && !episode.variants.isEmpty()) break;
+        } catch (Exception error) {
+          NetworkScope.check();
+        }
+      }
     }
-    ArrayList<Anime.Variant> sorted = SourceEngine.sortVariants(ep.variants);
-    ArrayList<Anime.Variant> keep = new ArrayList<>();
-    String preferred = "";
-    boolean strict = false;
-    try {
-      preferred = YoruApp.app().store.voicePreference();
-      strict = !voiceKey(preferred).isEmpty();
-    } catch (Exception ignored) {}
-    collectYoruVariants(sorted, keep, preferred, strict);
-    if (keep.isEmpty() && strict) {
-      collectYoruVariants(sorted, keep, "", false);
-      try {
-        YoruApp.app().store.onlyPreferredVoice(false);
-      } catch (Exception ignored) {}
-    }
-    if (keep.isEmpty()) throw new IOException(
-      "YORU пока не нашёл доступные озвучки для этой серии"
-    );
-    ep.variants.clear();
-    for (Anime.Variant v : keep) addVariant(ep, v);
-    ep.variants.sort(Comparator.comparingInt(v -> SourceEngine.variantRank(v)));
-    ep.resolverUrl = "yoru-ready";
+    if (
+      episode.variants.isEmpty() && episode.streams.isEmpty()
+    ) throw new IOException("Серия пока не открылась");
+    // Never destructively prune other voices or real qualities from the prepared graph.
+    SourceEngine.sortVariantsInPlace(episode.variants);
   }
 
   private static void collectYoruVariants(
@@ -2363,6 +2509,7 @@ public final class ApiRepository {
     );
     copy.displayName = cleanLabel(v.displayName);
     copy.duration = v.duration;
+    copy.quality = v.quality;
     copy.openingStart = v.openingStart;
     copy.openingEnd = v.openingEnd;
     return copy;
@@ -2427,6 +2574,27 @@ public final class ApiRepository {
   }
 
   public ArrayList<AiringItem> airingSchedule(int days, List<Anime> focus)
+    throws Exception {
+    final int span = Math.max(7, Math.min(28, days));
+    ArrayList<String> identities = new ArrayList<>();
+    if (focus != null) for (Anime anime : focus)
+      identities.add(SourceEngine.identity(anime));
+    Collections.sort(identities);
+    String key =
+      span + "|" + startOfDay(System.currentTimeMillis()) + "|" + identities;
+    ArrayList<AiringItem> cached = schedules.get(key);
+    if (cached != null) return new ArrayList<>(cached);
+    return new ArrayList<>(
+      scheduleFlights.run(key, () -> {
+        ArrayList<AiringItem> result = loadAiringSchedule(span, focus);
+        NetworkScope.check();
+        schedules.put(key, result);
+        return result;
+      })
+    );
+  }
+
+  private ArrayList<AiringItem> loadAiringSchedule(int days, List<Anime> focus)
     throws Exception {
     days = Math.max(7, Math.min(28, days));
     long now = System.currentTimeMillis(),
@@ -3970,7 +4138,13 @@ public final class ApiRepository {
       if (e == null) continue;
       String key = episodeParam(e.number);
       have.add(key);
-      if (e.number > aired + 0.001) markFuture(
+      if (
+        e.number > aired + 0.001 &&
+        e.streams.isEmpty() &&
+        e.variants.isEmpty() &&
+        e.pending.isEmpty() &&
+        e.lazy.isEmpty()
+      ) markFuture(
         e,
         (int) Math.round(e.number) == aired + 1
           ? formatAirDate(a.nextEpisodeAt)
@@ -4141,6 +4315,16 @@ public final class ApiRepository {
           item
         );
       }
+    }
+    if (
+      !map.isEmpty() &&
+      relatedDb != null &&
+      mal > 0 &&
+      relatedDb.franchise(mal, 3 * DAY_MS).length() > 0
+    ) {
+      a.related.clear();
+      a.related.addAll(map.values());
+      return;
     }
     if (mal > 0) try {
       JSONArray rows = shiki(
@@ -4753,7 +4937,11 @@ public final class ApiRepository {
     throw new IOException("У этого просмотра пока нет подходящего варианта.");
   }
 
-  private synchronized String token() throws Exception {
+  private String token() throws Exception {
+    return tokenFlights.run("public-player", this::loadPublicToken);
+  }
+
+  private String loadPublicToken() throws Exception {
     if (
       !publicToken.isEmpty() && System.currentTimeMillis() - tokenAt < 300000
     ) return publicToken;

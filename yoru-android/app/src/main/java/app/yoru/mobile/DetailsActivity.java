@@ -26,7 +26,8 @@ public final class DetailsActivity extends Activity {
     String,
     androidx.media3.exoplayer.offline.Download
   > completed = new HashMap<>();
-  private Future<?> detailFuture, downloadFuture;
+  private Future<?> detailFuture, downloadFuture, metadataFuture, enrichmentFuture;
+  private boolean firstResume = true;
 
   private static final class WatchPack {
 
@@ -81,6 +82,10 @@ public final class DetailsActivity extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
+    if (firstResume) {
+      firstResume = false;
+      return;
+    }
     if (body != null) {
       render();
       loadDownloads();
@@ -88,53 +93,67 @@ public final class DetailsActivity extends Activity {
   }
 
   private void loadFull() {
-    int gen = ++generation;
+    final int gen = ++generation;
+    final Anime seed = Anime.from(anime.json());
     if (detailFuture != null) detailFuture.cancel(true);
+    metadataFuture = YoruApp.app().ui.submit(() -> {
+      try {
+        Anime metadata = YoruApp.app().api.quickDetails(
+          Anime.from(seed.json())
+        );
+        YoruApp.app().main.post(() -> {
+          if (gen != generation || dead()) return;
+          if (!episodesLoaded) {
+            anime = metadata;
+            loaded = true;
+            render();
+          } else SourceEngine.absorb(anime, metadata);
+        });
+      } catch (Exception error) {
+        if (!Thread.currentThread().isInterrupted()) Perf.failure(
+          "details-metadata",
+          error
+        );
+      }
+    });
     detailFuture = YoruApp.app().ui.submit(() -> {
-      Anime seed = Anime.from(anime.json());
-      Anime meta = seed;
       try {
-        meta = YoruApp.app().api.quickDetails(seed);
-        Anime fast = meta;
+        Anime full = YoruApp.app().api.playback(seed, "yoru", -1, false).video;
+        final Anime snapshot = Anime.copy(full);
         YoruApp.app().main.post(() -> {
-          if (gen == generation && !isFinishing()) {
-            anime = fast;
-            loaded = true;
-            render();
-            loadDownloads();
-            prefetchRelated();
-          }
+          if (gen != generation || dead()) return;
+          SourceEngine.absorb(full, anime);
+          anime = full;
+          loaded = true;
+          episodesLoaded = true;
+          render();
+          loadDownloads();
+          enrichmentFuture = YoruApp.app().discovery.submit(() -> {
+            try {
+              Anime rich = YoruApp.app().api.enrichedDetails(snapshot);
+              YoruApp.app().main.post(() -> {
+                if (gen == generation && !dead()) {
+                  SourceEngine.absorb(rich, anime);
+                  anime = rich;
+                  render();
+                }
+              });
+            } catch (Exception error) {
+              if (!Thread.currentThread().isInterrupted()) Perf.failure(
+                "details-optional",
+                error
+              );
+            }
+          });
         });
-      } catch (Exception ignored) {}
-      try {
-        Anime full = YoruApp.app().api.details(meta, true);
-        if (full.episodeList.isEmpty()) try {
-          Anime.Playback p = YoruApp.app().api.playback(full, "auto");
-          if (p != null && p.video != null && !p.video.episodeList.isEmpty()) {
-            full.episodeList.addAll(p.video.episodeList);
-            full.episodes = Math.max(full.episodes, full.episodeList.size());
-          }
-        } catch (Exception ignored) {}
+      } catch (Exception error) {
         YoruApp.app().main.post(() -> {
-          if (gen == generation && !isFinishing()) {
-            anime = full;
-            loaded = true;
-            episodesLoaded = true;
-            completed.clear();
-            render();
-            loadDownloads();
-            prefetchRelated();
-          }
-        });
-      } catch (Exception e) {
-        YoruApp.app().main.post(() -> {
-          if (!isFinishing() && gen == generation) {
-            loaded = true;
-            episodesLoaded = true;
-            if (state != null) state.setText(
-              "Показаны сохранённые сведения. Выберите каталог для просмотра."
-            );
-          }
+          if (gen != generation || dead()) return;
+          loaded = true;
+          episodesLoaded = true;
+          if (state != null) state.setText(
+            "Сведения доступны. Нажмите «Смотреть», чтобы повторить подбор видео."
+          );
         });
       }
     });
@@ -144,13 +163,22 @@ public final class DetailsActivity extends Activity {
     final int gen = ++downloadsGeneration;
     if (downloadFuture != null) downloadFuture.cancel(true);
     final Anime snapshot = Anime.from(anime.json());
-    downloadFuture = YoruApp.app().ui.submit(() -> {
+    downloadFuture = YoruApp.app().local.submit(() -> {
       HashMap<String, androidx.media3.exoplayer.offline.Download> rows =
         YoruApp.app().downloads().completedEpisodes(snapshot);
       YoruApp.app().main.post(() -> {
         if (gen == downloadsGeneration && !isFinishing()) {
+          boolean changed = !completed.keySet().equals(rows.keySet());
+          if (!changed) for (String key : rows.keySet()) {
+            if (
+              !rows.get(key).request.id.equals(completed.get(key).request.id)
+            ) {
+              changed = true;
+              break;
+            }
+          }
           completed = rows;
-          if (body != null) render();
+          if (changed && body != null) render();
         }
       });
     });
@@ -431,7 +459,7 @@ public final class DetailsActivity extends Activity {
     rv.setPadding(0, 0, 0, Ui.dp(this, 6));
     rv.setAdapter(new EpisodeAdapter());
     int visible = Math.max(3, Math.min(8, anime.episodeList.size()));
-    body.addView(rv, Ui.lp(this, -1, visible * Ui.dp(this, 78)));
+    body.addView(rv, Ui.lp(this, -1, visible * 78));
     if (anime.episodeList.size() > visible) {
       Ui.space(body, 7);
       body.addView(
@@ -1241,6 +1269,12 @@ public final class DetailsActivity extends Activity {
     edit.setOnClickListener(v -> watchDefaults());
     row.addView(edit);
     body.addView(row);
+    Ui.space(body, 8);
+    body.addView(
+      Ui.button(this, "Выбрать озвучку этой серии", false, () ->
+        chooseWatchVoice(progressCached.optDouble("episode", 1), "yoru")
+      )
+    );
   }
 
   private void openWatch(double number, String playMode) {
@@ -1248,15 +1282,8 @@ public final class DetailsActivity extends Activity {
     androidx.media3.exoplayer.offline.Download done = completed.get(
       DownloadHub.episodeKey(number)
     );
-    if (done != null) {
-      Ui.openOffline(this, done.request.id, anime, number);
-      return;
-    }
-    if (readyVoice(number)) {
-      Ui.openPlayer(this, anime, "yoru", number);
-      return;
-    }
-    chooseWatchVoice(number, playMode);
+    if (done != null) Ui.openOffline(this, done.request.id, anime, number);
+    else Ui.openPlayer(this, anime, "yoru", number);
   }
 
   private void chooseWatchVoice(double number, String playMode) {
@@ -1294,8 +1321,14 @@ public final class DetailsActivity extends Activity {
   }
 
   private WatchPack watchPack(double number) throws Exception {
-    Anime.Playback ready = YoruApp.app().api.playback(anime, "yoru");
+    Anime.Playback ready = YoruApp.app().api.playback(
+      anime,
+      "yoru",
+      number,
+      true
+    );
     Anime.Episode ep = findEpisode(ready == null ? null : ready.video, number);
+    if (ep == null) throw new java.io.IOException("Эта серия пока недоступна");
     LinkedHashMap<String, String> voices = new LinkedHashMap<>();
     boolean unknown = false;
     if (ep != null) {
@@ -1348,20 +1381,10 @@ public final class DetailsActivity extends Activity {
     return pack;
   }
 
-  private Anime.Episode findEpisode(Anime source, double number) {
-    if (source == null) return null;
-    Anime.Episode fallback = null;
-    double best = Double.MAX_VALUE;
-    for (Anime.Episode ep : source.episodeList) {
-      if (ep == null) continue;
-      if (Math.abs(ep.number - number) < 0.001) return ep;
-      double diff = Math.abs(ep.number - number);
-      if (diff < best) {
-        best = diff;
-        fallback = ep;
-      }
-    }
-    return fallback;
+  private Anime.Episode findEpisode(Anime anime, double number) {
+    return anime == null
+      ? null
+      : EpisodeLookup.exact(anime.episodeList, number);
   }
 
   private void showWatchDialog(WatchPack pack, String playMode) {
@@ -1559,6 +1582,9 @@ public final class DetailsActivity extends Activity {
     downloadsGeneration++;
     if (detailFuture != null) detailFuture.cancel(true);
     if (downloadFuture != null) downloadFuture.cancel(true);
+    if (metadataFuture != null) metadataFuture.cancel(true);
+    if (enrichmentFuture != null) enrichmentFuture.cancel(true);
+    YoruApp.app().store.flushAsync();
     super.onDestroy();
   }
 }

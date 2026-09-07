@@ -3,52 +3,84 @@ package app.yoru.mobile;
 import android.app.*;
 import android.appwidget.*;
 import android.content.*;
-import android.widget.*;
-import java.util.*;
+import android.widget.RemoteViews;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class YoruWidgetProvider extends AppWidgetProvider {
 
+  private static final AtomicLong LAST_REFRESH = new AtomicLong();
+
   @Override
   public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-    for (int id : ids) update(context, manager, id);
+    PendingResult pending = goAsync();
+    YoruApp.app().local.execute(() -> {
+      try {
+        update(context.getApplicationContext(), manager, ids);
+      } finally {
+        pending.finish();
+      }
+    });
   }
 
   static void refresh(Context context) {
-    try {
-      AppWidgetManager manager = AppWidgetManager.getInstance(context);
-      int[] ids = manager.getAppWidgetIds(
-        new ComponentName(context, YoruWidgetProvider.class)
-      );
-      for (int id : ids) update(context, manager, id);
-    } catch (Exception ignored) {}
+    long now = android.os.SystemClock.elapsedRealtime(),
+      last = LAST_REFRESH.get();
+    if (last != 0 && now - last < 30_000) return;
+    if (!LAST_REFRESH.compareAndSet(last, now)) return;
+    Context appContext = context.getApplicationContext();
+    YoruApp.app().local.execute(() -> {
+      try {
+        AppWidgetManager manager = AppWidgetManager.getInstance(appContext);
+        update(
+          appContext,
+          manager,
+          manager.getAppWidgetIds(
+            new ComponentName(appContext, YoruWidgetProvider.class)
+          )
+        );
+      } catch (Exception error) {
+        Perf.failure("widget-refresh", error);
+      }
+    });
   }
 
   private static void update(
     Context context,
     AppWidgetManager manager,
-    int id
+    int[] ids
   ) {
-    RemoteViews v = new RemoteViews(
+    if (ids == null || ids.length == 0) return;
+    SecureStore store = YoruApp.app().store;
+    store.preload();
+    List<Anime> recent = store.recent();
+    Anime anime = recent.isEmpty() ? null : recent.get(0);
+    RemoteViews view = new RemoteViews(
       context.getPackageName(),
       R.layout.widget_yoru
     );
-    List<Anime> recent = new SecureStore(context).recent();
-    Anime a = recent.isEmpty() ? null : recent.get(0);
-    v.setTextViewText(R.id.widget_title, a == null ? "YORU" : "Продолжить");
-    v.setTextViewText(
+    view.setTextViewText(
+      R.id.widget_title,
+      anime == null ? "YORU" : "Продолжить"
+    );
+    view.setTextViewText(
       R.id.widget_text,
-      a == null ? "Откройте каталог и выберите аниме" : "Смотреть: " + a.title
+      anime == null
+        ? "Откройте каталог и выберите аниме"
+        : "Смотреть: " + anime.title
     );
     Intent open = new Intent(context, MainActivity.class).addFlags(
       Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
     );
-    PendingIntent pi = PendingIntent.getActivity(
-      context,
-      9001,
-      open,
-      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+    view.setOnClickPendingIntent(
+      R.id.widget_root,
+      PendingIntent.getActivity(
+        context,
+        9001,
+        open,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+      )
     );
-    v.setOnClickPendingIntent(R.id.widget_root, pi);
-    manager.updateAppWidget(id, v);
+    manager.updateAppWidget(ids, view);
   }
 }

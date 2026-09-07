@@ -49,11 +49,21 @@ final class SourceEngine {
     return s != null && Arrays.asList(PLAY).contains(s);
   }
 
+  private static volatile JSONObject cachedSnapshot;
+  private static volatile long snapshotAt;
+
   private static JSONObject snapshot() {
+    long now = System.nanoTime();
+    JSONObject cached = cachedSnapshot;
+    if (cached != null && now - snapshotAt < 500_000_000L) return cached;
     YoruApp app = YoruApp.app();
-    return app == null || app.store == null
-      ? new JSONObject()
-      : app.store.sourceSnapshot();
+    JSONObject snapshot =
+      app == null || app.store == null
+        ? new JSONObject()
+        : app.store.sourceSnapshot();
+    cachedSnapshot = snapshot;
+    snapshotAt = now;
+    return snapshot;
   }
 
   static ArrayList<String> playbackOrder(Anime input) {
@@ -219,14 +229,30 @@ final class SourceEngine {
 
   static ArrayList<Anime.Variant> sortVariants(Collection<Anime.Variant> rows) {
     ArrayList<Anime.Variant> out = new ArrayList<>();
-    if (rows != null) for (Anime.Variant v : rows) if (v != null) out.add(v);
-    out.sort((a, b) -> variantRank(a) - variantRank(b));
+    IdentityHashMap<Anime.Variant, Integer> scores = new IdentityHashMap<>();
+    if (rows != null) for (Anime.Variant variant : rows)
+      if (variant != null) {
+        out.add(variant);
+        scores.put(variant, variantRank(variant));
+      }
+    out.sort(Comparator.comparingInt(scores::get));
     return out;
+  }
+
+  static void sortVariantsInPlace(List<Anime.Variant> rows) {
+    ArrayList<Anime.Variant> sorted = sortVariants(rows);
+    rows.clear();
+    rows.addAll(sorted);
   }
 
   static int variantRank(Anime.Variant v) {
     String src = variantSource(v);
     int rank = 1000 - score(src, null);
+    if (v != null && v.quality > 0) {
+      int cap = YoruApp.app().store.quality();
+      rank +=
+        v.quality > cap ? 500 + (v.quality - cap) / 120 : -v.quality / 120;
+    }
     String text = (
       v == null ? "" : v.name + " " + v.player + " " + v.displayName
     ).toLowerCase(Locale.ROOT);

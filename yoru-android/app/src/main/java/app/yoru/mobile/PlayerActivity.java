@@ -20,11 +20,15 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.Future;
 import org.json.*;
 
 public final class PlayerActivity extends Activity {
 
   private Anime anime;
+  private Future<?> playbackTask, prewarmTask;
+  private final RetryPlan retryPlan = new RetryPlan();
+  private boolean expandedDiscovery;
   private Anime.Playback playback;
   private Anime.Episode episode;
   private String mode = "auto",
@@ -135,12 +139,6 @@ public final class PlayerActivity extends Activity {
     if (!Ui.allow(this)) return;
     offlineId = getIntent().getStringExtra("downloadId");
     anime = Ui.intentAnime(this);
-    if (offlineId != null) {
-      offlineDownload = YoruApp.app().downloads().get(offlineId);
-      if (offlineDownload != null) anime = Anime.from(
-        DownloadHub.metadata(offlineDownload).optJSONObject("anime")
-      );
-    }
     if (!Anime.valid(anime)) {
       finish();
       return;
@@ -272,10 +270,7 @@ public final class PlayerActivity extends Activity {
       return true;
     });
     stage.addView(video, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
-    web = new WebView(this);
-    web.setBackgroundColor(Color.BLACK);
-    stage.addView(web, new FrameLayout.LayoutParams(-1, -1));
-    configureWeb();
+    // Native playback does not initialize a hidden WebView/Chromium process.
     loading = Ui.column(this);
     loading.setGravity(Gravity.CENTER);
     loading.setBackgroundColor(0x66000000);
@@ -330,7 +325,9 @@ public final class PlayerActivity extends Activity {
     epRow = Ui.row(this);
     epRow.setVisibility(View.GONE);
     main.addView(
-      Ui.button(this, "Обновить озвучки", false, () -> loadMode(mode))
+      Ui.button(this, "Все озвучки / обновить", false, () ->
+        loadMode("all-voices")
+      )
     );
     skip = Ui.button(this, "Пропустить начало", false, () -> {
       if (nativeMode && episode != null) player.seekTo(
@@ -890,7 +887,7 @@ public final class PlayerActivity extends Activity {
     return time * 1000;
   }
 
-  private int buildVoiceGroups(Anime.Episode e, ArrayList<String> names) {
+  private int buildVoiceGroups(Anime.Episode episode, ArrayList<String> names) {
     voiceGroups.clear();
     String preferred =
       dubbing == null || dubbing.isEmpty()
@@ -899,18 +896,7 @@ public final class PlayerActivity extends Activity {
     boolean strict =
       YoruApp.app().store.onlyPreferredVoice() &&
       !ApiRepository.voiceKey(preferred).isEmpty();
-    int selected = buildVoiceGroupsInternal(e, names, preferred, strict);
-    if (voiceGroups.isEmpty() && strict) {
-      names.clear();
-      try {
-        YoruApp.app().store.onlyPreferredVoice(false);
-      } catch (Exception ignored) {}
-      selected = buildVoiceGroupsInternal(e, names, "", false);
-      if (status != null) status.setText(
-        "Выбранная озвучка недоступна — YORU нашёл другие варианты"
-      );
-    }
-    return selected;
+    return buildVoiceGroupsInternal(episode, names, preferred, strict);
   }
 
   private int buildVoiceGroupsInternal(
@@ -963,7 +949,20 @@ public final class PlayerActivity extends Activity {
     if (loading != null) loading.setVisibility(View.VISIBLE);
   }
 
+  private void work(Runnable action) {
+    if (playbackTask != null && !playbackTask.isDone()) playbackTask.cancel(
+      true
+    );
+    playbackTask = YoruApp.app().io.submit(action);
+  }
+
   private void loadMode(String selected) {
+    final boolean allVoices = "all-voices".equals(selected);
+    expandedDiscovery = allVoices;
+    if (allVoices) {
+      offlineId = null;
+      offlineDownload = null;
+    }
     mode = "yoru";
     save(true);
     seekMs = resumeFor(wantedEpisode);
@@ -979,9 +978,30 @@ public final class PlayerActivity extends Activity {
     epRow.setVisibility(View.GONE);
     skip.setVisibility(View.GONE);
     setup = false;
-    YoruApp.app().io.execute(() -> {
+    final Anime requestedAnime = Anime.from(anime.json());
+    final double requestedEpisode = wantedEpisode;
+    work(() -> {
       try {
-        Anime.Playback ready = YoruApp.app().api.playback(anime, "yoru");
+        Download local = allVoices
+          ? null
+          : YoruApp.app()
+              .downloads()
+              .findCompleted(requestedAnime, requestedEpisode);
+        if (local != null) {
+          YoruApp.app().main.post(() -> {
+            if (gen == generation && !destroyed && !isFinishing()) playOffline(
+              local
+            );
+          });
+          return;
+        }
+        YoruApp.app().mediaCache.temporary().getCacheSpace(); // Initialize disk index on the worker.
+        Anime.Playback ready = YoruApp.app().api.playback(
+          requestedAnime,
+          "yoru",
+          requestedEpisode,
+          allVoices
+        );
         YoruApp.app().main.post(() -> {
           if (gen != generation || isFinishing()) return;
           playback = ready;
@@ -1067,6 +1087,7 @@ public final class PlayerActivity extends Activity {
     playing = false;
     openingSkipped = false;
     rescueTries = 0;
+    retryPlan.reset();
     currentVariantKey = "";
     int gen = ++generation;
     showLoading(
@@ -1080,7 +1101,7 @@ public final class PlayerActivity extends Activity {
         ? "YORU проверяет серию " + number(e.number) + "…"
         : "Загружаем серию " + number(e.number) + "…"
     );
-    YoruApp.app().io.execute(() -> {
+    work(() -> {
       try {
         YoruApp.app().api.loadEpisode(e);
         Anime.Variant fastVariant = null;
@@ -1163,7 +1184,14 @@ public final class PlayerActivity extends Activity {
               readyStreams != null &&
               !readyStreams.isEmpty()
             ) startResolvedVariant(readyVariant, readyStreams);
-            else showVariant(
+            else if (readyVariant != null) {
+              currentVariantKey = ApiRepository.embed(readyVariant.url);
+              dubbing = ApiRepository.voiceTitle(readyVariant.name);
+              retryPlan.failVariant(currentVariantKey);
+              if (!rescuePlayback()) error(
+                "Доступная озвучка пока не открылась."
+              );
+            } else showVariant(
               voiceGroups
                 .get(Math.max(0, Math.min(selected, voiceGroups.size() - 1)))
                 .get(0)
@@ -1240,7 +1268,7 @@ public final class PlayerActivity extends Activity {
     yummyFrame = false;
     trustedKodik = false;
     video.setVisibility(View.VISIBLE);
-    web.setVisibility(View.GONE);
+    if (web != null) web.setVisibility(View.GONE);
     playVariantNative(streams);
   }
 
@@ -1265,7 +1293,7 @@ public final class PlayerActivity extends Activity {
     yummyFrame = false;
     trustedKodik = false;
     video.setVisibility(View.VISIBLE);
-    web.setVisibility(View.GONE);
+    if (web != null) web.setVisibility(View.GONE);
     showLoading(
       "Готовим озвучку",
       "Пробуем открыть её сразу во встроенном плеере"
@@ -1273,7 +1301,7 @@ public final class PlayerActivity extends Activity {
     status.setText("Готовим озвучку…");
     currentVariantKey = safe;
     String expected = safe;
-    YoruApp.app().io.execute(() -> {
+    work(() -> {
       try {
         TreeMap<Integer, String> streams = YoruApp.app().api.resolveStreams(
           v.url
@@ -1303,77 +1331,88 @@ public final class PlayerActivity extends Activity {
   }
 
   private boolean rescuePlayback() {
-    if (offlineId != null || episode == null || rescueTries >= 4) return false;
-    rescueTries++;
+    if (offlineId != null || episode == null || destroyed) return false;
+    String key =
+      currentVariantKey == null || currentVariantKey.isEmpty()
+        ? currentUrl
+        : currentVariantKey;
+    if (rescueTries++ >= 6) return expandDiscovery();
     SourceEngine.record(activeSourceId(), false, 0, 0, 0, quality);
-    status.setText("Подбираем другой рабочий вариант…");
+    status.setText("Проверяем следующий вариант…");
     try {
-      if (nativeMode && episode.streams.size() > 1) {
-        int nextQuality = 0;
-        for (Integer q : episode.streams.keySet())
-          if (q != null && q > 0 && q < quality) nextQuality = Math.max(
-            nextQuality,
-            q
-          );
-        if (nextQuality == 0) for (Integer q : episode.streams.keySet())
-          if (q != null && q != quality) {
-            nextQuality = q;
-            break;
-          }
-        if (nextQuality > 0 && episode.streams.containsKey(nextQuality)) {
-          seekMs = player == null ? seekMs : (int) player.getCurrentPosition();
-          quality = nextQuality;
+      if (nativeMode) {
+        retryPlan.failQuality(key, quality);
+        Integer lower = retryPlan.nextLower(
+          key,
+          episode.streams.keySet(),
+          quality
+        );
+        if (lower != null) {
+          seekMs = resumePosition();
+          quality = lower;
           setup = true;
-          ArrayList<Integer> qs = new ArrayList<>(episode.streams.keySet());
+          ArrayList<Integer> qualities = new ArrayList<>(
+            episode.streams.keySet()
+          );
           if (qualitySelect != null) qualitySelect.setSelection(
-            Math.max(0, qs.indexOf(nextQuality))
+            qualities.indexOf(lower)
           );
           setup = false;
-          playNative(episode.streams.get(nextQuality));
+          playNative(episode.streams.get(lower));
           return true;
         }
       }
-      String current = currentVariantKey == null ? "" : currentVariantKey;
-      String pref = YoruApp.app().store.voicePreference();
+      retryPlan.failVariant(key);
+      YoruApp.app().api.invalidateStream(key);
+      String preference = YoruApp.app().store.voicePreference();
       boolean strict =
         YoruApp.app().store.onlyPreferredVoice() &&
-        !ApiRepository.voiceKey(pref).isEmpty();
-      String activeVoice = ApiRepository.voiceTitle(dubbing);
-      if (!activeVoice.isEmpty()) {
-        pref = activeVoice;
-        strict = true;
-      }
-      for (Anime.Variant v : SourceEngine.sortVariants(episode.variants)) {
-        String raw = v.name + " " + v.displayName + " " + v.player;
-        if (strict && !ApiRepository.voiceMatches(pref, raw)) continue;
-        String key = ApiRepository.embed(v.url);
-        if (key.isEmpty()) key = ApiRepository.safeUrl(v.url);
-        if (key.isEmpty() || key.equals(current)) continue;
-        seekMs =
-          nativeMode && player != null
-            ? (int) player.getCurrentPosition()
-            : browserTime * 1000;
-        showVariant(v);
-        return true;
-      }
-      if (strict) for (Anime.Variant v : SourceEngine.sortVariants(
+        !ApiRepository.voiceKey(preference).isEmpty();
+      String firstVoice = strict
+        ? preference
+        : dubbing.isEmpty()
+          ? preference
+          : dubbing;
+      ArrayList<Anime.Variant> candidates = SourceEngine.sortVariants(
         episode.variants
-      )) {
-        String key = ApiRepository.embed(v.url);
-        if (key.isEmpty()) key = ApiRepository.safeUrl(v.url);
-        if (key.isEmpty() || key.equals(current)) continue;
-        try {
-          YoruApp.app().store.onlyPreferredVoice(false);
-        } catch (Exception ignored) {}
-        seekMs =
-          nativeMode && player != null
-            ? (int) player.getCurrentPosition()
-            : browserTime * 1000;
-        showVariant(v);
-        return true;
+      );
+      for (int pass = 0; pass < (strict ? 1 : 2); pass++) {
+        for (Anime.Variant candidate : candidates) {
+          if (
+            pass == 0 &&
+            !firstVoice.isEmpty() &&
+            !ApiRepository.voiceMatches(
+              firstVoice,
+              candidate.name + " " + candidate.displayName
+            )
+          ) continue;
+          String candidateKey = ApiRepository.embed(candidate.url);
+          if (!retryPlan.canTry(candidateKey)) continue;
+          seekMs = resumePosition();
+          showVariant(candidate);
+          return true;
+        }
       }
-    } catch (Exception ignored) {}
-    return false;
+    } catch (Exception failure) {
+      Perf.failure("playback-fallback", failure);
+    }
+    return expandDiscovery();
+  }
+
+  private int resumePosition() {
+    long position =
+      nativeMode && player != null
+        ? player.getCurrentPosition()
+        : browserTime * 1000L;
+    return position > 0 ? (int) Math.min(Integer.MAX_VALUE, position) : seekMs;
+  }
+
+  private boolean expandDiscovery() {
+    if (expandedDiscovery || destroyed) return false;
+    expandedDiscovery = true;
+    YoruApp.app().api.invalidatePrepared(anime);
+    loadMode("all-voices");
+    return true;
   }
 
   private void maybePrewarmNext() {
@@ -1405,8 +1444,10 @@ public final class PlayerActivity extends Activity {
       anime.key() + ":" + activeSourceId() + ":" + number(nextEpisode.number);
     if (key.equals(prewarmKey)) return;
     prewarmKey = key;
-    Anime.Episode warm = nextEpisode;
-    YoruApp.app().io.execute(() -> {
+    if (YoruApp.app().savingMobile()) return;
+    Anime.Episode warm = Anime.copyEpisode(nextEpisode);
+    if (prewarmTask != null && !prewarmTask.isDone()) prewarmTask.cancel(true);
+    prewarmTask = YoruApp.app().discovery.submit(() -> {
       try {
         YoruApp.app().api.loadEpisode(warm);
         Anime.Variant pv = preferredVariant(warm);
@@ -1566,6 +1607,25 @@ public final class PlayerActivity extends Activity {
   }
 
   private void playNative(String url) {
+    if (
+      nativeMode &&
+      player != null &&
+      url.equals(currentUrl) &&
+      player.getPlaybackState() != Player.STATE_IDLE
+    ) {
+      player.setTrackSelectionParameters(
+        player
+          .getTrackSelectionParameters()
+          .buildUpon()
+          .setMaxVideoSize(
+            Integer.MAX_VALUE,
+            quality > 0 ? quality : Integer.MAX_VALUE
+          )
+          .build()
+      );
+      status.setText(nativeStatus());
+      return;
+    }
     resetFrameDownloads();
     stopMedia();
     currentUrl = url;
@@ -1573,19 +1633,22 @@ public final class PlayerActivity extends Activity {
     updatePlayerControls();
     if (status != null && offlineId == null) status.setText(nativeStatus());
     video.setVisibility(View.VISIBLE);
-    web.setVisibility(View.GONE);
+    if (web != null) web.setVisibility(View.GONE);
     showLoading("Запускаем плеер YORU", nativeStatus());
     player.setTrackSelectionParameters(
       player
         .getTrackSelectionParameters()
         .buildUpon()
-        .setMaxVideoSize(Integer.MAX_VALUE, Integer.MAX_VALUE)
+        .setMaxVideoSize(
+          Integer.MAX_VALUE,
+          quality > 0 ? quality : Integer.MAX_VALUE
+        )
         .setForceLowestBitrate(false)
         .build()
     );
     player.setMediaSource(
       new DefaultMediaSourceFactory(
-        YoruApp.app().mediaCache.onlineFactory()
+        YoruApp.app().mediaCache.onlineFactory(url)
       ).createMediaSource(DownloadHub.item(url))
     );
     player.setPlaybackSpeed(speed);
@@ -1986,13 +2049,26 @@ public final class PlayerActivity extends Activity {
   }
 
   private void loadOffline(String id) {
+    final int gen = ++generation;
+    work(() -> {
+      Download download = YoruApp.app().downloads().get(id);
+      YoruApp.app().mediaCache.offline().getCacheSpace();
+      YoruApp.app().main.post(() -> {
+        if (gen == generation && !destroyed && !isFinishing()) playOffline(
+          download
+        );
+      });
+    });
+  }
+
+  private void playOffline(Download d) {
     save(true);
     stopMedia();
-    Download d = YoruApp.app().downloads().get(id);
     if (d == null || d.state != Download.STATE_COMPLETED) {
       error("Эта серия ещё не скачана полностью.");
       return;
     }
+    String id = d.request.id;
     offlineId = id;
     offlineDownload = d;
     JSONObject m = DownloadHub.metadata(d);
@@ -2010,7 +2086,7 @@ public final class PlayerActivity extends Activity {
     trustedKodik = false;
     currentUrl = d.request.uri.toString();
     video.setVisibility(View.VISIBLE);
-    web.setVisibility(View.GONE);
+    if (web != null) web.setVisibility(View.GONE);
     selectors.setVisibility(View.GONE);
     epRow.setVisibility(View.VISIBLE);
     sourceSelect.setEnabled(false);
@@ -2019,7 +2095,10 @@ public final class PlayerActivity extends Activity {
       player
         .getTrackSelectionParameters()
         .buildUpon()
-        .setMaxVideoSize(Integer.MAX_VALUE, Integer.MAX_VALUE)
+        .setMaxVideoSize(
+          Integer.MAX_VALUE,
+          quality > 0 ? quality : Integer.MAX_VALUE
+        )
         .setForceLowestBitrate(false)
         .build()
     );
@@ -2353,7 +2432,10 @@ public final class PlayerActivity extends Activity {
   private void save(boolean force) {
     if (!playing || anime == null) return;
     long now = System.currentTimeMillis();
-    if (!force && now - lastSaved < 3500) return;
+    if (
+      !force &&
+      (now - lastSaved < 10_000 || player == null || !player.isPlaying())
+    ) return;
     lastSaved = now;
     boolean saved = false;
     if (nativeMode && video != null) {
@@ -2558,8 +2640,10 @@ public final class PlayerActivity extends Activity {
   @Override
   protected void onPause() {
     super.onPause();
+    if (!registeredPlayer) return;
     YoruApp.app().store.playbackSpeed(speed);
     save(true);
+    YoruApp.app().store.flushAsync();
     if (!fullPlayer) getWindow().clearFlags(
       WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
     );
@@ -2616,6 +2700,9 @@ public final class PlayerActivity extends Activity {
     save(true);
     destroyed = true;
     generation++;
+    if (playbackTask != null) playbackTask.cancel(true);
+    if (prewarmTask != null) prewarmTask.cancel(true);
+    YoruApp.app().store.flushAsync();
     timer.removeCallbacksAndMessages(null);
     if (fullPlayer) hideFullPlayer();
     stopMedia();

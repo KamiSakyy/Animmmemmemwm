@@ -19,6 +19,19 @@ final class VideoResolver {
 
   static TreeMap<Integer, String> resolve(ApiRepository api, String input)
     throws Exception {
+    final String safe = ApiRepository.embed(input);
+    return ResolutionWalk.visit(safe, () -> {
+      TreeMap<Integer, String> streams = resolveInternal(api, safe);
+      for (String media : streams.values())
+        MediaHeaders.rememberIfMissing(media, safe);
+      return streams;
+    });
+  }
+
+  private static TreeMap<Integer, String> resolveInternal(
+    ApiRepository api,
+    String input
+  ) throws Exception {
     String url = ApiRepository.embed(input);
     if (url.isEmpty()) url = ApiRepository.safeUrl(input);
     if (url.isEmpty()) throw new IOException("Просмотр не передал данные");
@@ -175,6 +188,7 @@ final class VideoResolver {
     String url,
     String referer
   ) throws Exception {
+    MediaHeaders.remember(url, referer);
     return parseHls(
       api.request(url, "GET", null, false, headers(origin(url), referer)),
       url
@@ -185,21 +199,7 @@ final class VideoResolver {
     String manifest,
     String url
   ) {
-    TreeMap<Integer, String> out = new TreeMap<>();
-    if (manifest == null || !manifest.trim().startsWith("#EXTM3U")) return out;
-    String[] lines = manifest.split("\\r?\\n");
-    int height = 0;
-    for (String line : lines) {
-      String l = line.trim();
-      if (l.startsWith("#EXT-X-STREAM-INF")) {
-        Matcher m = Pattern.compile("RESOLUTION=\\d+x(\\d+)").matcher(l);
-        height = m.find() ? Integer.parseInt(m.group(1)) : 0;
-      } else if (!l.isEmpty() && !l.startsWith("#") && height > 0) {
-        out.put(height, absolute(url, l));
-        height = 0;
-      }
-    }
-    return clean(out);
+    return HlsManifests.qualities(manifest, url);
   }
 
   private static TreeMap<Integer, String> directWithReferer(
@@ -207,6 +207,7 @@ final class VideoResolver {
     String url,
     String referer
   ) throws Exception {
+    MediaHeaders.remember(url, referer);
     TreeMap<Integer, String> out = new TreeMap<>();
     String lower = url.toLowerCase(Locale.ROOT),
       p = path(url).toLowerCase(Locale.ROOT);
@@ -723,6 +724,7 @@ final class VideoResolver {
     String url,
     String referer
   ) throws Exception {
+    MediaHeaders.remember(url, referer);
     String body = api.request(
       url,
       "GET",
@@ -1110,7 +1112,7 @@ final class VideoResolver {
         safe
       );
       else for (Map.Entry<Integer, String> e : found.entrySet())
-        if (!out.containsValue(e.getValue())) out.put(
+        if (!out.containsKey(e.getKey())) out.put(
           e.getKey() > 0
             ? e.getKey()
             : forcedQuality > 0
@@ -1255,8 +1257,8 @@ final class VideoResolver {
     HttpURLConnection c = null;
     try {
       c = (HttpURLConnection) new URL(safe).openConnection();
-      c.setConnectTimeout(2200);
-      c.setReadTimeout(3200);
+      c.setConnectTimeout(NetworkScope.timeout(2200));
+      c.setReadTimeout(NetworkScope.timeout(3200));
       c.setInstanceFollowRedirects(true);
       c.setRequestMethod("GET");
       c.setRequestProperty("User-Agent", CHROME);
@@ -1270,13 +1272,13 @@ final class VideoResolver {
         referer
       );
       c.setRequestProperty("Range", "bytes=0-8191");
-      int code = c.getResponseCode();
+      int code = NetworkScope.responseCode(c);
       if (code < 200 || code >= 400) return out;
       String type = c.getContentType();
       String ct = type == null ? "" : type.toLowerCase(Locale.ROOT);
       byte[] b = new byte[8192];
       int n = 0;
-      try (InputStream in = c.getInputStream()) {
+      try (InputStream in = NetworkScope.inputStream(c)) {
         n = in.read(b);
       } catch (Exception ignored) {}
       String head =
@@ -1292,7 +1294,7 @@ final class VideoResolver {
       if (ok) out.put(quality(safe), safe);
     } catch (Exception ignored) {
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null) NetworkScope.disconnect(c);
     }
     return clean(out);
   }
@@ -1476,8 +1478,8 @@ final class VideoResolver {
       String safe = ApiRepository.safeUrl(url);
       if (safe.isEmpty()) throw new IOException("Недопустимый адрес");
       c = (HttpURLConnection) new URL(safe).openConnection();
-      c.setConnectTimeout(4500);
-      c.setReadTimeout(6500);
+      c.setConnectTimeout(NetworkScope.timeout(4500));
+      c.setReadTimeout(NetworkScope.timeout(6500));
       c.setInstanceFollowRedirects(true);
       c.setRequestProperty(
         "Accept",
@@ -1489,12 +1491,15 @@ final class VideoResolver {
         "Referer",
         referer
       );
-      int code = c.getResponseCode();
+      int code = NetworkScope.responseCode(c);
       if (code < 200 || code >= 300) throw new IOException(
         "Просмотр не ответил"
       );
       Page p = new Page();
-      p.text = ApiRepository.readStream(c.getInputStream(), 12 * 1024 * 1024);
+      p.text = ApiRepository.readStream(
+        NetworkScope.inputStream(c),
+        12 * 1024 * 1024
+      );
       List<String> set = c.getHeaderFields().get("Set-Cookie");
       if (set != null) {
         StringBuilder cookies = new StringBuilder();
@@ -1508,7 +1513,7 @@ final class VideoResolver {
       }
       return p;
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null) NetworkScope.disconnect(c);
     }
   }
 
@@ -1527,23 +1532,26 @@ final class VideoResolver {
       String safe = ApiRepository.safeUrl(url);
       if (safe.isEmpty()) throw new IOException("Недопустимый адрес");
       c = (HttpURLConnection) new URL(safe).openConnection();
-      c.setConnectTimeout(4500);
-      c.setReadTimeout(6500);
+      c.setConnectTimeout(NetworkScope.timeout(4500));
+      c.setReadTimeout(NetworkScope.timeout(6500));
       c.setRequestMethod("POST");
       c.setDoOutput(true);
       for (Map.Entry<String, String> e : h.entrySet())
         c.setRequestProperty(e.getKey(), e.getValue());
       c.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-      try (OutputStream out = c.getOutputStream()) {
+      try (OutputStream out = NetworkScope.outputStream(c)) {
         out.write(body.getBytes(StandardCharsets.UTF_8));
       }
-      int code = c.getResponseCode();
+      int code = NetworkScope.responseCode(c);
       if (code < 200 || code >= 300) throw new IOException(
         "Просмотр не ответил"
       );
-      return ApiRepository.readStream(c.getInputStream(), 12 * 1024 * 1024);
+      return ApiRepository.readStream(
+        NetworkScope.inputStream(c),
+        12 * 1024 * 1024
+      );
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null) NetworkScope.disconnect(c);
     }
   }
 
@@ -1562,8 +1570,8 @@ final class VideoResolver {
       String safe = ApiRepository.safeUrl(url);
       if (safe.isEmpty()) throw new IOException("Недопустимый адрес");
       c = (HttpURLConnection) new URL(safe).openConnection();
-      c.setConnectTimeout(4500);
-      c.setReadTimeout(6500);
+      c.setConnectTimeout(NetworkScope.timeout(4500));
+      c.setReadTimeout(NetworkScope.timeout(6500));
       c.setRequestMethod("POST");
       c.setDoOutput(true);
       for (Map.Entry<String, String> e : h.entrySet())
@@ -1572,16 +1580,19 @@ final class VideoResolver {
         "Content-Type",
         "application/x-www-form-urlencoded; charset=UTF-8"
       );
-      try (OutputStream out = c.getOutputStream()) {
+      try (OutputStream out = NetworkScope.outputStream(c)) {
         out.write(body.getBytes(StandardCharsets.UTF_8));
       }
-      int code = c.getResponseCode();
+      int code = NetworkScope.responseCode(c);
       if (code < 200 || code >= 300) throw new IOException(
         "Просмотр не ответил"
       );
-      return ApiRepository.readStream(c.getInputStream(), 12 * 1024 * 1024);
+      return ApiRepository.readStream(
+        NetworkScope.inputStream(c),
+        12 * 1024 * 1024
+      );
     } finally {
-      if (c != null) c.disconnect();
+      if (c != null) NetworkScope.disconnect(c);
     }
   }
 }

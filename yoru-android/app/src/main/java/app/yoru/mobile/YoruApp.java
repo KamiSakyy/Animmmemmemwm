@@ -2,75 +2,33 @@ package app.yoru.mobile;
 
 import android.app.*;
 import android.os.*;
-import android.webkit.WebView;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.*;
-import org.json.*;
 
 public final class YoruApp extends Application {
 
   public static YoruApp instance;
-  public final ExecutorService io = ioPool(),
-    ui = uiPool(),
-    discovery = discoveryPool();
+  public final ExecutorService io = TaskExecutors.fixed("yoru-io", 4);
+  public final ExecutorService ui = TaskExecutors.fixed("yoru-foreground", 4);
+  public final ExecutorService discovery = TaskExecutors.fixed(
+    "yoru-background",
+    2
+  );
+  public final ExecutorService sources = TaskExecutors.fixed("yoru-source", 4);
+  public final ExecutorService local = TaskExecutors.fixed("yoru-local", 1);
   public final Handler main = new Handler(Looper.getMainLooper());
   public SecureStore store;
   public YoruCache cache;
   public ApiRepository api;
   public ImageLoader images;
-  public boolean original;
+  public volatile boolean original, initialized;
   public TrafficMeter traffic;
   public MediaCache mediaCache;
   private DownloadHub downloads;
   public volatile int activePlayers, calendarTodayCount;
-  private volatile boolean warmed;
-
-  private static ExecutorService pool(
-    String name,
-    int core,
-    int max,
-    int priority
-  ) {
-    ThreadPoolExecutor e = new ThreadPoolExecutor(
-      core,
-      max,
-      20L,
-      TimeUnit.SECONDS,
-      new LinkedBlockingQueue<>(256),
-      r -> {
-        Thread t = new Thread(r, name);
-        t.setPriority(priority);
-        return t;
-      },
-      new ThreadPoolExecutor.DiscardOldestPolicy()
-    );
-    e.allowCoreThreadTimeOut(true);
-    return e;
-  }
-
-  private static ExecutorService ioPool() {
-    int cores = Math.max(2, Runtime.getRuntime().availableProcessors());
-    return pool(
-      "yoru-io",
-      Math.max(3, Math.min(6, cores)),
-      Math.max(6, Math.min(10, cores * 2)),
-      Thread.NORM_PRIORITY
-    );
-  }
-
-  private static ExecutorService uiPool() {
-    return pool("yoru-ui", 1, 2, Thread.NORM_PRIORITY + 1);
-  }
-
-  private static ExecutorService discoveryPool() {
-    int cores = Math.max(2, Runtime.getRuntime().availableProcessors());
-    return pool(
-      "yoru-bg",
-      2,
-      Math.max(3, Math.min(6, cores)),
-      Thread.NORM_PRIORITY - 1
-    );
-  }
+  private boolean warmed;
+  private final ArrayList<WeakReference<Activity>> waiting = new ArrayList<>();
 
   public synchronized DownloadHub downloads() {
     if (downloads == null) downloads = new DownloadHub(this, mediaCache);
@@ -79,7 +37,11 @@ public final class YoruApp extends Application {
 
   public boolean savingMobile() {
     return (
-      store != null && traffic != null && store.dataSaver() && traffic.mobile()
+      store != null &&
+      store.ready() &&
+      traffic != null &&
+      store.dataSaver() &&
+      traffic.metered()
     );
   }
 
@@ -91,95 +53,94 @@ public final class YoruApp extends Application {
   public void onCreate() {
     super.onCreate();
     instance = this;
-    original = true;
     store = new SecureStore(this);
     cache = new YoruCache(this);
-    traffic = new TrafficMeter(this, store);
     mediaCache = new MediaCache(this);
-    api = new ApiRepository(this);
+    traffic = new TrafficMeter(this, store);
+    api = new ApiRepository(this); // Constructors must not read SecureStore.
     images = new ImageLoader(this);
     channels();
-    io.execute(() -> {
+    local.execute(() -> {
+      long started = Perf.start();
       try {
         store.preload();
-      } catch (Exception ignored) {}
+        api.restoreProtection();
+        api.seed();
+        traffic.restore();
+        original = AppSecurity.original(this);
+      } catch (Exception error) {
+        Perf.failure("bootstrap", error);
+        original = false;
+      } finally {
+        Perf.end("bootstrap", started);
+        main.post(() -> {
+          initialized = true;
+          ArrayList<WeakReference<Activity>> ready = new ArrayList<>(waiting);
+          waiting.clear();
+          for (WeakReference<Activity> ref : ready) {
+            Activity activity = ref.get();
+            if (
+              activity != null &&
+              !activity.isFinishing() &&
+              !activity.isDestroyed()
+            ) activity.recreate();
+          }
+          main.postDelayed(this::warmStartup, 1000);
+        });
+      }
     });
-    main.post(this::afterFirstFrame);
   }
 
-  private void afterFirstFrame() {
-    ui.execute(() -> {
-      boolean ok = AppSecurity.original(this);
-      main.post(() -> original = ok);
+  /** Called on main by the lightweight activity gate. Never blocks main. */
+  public void resumeWhenReady(Activity activity) {
+    if (initialized) {
+      main.post(() -> {
+        if (
+          !activity.isFinishing() && !activity.isDestroyed()
+        ) activity.recreate();
+      });
+    } else {
+      waiting.removeIf(ref -> ref.get() == null || ref.get() == activity);
+      waiting.add(new WeakReference<>(activity));
+    }
+  }
+
+  /** Startup warms local data only. Network schedule refresh belongs to Calendar/jobs. */
+  public void warmStartup() {
+    if (warmed || !initialized || !original) return;
+    warmed = true;
+    local.execute(() -> {
+      try {
+        calendarTodayCount = cache.todayScheduleCount();
+        cache.trimNow();
+      } catch (Exception error) {
+        Perf.failure("local-warmup", error);
+      }
     });
-    try {
-      WebView.setWebContentsDebuggingEnabled(false);
-    } catch (Exception ignored) {}
     discovery.execute(() -> {
       try {
         EpisodeUpdateReceiver.schedule(this);
         if (
           System.currentTimeMillis() - store.lastEpisodeCheckAt() >
-          35L * 60L * 1000L
+          35L * 60 * 1000
         ) EpisodeUpdateReceiver.checkSoon(this);
-      } catch (Exception ignored) {}
-    });
-    io.execute(() -> {
-      try {
-        api.refreshProtection(false);
-      } catch (Exception ignored) {}
-    });
-    warmStartup();
-  }
-
-  public void warmStartup() {
-    if (warmed) return;
-    warmed = true;
-    discovery.execute(() -> {
-      try {
-        calendarTodayCount = cache == null ? 0 : cache.todayScheduleCount();
-      } catch (Exception ignored) {
-        calendarTodayCount = 0;
+      } catch (Exception error) {
+        Perf.failure("schedule-job", error);
       }
-      try {
-        api.seed();
-      } catch (Exception ignored) {}
-      try {
-        long at = store.calendarCacheAt();
-        if (
-          System.currentTimeMillis() - at < 25 * 60 * 1000L &&
-          calendarTodayCount > 0
-        ) return;
-        ArrayList<ApiRepository.AiringItem> rows = api.airingSchedule(
-          28,
-          store.favorites()
-        );
-        JSONArray json = ApiRepository.airingJson(rows);
-        if (cache != null) cache.schedule(json);
-        store.calendarCache(json);
-        calendarTodayCount = ApiRepository.todayCount(rows);
-      } catch (Exception ignored) {}
-    });
-    io.execute(() -> {
-      try {
-        if (cache != null) cache.trimNow();
-      } catch (Exception ignored) {}
     });
   }
 
   private void channels() {
-    if (Build.VERSION.SDK_INT >= 26) {
-      NotificationManager nm = (NotificationManager) getSystemService(
-        NOTIFICATION_SERVICE
-      );
-      if (nm != null) nm.createNotificationChannel(
-        new NotificationChannel(
-          "yoru-updates",
-          getString(R.string.updates_channel_name),
-          NotificationManager.IMPORTANCE_HIGH
-        )
-      );
-    }
+    NotificationManager manager = (NotificationManager) getSystemService(
+      NOTIFICATION_SERVICE
+    );
+    if (manager != null) manager.createNotificationChannel(
+      new NotificationChannel(
+        "yoru-updates",
+        getString(R.string.updates_channel_name),
+        NotificationManager.IMPORTANCE_HIGH
+      )
+    );
   }
 
   public static YoruApp app() {

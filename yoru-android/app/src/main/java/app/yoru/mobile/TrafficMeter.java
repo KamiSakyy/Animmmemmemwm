@@ -17,6 +17,7 @@ public final class TrafficMeter {
     since,
     lastTotal = -1,
     lastElapsed;
+  private long lastPersisted = -60_000;
   private int lastKind;
   private boolean available = true,
     started;
@@ -120,7 +121,19 @@ public final class TrafficMeter {
     }
   }
 
+  public synchronized void restore() {
+    JSONObject saved = store.traffic();
+    mobile = saved.optLong("mobile", 0);
+    wifi = saved.optLong("wifi", 0);
+    other = saved.optLong("other", 0);
+    since = saved.optLong("since", System.currentTimeMillis());
+    lastTotal = saved.optLong("lastTotal", -1);
+    lastElapsed = saved.optLong("lastElapsed", 0);
+    lastKind = saved.optInt("lastKind", 2);
+  }
+
   public synchronized void sample() {
+    if (!store.ready()) return;
     long rx = TrafficStats.getUidRxBytes(android.os.Process.myUid()),
       tx = TrafficStats.getUidTxBytes(android.os.Process.myUid());
     long now = SystemClock.elapsedRealtime();
@@ -144,6 +157,9 @@ public final class TrafficMeter {
   }
 
   private void persist() {
+    long now = SystemClock.elapsedRealtime();
+    if (now - lastPersisted < 60_000) return;
+    lastPersisted = now;
     try {
       store.traffic(
         new JSONObject()
@@ -176,6 +192,7 @@ public final class TrafficMeter {
     mobile = wifi = other = 0;
     since = System.currentTimeMillis();
     lastTotal = -1;
+    lastPersisted = -60_000;
     sample();
   }
 }

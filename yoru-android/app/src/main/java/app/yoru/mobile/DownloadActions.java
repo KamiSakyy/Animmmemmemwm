@@ -312,19 +312,9 @@ public final class DownloadActions {
   }
 
   private static Anime.Episode findEpisode(Anime anime, double number) {
-    if (anime == null) return null;
-    Anime.Episode fallback = null;
-    double best = Double.MAX_VALUE;
-    for (Anime.Episode ep : anime.episodeList) {
-      if (ep == null) continue;
-      if (Math.abs(ep.number - number) < 0.001) return ep;
-      double diff = Math.abs(ep.number - number);
-      if (diff < best) {
-        best = diff;
-        fallback = ep;
-      }
-    }
-    return fallback;
+    return anime == null
+      ? null
+      : EpisodeLookup.exact(anime.episodeList, number);
   }
 
   private static void filterDialog(
