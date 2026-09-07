@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
  <uses-permission android:name="android.permission.INTERNET" />
- <application android:theme="@style/SourceLabTheme" android:label="YORU Source Lab" android:icon="@drawable/ic_sourcelab" android:usesCleartextTraffic="false" android:allowBackup="false" android:supportsRtl="true">
+ <application android:theme="@style/SourceLabTheme" android:label="YORU Source Player" android:icon="@drawable/ic_sourcelab" android:usesCleartextTraffic="false" android:allowBackup="false" android:supportsRtl="true">
+  <activity android:name=".PlayerActivity" android:screenOrientation="sensorLandscape" android:exported="false" />
   <activity android:name=".MainActivity" android:exported="true">
    <intent-filter>
     <action android:name="android.intent.action.MAIN" />
