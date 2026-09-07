@@ -55,9 +55,9 @@ yoru-android/app/build/outputs/apk/release/app-release.apk
 
 Проверенный CI APK сохранён как `apk-output/YORU-4.15.0-release.apk`.
 
-SHA256 будет указан после CI-сборки.
-Размер будет указан после CI-сборки.
-GitHub Actions run будет указан после CI-сборки.
+SHA256: `2995537ebe8de10ce5e424cb9303ea59c93a44d89b608f53c369daff88331726`.
+Размер: `2650604` bytes.
+GitHub Actions run: `34129235538`.
 
 ## Правила продолжения
 
