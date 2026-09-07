@@ -1,14 +1,14 @@
 {
-  "source_commit": "a6f4de0db77ce8ac41c9d912ce97223207f3d02d",
-  "workflow_run": "34134924925",
+  "source_commit": "ba8bc165da682ad52e07a60914c77f729e5b5c45",
+  "workflow_run": "34135262430",
   "branch": "arena/01a07b80-animmmemmemwm",
-  "outcome": "failure",
-  "gradle_exit_code": "1",
-  "recorded_at_utc": "2026-09-07T14:50:00.711628+00:00",
+  "outcome": "success",
+  "gradle_exit_code": "0",
+  "recorded_at_utc": "2026-09-07T14:56:48.431178+00:00",
   "requested_release": true,
   "sdk_platform_36_present": true,
   "unit_tests": {
-    "tests": 0,
+    "tests": 86,
     "failures": 0,
     "errors": 0,
     "skipped": 0

@@ -1,1 +1,1 @@
-package: name='app.yoru.mobile' versionCode='58' versionName='4.14.2' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+package: name='app.yoru.mobile' versionCode='59' versionName='4.14.3' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
