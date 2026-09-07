@@ -55,19 +55,17 @@ jobs:
             echo "::error title=Tsuyu Gradle release build failed::$message"
             exit "$code"
           fi
-      - name: Save Tsuyu APK into branch
+      - name: Stage Tsuyu APK files
         working-directory: .
         run: |
-          git pull --rebase origin arena/01a07147-animmmemwm
+          set -euo pipefail
           mkdir -p apk-output
-          rm -f apk-output/Tsuyu-1.0.0-release.apk apk-output/Tsuyu-1.0.0-release.apk.sha256
-          cp tsuyu-android/app/build/outputs/apk/release/app-release.apk apk-output/Tsuyu-1.0.0-release.apk
+          echo "Release outputs:"
+          find tsuyu-android/app/build/outputs/apk/release -maxdepth 1 -type f -print -exec ls -lh {} \;
+          APK="$(find tsuyu-android/app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          cp "$APK" apk-output/Tsuyu-1.0.0-release.apk
           sha256sum apk-output/Tsuyu-1.0.0-release.apk > apk-output/Tsuyu-1.0.0-release.apk.sha256
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/Tsuyu-1.0.0-release.apk apk-output/Tsuyu-1.0.0-release.apk.sha256
-          git commit -m "Add built Tsuyu 1.0.0 release APK [skip ci]" || exit 0
-          git push origin HEAD:arena/01a07147-animmmemmemwm
       - name: Upload Tsuyu APK
         uses: actions/upload-artifact@v4
         with:
@@ -75,3 +73,13 @@ jobs:
           path: |
             apk-output/Tsuyu-1.0.0-release.apk
             apk-output/Tsuyu-1.0.0-release.apk.sha256
+      - name: Save Tsuyu APK into branch
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin arena/01a07147-animmmemmemwm
+          git add -f apk-output/Tsuyu-1.0.0-release.apk apk-output/Tsuyu-1.0.0-release.apk.sha256
+          git commit -m "Add built Tsuyu 1.0.0 release APK [skip ci]" || exit 0
+          git push origin HEAD:arena/01a07147-animmmemmemwm
