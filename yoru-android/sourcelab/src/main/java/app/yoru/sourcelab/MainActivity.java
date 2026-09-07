@@ -160,11 +160,12 @@ public final class MainActivity extends Activity {
         SourceProbe p = probes.get(selected);
         String q = query.getText() == null ? p.defaultQuery() : query.getText().toString().trim();
         if (q.isEmpty()) q = p.defaultQuery();
+        final String queryText = q;
         output.setText("Проверяю " + p.name() + "…\n");
         io.execute(() -> {
             String result;
             try {
-                result = p.run(q);
+                result = p.run(queryText);
             } catch (Throwable e) {
                 result = "✗ Ошибка проверки " + p.name() + "\n" + e.getClass().getSimpleName() + ": " + e.getMessage();
             }
