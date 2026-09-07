@@ -13,7 +13,6 @@ public final class YoruCache extends SQLiteOpenHelper {
     private final ConcurrentHashMap<String,Long> trimAt=new ConcurrentHashMap<>();
     private volatile int cachedTodayCount=-1;private volatile long cachedTodayAt,cachedTodayDay;
     public YoruCache(Context c){super(c.getApplicationContext(),DB,null,VERSION);try{setWriteAheadLoggingEnabled(true);}catch(Exception ignored){}}
-    @Override public void onConfigure(SQLiteDatabase db){super.onConfigure(db);try{db.enableWriteAheadLogging();}catch(Exception ignored){}}
     @Override public void onCreate(SQLiteDatabase db){
         db.execSQL("CREATE TABLE IF NOT EXISTS details(k TEXT PRIMARY KEY, mal INTEGER, json TEXT NOT NULL, updated INTEGER NOT NULL)");
         db.execSQL("CREATE INDEX IF NOT EXISTS details_mal ON details(mal)");
