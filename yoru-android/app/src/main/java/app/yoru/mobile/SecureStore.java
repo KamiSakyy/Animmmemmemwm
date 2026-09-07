@@ -136,7 +136,7 @@ public final class SecureStore {
     public synchronized JSONObject traffic(){ensure();return read("traffic");}
     public synchronized void traffic(JSONObject value){ensure();write("traffic",value);}
     public synchronized boolean dataSaver(){ensure();return settings.optBoolean("dataSaver",false);}
-    public synchronized boolean wifiDownloads(){ensure();return settings.optBoolean("wifiDownloads",true);}
+    public synchronized boolean wifiDownloads(){ensure();return settings.optBoolean("wifiDownloads",false);}
     public synchronized void dataSaver(boolean enabled){ensure();try{settings.put("dataSaver",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized void wifiDownloads(boolean enabled){ensure();try{settings.put("wifiDownloads",enabled);write("settings",settings);}catch(Exception ignored){}}
 
