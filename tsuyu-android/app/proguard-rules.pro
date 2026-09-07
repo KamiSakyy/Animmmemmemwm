@@ -1,0 +1,5 @@
+-keep class app.tsuyu.mobile.** { *; }
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
