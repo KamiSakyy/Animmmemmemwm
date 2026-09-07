@@ -20,9 +20,9 @@ public final class YoruApp extends Application {
     public MediaCache mediaCache;
     private DownloadHub downloads;
     public volatile int activePlayers,calendarTodayCount;private volatile boolean warmed;
-    private static ExecutorService pool(String name,int core,int max,int priority){ThreadPoolExecutor e=new ThreadPoolExecutor(core,max,20L,TimeUnit.SECONDS,new LinkedBlockingQueue<>(256),r->{Thread t=new Thread(r,name);t.setPriority(priority);return t;},new ThreadPoolExecutor.DiscardOldestPolicy());e.allowCoreThreadTimeOut(true);return e;}
+    private static ExecutorService pool(String name,int core,int max,int priority){ThreadPoolExecutor e=new ThreadPoolExecutor(core,max,20L,TimeUnit.SECONDS,new LinkedBlockingQueue<>(256),r->{Thread t=new Thread(r,name);t.setPriority(priority);return t;},new ThreadPoolExecutor.CallerRunsPolicy());e.allowCoreThreadTimeOut(true);return e;}
     private static ExecutorService ioPool(){int cores=Math.max(2,Runtime.getRuntime().availableProcessors());return pool("yoru-io",Math.max(3,Math.min(6,cores)),Math.max(6,Math.min(10,cores*2)),Thread.NORM_PRIORITY);}
-    private static ExecutorService uiPool(){return pool("yoru-ui",1,2,Thread.NORM_PRIORITY+1);}
+    private static ExecutorService uiPool(){int cores=Math.max(4,Runtime.getRuntime().availableProcessors());return pool("yoru-ui",4,Math.max(6,Math.min(10,cores*2)),Thread.NORM_PRIORITY+1);}
     private static ExecutorService discoveryPool(){int cores=Math.max(2,Runtime.getRuntime().availableProcessors());return pool("yoru-bg",2,Math.max(3,Math.min(6,cores)),Thread.NORM_PRIORITY-1);}
     public synchronized DownloadHub downloads(){if(downloads==null)downloads=new DownloadHub(this,mediaCache);return downloads;}
     public boolean savingMobile(){return store!=null&&traffic!=null&&store.dataSaver()&&traffic.mobile();}

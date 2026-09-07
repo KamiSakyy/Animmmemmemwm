@@ -9,10 +9,11 @@ import java.util.concurrent.*;
 
 public final class YoruCache extends SQLiteOpenHelper {
     private static final String DB="yoru-fast-cache.db";private static final int VERSION=1;
-    private static final long DAY=24L*60*60*1000,TRIM_INTERVAL=5L*60L*1000L;
+    private static final long DAY=24L*60*60*1000,TRIM_INTERVAL=60L*60L*1000L;
     private final ConcurrentHashMap<String,Long> trimAt=new ConcurrentHashMap<>();
     private volatile int cachedTodayCount=-1;private volatile long cachedTodayAt,cachedTodayDay;
-    public YoruCache(Context c){super(c.getApplicationContext(),DB,null,VERSION);}
+    public YoruCache(Context c){super(c.getApplicationContext(),DB,null,VERSION);try{setWriteAheadLoggingEnabled(true);}catch(Exception ignored){}}
+    @Override public void onConfigure(SQLiteDatabase db){super.onConfigure(db);try{db.enableWriteAheadLogging();}catch(Exception ignored){}}
     @Override public void onCreate(SQLiteDatabase db){
         db.execSQL("CREATE TABLE IF NOT EXISTS details(k TEXT PRIMARY KEY, mal INTEGER, json TEXT NOT NULL, updated INTEGER NOT NULL)");
         db.execSQL("CREATE INDEX IF NOT EXISTS details_mal ON details(mal)");
@@ -36,7 +37,7 @@ public final class YoruCache extends SQLiteOpenHelper {
     public void trimNow(){try{SQLiteDatabase db=getWritableDatabase();trim(db,"details",520,14*DAY);trim(db,"franchise",240,21*DAY);trim(db,"schedule",6,4*DAY);trim(db,"offline",4,7*DAY);trim(db,"progress",1200,60*DAY);long now=System.currentTimeMillis();trimAt.put("details",now);trimAt.put("franchise",now);trimAt.put("schedule",now);trimAt.put("offline",now);trimAt.put("progress",now);}catch(Exception ignored){}}
     private JSONArray jsonArray(String table,String k,long ttl){Cursor c=null;try{SQLiteDatabase db=getReadableDatabase();long min=System.currentTimeMillis()-Math.max(60_000,ttl);String keyColumn=table.equals("franchise")?"mal":"k";c=db.rawQuery("SELECT json FROM "+table+" WHERE "+keyColumn+"=? AND updated>=?",new String[]{k,String.valueOf(min)});if(!c.moveToFirst())return new JSONArray();return new JSONArray(c.getString(0));}catch(Exception e){return new JSONArray();}finally{close(c);}}
     private void putJson(String table,String k,JSONArray rows,long age,int keep){try{SQLiteDatabase db=getWritableDatabase();ContentValues v=new ContentValues();if(table.equals("franchise"))v.put("mal",Integer.parseInt(k));else v.put("k",k);v.put("json",rows.toString());v.put("updated",System.currentTimeMillis());db.insertWithOnConflict(table,null,v,SQLiteDatabase.CONFLICT_REPLACE);trimMaybe(db,table,keep,age);}catch(Exception ignored){}}
-    private void trimMaybe(SQLiteDatabase db,String table,int keep,long maxAge){long now=System.currentTimeMillis();Long last=trimAt.get(table);if(last!=null&&now-last<TRIM_INTERVAL)return;trimAt.put(table,now);trim(db,table,keep,maxAge);}
+    private void trimMaybe(SQLiteDatabase db,String table,int keep,long maxAge){long now=System.currentTimeMillis();Long last=trimAt.get(table);if(last!=null&&now-last<TRIM_INTERVAL)return;trimAt.put(table,now);YoruApp app=YoruApp.app();if(app!=null&&app.discovery!=null)app.discovery.execute(()->{try{SQLiteDatabase writable=getWritableDatabase();trim(writable,table,keep,maxAge);}catch(Exception ignored){}});}
     private static JSONObject pack(Anime a)throws JSONException{JSONObject j=a.json();JSONArray rel=new JSONArray();for(Anime r:a.related)if(Anime.valid(r)&&rel.length()<120)rel.put(r.json());j.put("related",rel);return j;}
     private static Anime unpack(JSONObject j){Anime a=Anime.from(j);JSONArray rel=j.optJSONArray("related");for(int i=0;rel!=null&&i<rel.length()&&a.related.size()<120;i++){Anime r=Anime.from(rel.optJSONObject(i));if(Anime.valid(r)&&!r.key().equals(a.key()))a.related.add(r);}return a;}
     private static void trim(SQLiteDatabase db,String table,int keep,long maxAge){long min=System.currentTimeMillis()-maxAge;try{db.delete(table,"updated<?",new String[]{String.valueOf(min)});}catch(Exception ignored){}Cursor c=null;try{String keyColumn=table.equals("franchise")?"mal":"k";c=db.rawQuery("SELECT "+keyColumn+" FROM "+table+" ORDER BY updated DESC LIMIT -1 OFFSET "+Math.max(1,keep),null);ArrayList<String> old=new ArrayList<>();while(c.moveToNext())old.add(c.getString(0));close(c);for(String k:old)db.delete(table,keyColumn+"=?",new String[]{k});}catch(Exception ignored){close(c);}}
