@@ -21,12 +21,12 @@ Source handoff: `handoff/YURO-Guard-1.5.0-source-handoff.zip`.
 
 Исходники: `yoru-android/app`. Kotlin-модуль не участвует в активной сборке YORU; Gradle собирает `:app`. Forge/toolchain в этой линии не используется.
 
-Готовый release APK будет сохранён как `apk-output/YORU-4.14.0-release.apk`.
-SHA256 APK будет указан после CI-сборки.
-Размер APK будет указан после CI-сборки.
-Source handoff YORU будет сохранён как `handoff/YORU-4.14.0-source-handoff.zip`.
+Готовый release APK: `apk-output/YORU-4.14.0-release.apk`.
+SHA256 APK: `7941b5d20f1f067beccaa4ad0be27fe2887b021a3e323c1192f13f2edac2d18e`.
+Размер APK: `2651968` bytes.
+Source handoff YORU: `handoff/YORU-4.14.0-source-handoff.zip`.
 Инструкция будет сохранена как `handoff/YORU_4.14.0_BUILD.ru.md`.
-CI run будет указан после сборки.
+CI run: `34109617422`.
 
 Ключ YORU 4.14.0: auto-mode по озвучкам сохранён, технические лейблы убраны из пользовательского UI, карточки/главная стали чище и быстрее, добавлены прогресс на карточке и “Новые серии для вас”; 4.13.0 также сохранён: Quality+ добавляет честные 1440p/2160p/“лучшее доступное” только при наличии реального потока; любимые озвучки стали списком приоритета для карточки, плеера, скрытой видеобазы и скачивания; Карточка+ показывает расширенные публичные метаданные; коллекция получила пользовательские папки/полки поверх старых статусов. Animetka подключена глубже через публичный `/api/anime/playlist`, без private tokens/auth bypass/DRM bypass. Оптимизации календаря 4.12.11, cold start/cache 4.12.10, bounded executors 4.12.9 и фоновые уведомления 4.12.8 сохранены.
 

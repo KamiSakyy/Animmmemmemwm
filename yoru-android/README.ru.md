@@ -46,11 +46,11 @@ yoru-android/app/build/outputs/apk/release/app-release.apk
 
 В Arena-песочнице локального JDK может не быть. Ветка содержит workflow `.github/workflows/build-apk.yml`, который собирает release APK на GitHub Actions.
 
-Проверенный CI APK будет сохранён как `apk-output/YORU-4.14.0-release.apk`.
+Проверенный CI APK сохранён как `apk-output/YORU-4.14.0-release.apk`.
 
-SHA256 будет указан после CI-сборки.
-Размер будет указан после CI-сборки.
-GitHub Actions run будет указан после CI-сборки.
+SHA256: `7941b5d20f1f067beccaa4ad0be27fe2887b021a3e323c1192f13f2edac2d18e`.
+Размер: `2651968` bytes.
+GitHub Actions run: `34109617422`.
 
 ## Правила продолжения
 
