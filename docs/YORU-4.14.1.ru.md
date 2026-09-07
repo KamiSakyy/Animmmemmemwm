@@ -43,6 +43,14 @@
 - Убрана ссылка настройки сборки на отсутствующий `:yuroguard`. Рабочий CI устанавливает JDK 17/SDK 36 и проверяет тесты, release и lint.
 - Добавлены 42 JVM regression tests: очереди, cancellation, coalescing, first-result selection, strict voice predicate, retry history, loading ownership, HLS master, headers, TTL, iframe cycles, snapshots и точный номер серии.
 
+## Готовый APK
+
+- [Скачать YORU-4.14.1-release.apk](../apk-output/YORU-4.14.1-release.apk) — 2 784 657 байт.
+- SHA-256: `dab2ca33a212564a70b41abfd6cc70f089f9f4296cd1c3c86ec70dd5acb4f4ce`.
+- Успешная release-сборка: [run 34124193518](https://github.com/KamiSakyy/Animmmemmemwm/actions/runs/34124193518), исходный commit `062ea37ad96d7c05281683cba420cc78a90642ff`.
+- 42 JVM-теста: 0 failures/errors/skipped; lint: 0 ошибок. APK прошёл apksigner verify (v2/v3), сертификат совпал с исходной release-подписью. После получения файла повторно проверены SHA-256 и целостность ZIP.
+- Пакет `app.yoru.mobile`, versionCode 57, versionName 4.14.1; minSdk 26, compile/target SDK 36.
+
 ## Достоверность проверки
 
 - Проверочная сборка debug и JVM-тесты прошли в GitHub Actions: [run 34122417386](https://github.com/KamiSakyy/Animmmemmemwm/actions/runs/34122417386).
