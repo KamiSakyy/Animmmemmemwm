@@ -29,7 +29,7 @@ jobs:
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      PUBLISH_APK: ${{ inputs.publish_apk || false }}
+      PUBLISH_APK: ${{ github.event_name == 'push' || inputs.publish_apk || false }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,7 +92,8 @@ jobs:
           test -n "$expected" && test "$expected" = "$actual"
           cp "$apk" apk-output/YORU-4.14.1-release.apk
           sha256sum apk-output/YORU-4.14.1-release.apk > apk-output/YORU-4.14.1-release.apk.sha256
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | head -1 > apk-output/APK-PACKAGE.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/yoru-apk-badging.txt"
+          sed -n '1p' "$RUNNER_TEMP/yoru-apk-badging.txt" > apk-output/APK-PACKAGE.txt
       - name: Upload build and test reports
         if: always()
         uses: actions/upload-artifact@v4
