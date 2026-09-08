@@ -65,7 +65,7 @@ public final class SecureStore {
     public synchronized void appearance(int scale,boolean custom,String name){ensure();try{settings.put("fontScale",Math.max(85,Math.min(130,scale))).put("customFont",custom).put("fontName",name==null||name.trim().isEmpty()?"Свой шрифт":name.trim());write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean liteMode(){ensure();return settings.optBoolean("liteMode",false);}
     public synchronized void liteMode(boolean enabled){ensure();try{settings.put("liteMode",enabled);write("settings",settings);}catch(Exception ignored){}}
-    public synchronized boolean directOnly(){ensure();return settings.optBoolean("directOnly",false);}
+    public synchronized boolean directOnly(){return true;}
     public synchronized void directOnly(boolean enabled){ensure();try{settings.put("directOnly",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized float playbackSpeed(){ensure();double v=settings.optDouble("playbackSpeed",1.0);if(v<0.75||v>2.0)v=1.0;return (float)v;}
     public synchronized void playbackSpeed(float speed){ensure();try{float v=Math.max(0.75f,Math.min(2.0f,speed));settings.put("playbackSpeed",v);write("settings",settings);}catch(Exception ignored){}}

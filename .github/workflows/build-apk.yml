@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - arena/01a07147-animmmemmemwm
+      - arena/01a0828d-animmmemmemwm
     paths:
       - 'yoru-android/app/**'
       - 'yoru-android/settings.gradle'
@@ -17,6 +17,10 @@ on:
       - 'yoru-android/gradlew'
       - 'yoru-android/gradlew.bat'
       - '.github/workflows/build-apk.yml'
+
+concurrency:
+  group: yoru-apk-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   android-apk:
@@ -60,7 +64,8 @@ jobs:
       - name: Build Java release APK
         run: |
           set +e
-          ./gradlew --no-daemon :app:assembleRelease 2>&1 | tee ../build-release.log
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease 2>&1 | tee ../build-release.log
           code=${PIPESTATUS[0]}
           if [ "$code" -ne 0 ]; then
             {
@@ -73,22 +78,29 @@ jobs:
             echo "::error title=Gradle Java release build failed::$message"
             exit "$code"
           fi
+      - name: Verify APK signatures
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/debug/app-debug.apk
       - name: Save APK into branch
         working-directory: .
         run: |
-          git pull --rebase origin arena/01a07147-animmmemmemwm
+          git pull --rebase origin arena/01a0828d-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.18.1-release.apk apk-output/YORU-4.18.1-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.18.1-release.apk
-          sha256sum apk-output/YORU-4.18.1-release.apk > apk-output/YORU-4.18.1-release.apk.sha256
+          rm -f apk-output/YORU-4.19.0-release.apk apk-output/YORU-4.19.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.19.0-release.apk
+          sha256sum apk-output/YORU-4.19.0-release.apk > apk-output/YORU-4.19.0-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.19.0-debug.apk
+          sha256sum apk-output/YORU-4.19.0-debug.apk > apk-output/YORU-4.19.0-debug.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.18.1-release.apk apk-output/YORU-4.18.1-release.apk.sha256
-          git commit -m "Add built YORU 4.18.1 release APK [skip ci]" || exit 0
-          git push origin HEAD:arena/01a07147-animmmemmemwm
+          git add -f apk-output/YORU-4.19.0-*.apk apk-output/YORU-4.19.0-*.apk.sha256
+          git commit -m "Add built YORU 4.19.0 release APK [skip ci]" || exit 0
+          git push origin HEAD:arena/01a0828d-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.18.1-release-apk
+          name: yoru-4.19.0-release-apk
           path: |
-            apk-output/YORU-4.18.1-release.apk
+            apk-output/YORU-4.19.0-*.apk
+            apk-output/YORU-4.19.0-*.apk.sha256
