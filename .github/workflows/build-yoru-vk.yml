@@ -42,26 +42,26 @@ jobs:
       - name: Verify and collect APK and test evidence
         run: |
           mkdir -p apk-output
-          cp yoru-vk-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-VK-0.1.0-prototype.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs apk-output/YORU-VK-0.1.0-prototype.apk > vk-cert.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging apk-output/YORU-VK-0.1.0-prototype.apk > vk-manifest.txt
-          sha256sum apk-output/YORU-VK-0.1.0-prototype.apk > apk-output/YORU-VK-0.1.0-prototype.apk.sha256
+          cp yoru-vk-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-VK-0.2.0-prototype.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs apk-output/YORU-VK-0.2.0-prototype.apk > vk-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging apk-output/YORU-VK-0.2.0-prototype.apk > vk-manifest.txt
+          sha256sum apk-output/YORU-VK-0.2.0-prototype.apk > apk-output/YORU-VK-0.2.0-prototype.apk.sha256
           python yoru-vk-android/tools/ci-evidence.py
       - name: Save separate deliverable
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f apk-output/YORU-VK-0.1.0-prototype.apk apk-output/YORU-VK-0.1.0-prototype.apk.sha256
-          git add handoff/YORU-VK-0.1.0-build.json
+          git add -f apk-output/YORU-VK-0.2.0-prototype.apk apk-output/YORU-VK-0.2.0-prototype.apk.sha256
+          git add handoff/YORU-VK-0.2.0-build.json
           git commit -m 'Deliver isolated YORU VK prototype APK and test evidence [skip ci]' || exit 0
           git pull --rebase --strategy-option=theirs origin arena/01a0828d-animmmemmemwm
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yoru-vk-0.1.0-prototype
+          name: yoru-vk-0.2.0-prototype
           path: |
-            apk-output/YORU-VK-0.1.0-prototype.apk*
-            handoff/YORU-VK-0.1.0-build.json
+            apk-output/YORU-VK-0.2.0-prototype.apk*
+            handoff/YORU-VK-0.2.0-build.json
             yoru-vk-android/app/build/test-results/testDebugUnitTest/
             vk-build.log

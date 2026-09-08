@@ -5,11 +5,10 @@ import android.os.*;
 import java.util.concurrent.*;
 
 public final class VkApp extends Application {
-    TokenVault vault;
     final Handler main=new Handler(Looper.getMainLooper());
     final ThreadPoolExecutor io=new ThreadPoolExecutor(2,2,30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(12),new ThreadPoolExecutor.AbortPolicy());
     final ThreadPoolExecutor images=new ThreadPoolExecutor(2,2,30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(48),new ThreadPoolExecutor.AbortPolicy());
-    @Override public void onCreate(){super.onCreate();vault=new TokenVault(this);}
+    @Override public void onCreate(){super.onCreate();}
     interface Work<T>{T run() throws Exception;}
     interface Result<T>{void done(T value,Exception error);}
     <T> Future<?> run(Work<T> work,Result<T> result){
