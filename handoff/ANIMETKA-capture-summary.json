@@ -2,8 +2,8 @@
   "resources": 17,
   "resource_bytes": 4546277,
   "source_map_sources": 0,
-  "zip_bytes": 11725387,
-  "sha256": "45ee8914a35d650ba00b0ae3882169be87401b927f8c8fef44757f767486a9c0",
+  "zip_bytes": 11733631,
+  "sha256": "70227852c70b877f6902a0b4caabe72f54b8e29f01de4abc63b54ed9d217a7ba",
   "observations": [
     "Filters clicked and captured",
     "First catalog card clicked; resulting URL: https://animetka.com/"
@@ -17,5 +17,11 @@
       "url": "https://animetka.com/assets/${D}",
       "reason": "HTML fallback instead of static asset"
     }
-  ]
+  ],
+  "original_capture_zip_sha256": "45ee8914a35d650ba00b0ae3882169be87401b927f8c8fef44757f767486a9c0",
+  "research_added": [
+    "FUNCTIONAL-REVIEW.ru.md",
+    "RESEARCH-CODE-INDEX.json"
+  ],
+  "original_public_resources_unchanged": true
 }
