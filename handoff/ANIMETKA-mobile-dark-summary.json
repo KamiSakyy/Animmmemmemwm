@@ -1,6 +1,6 @@
 {
-  "sha256": "10b5581f21a03294b087239da0894375ba9b9a452b7b8af1b8d9dbc819ca9a33",
-  "zip_bytes": 13844176,
+  "sha256": "1d329a7f848fca00ffd16a888e828a0c843f8d2e911de4d9debc5cdaf7b8d172",
+  "zip_bytes": 13859512,
   "observations": [
     {
       "capture": "01-menu-light-before-toggle",
@@ -262,5 +262,7 @@
       "sha256": "bcc4ab308a653eedee5c7f3c21ca7d58bd180630ee4b9b74b3a4f8ecec0d8750",
       "bytes": 89335
     }
-  ]
+  ],
+  "capture_zip_sha256": "10b5581f21a03294b087239da0894375ba9b9a452b7b8af1b8d9dbc819ca9a33",
+  "comparison_report_added": true
 }
