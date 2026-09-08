@@ -81,7 +81,7 @@ async def main():
         await snap(page, '04b-home-dark-full', full=True)
         assert await page.locator('html').evaluate('(e)=>e.classList.contains("dark")'), 'Dark mode not retained on reload'
         async def filters():
-            await page.get_by_role('button', name='Фильтры', exact=True).click()
+            await page.locator('button:visible').filter(has=page.locator('svg.lucide-settings2-icon')).click()
             await snap(page, '05-filters-dark')
             await page.get_by_role('button', name='Открыть', exact=True).first.click()
             await snap(page, '06-genres-dark')
@@ -106,6 +106,9 @@ async def main():
             await page.wait_for_timeout(4000)
             await snap(page, '10-anime-player-dark')
             await snap(page, '10b-anime-player-dark-full', full=True)
+            await page.get_by_role('button', name='Смотреть', exact=True).click()
+            await page.wait_for_timeout(4000)
+            await snap(page, '10c-player-open-dark')
         await step('Open title sheet and player page, media requests blocked', detail)
         async def search():
             await page.goto(BASE+'search?q='+ 'Наруто', wait_until='domcontentloaded')
@@ -114,6 +117,14 @@ async def main():
             await snap(page, '11b-search-dark-full', full=True)
         await step('Public search page with Naruto query', search)
         await home(page)
+        async def search_overlay():
+            await page.locator('button:visible').filter(has=page.locator('svg.lucide-search-icon')).click()
+            await snap(page, '11c-mobile-search-overlay')
+            await page.get_by_placeholder('Найдите своё любимое аниме').filter(visible=True).fill('Наруто')
+            await page.wait_for_timeout(1800)
+            await snap(page, '11d-mobile-search-suggestions')
+        await step('Mobile search overlay and suggestions', search_overlay)
+        await home(page)
         async def history():
             await page.locator('button').first.click()
             await page.get_by_role('button', name='История просмотра', exact=True).click()
@@ -121,7 +132,7 @@ async def main():
         await step('Guest history', history)
         await home(page)
         async def login():
-            await page.get_by_role('button', name='Войти', exact=True).click()
+            await page.locator('button:visible').filter(has=page.locator('svg.lucide-user-icon')).click()
             await snap(page, '13-login-dark')
         await step('Open login dialog only, do not authenticate', login)
         for width in (360, 430):
