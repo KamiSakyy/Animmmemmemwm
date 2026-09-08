@@ -3,7 +3,7 @@ import hashlib
 import zipfile
 
 root=Path(__file__).resolve().parents[1]
-version='4.19.0'
+version='4.19.1'
 output=root/'handoff'/f'YORU-{version}-source.zip'
 paths=[root/'AGENTS.md',root/'README.md',root/'.github/workflows/build-apk.yml',root/'tools/package-yoru-source.py',root/'tools/check-yoru-update.py',root/'handoff'/f'YORU-{version}-BUILD.ru.md']
 for name in ['build.gradle','settings.gradle','gradle.properties','gradlew','gradlew.bat','CHANGELOG.ru.md']:

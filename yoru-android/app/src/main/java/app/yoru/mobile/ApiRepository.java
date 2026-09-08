@@ -228,7 +228,52 @@ public final class ApiRepository {
     private static int yoruSourceRank(String source){if("yummy".equals(source))return 0;if("anixsekai".equals(source))return 1;if("anilibria".equals(source))return 2;if("animevost".equals(source))return 3;if("animetka".equals(source))return 4;if("kodik".equals(source))return 5;if("anidub".equals(source))return 6;if("animedia".equals(source))return 7;return 20;}
     private static int yoruVariantRank(Anime.Variant v){String p=((v==null?"":v.player)+" "+(v==null?"":v.name)+" "+(v==null?"":v.displayName)).toLowerCase(Locale.ROOT);int source=p.contains("yummyanime")?0:p.contains("anix")?1:p.contains("anilibria")||p.contains("aniliberty")?2:p.contains("animevost")?3:p.contains("animetka")?4:p.contains("kodik")?5:p.contains("anidub")?6:10;int player=p.contains("cvh")||p.contains("cdnvideohub")?0:p.contains("aksor")?1:p.contains("vk")||p.contains("вконт")?2:p.contains("rutube")?3:p.contains("zedfilm")||p.contains("hlamer")?4:p.contains("alloha")?5:p.contains("sibnet")?6:10;return source*100+player;}
     public ArrayList<AiringItem> airingSchedule(int days)throws Exception{return airingSchedule(days,null);}
-    public ArrayList<AiringItem> airingSchedule(int days,List<Anime> focus)throws Exception{days=Math.max(7,Math.min(28,days));long now=System.currentTimeMillis(),start=startOfDay(now),end=start+days*DAY_MS;LinkedHashMap<String,AiringItem> map=new LinkedHashMap<>();Exception fail=null;try{for(int page=1;page<=8;page++)airingPage(map,"ongoing","popularity",page,now,start,end,false);}catch(Exception e){fail=e;}try{for(int page=1;page<=3;page++)airingPage(map,"anons","aired_on",page,now,start,end,true);}catch(Exception ignored){}try{appendFavoriteAirings(map,focus,now,start,end);}catch(Exception ignored){}ArrayList<AiringItem> list=new ArrayList<>(map.values());if(list.isEmpty()){try{Filter f=new Filter();f.status="ongoing";Anime.Page p=catalog("shikimori","",1,f);int i=0;for(Anime a:p.items){AiringItem row=new AiringItem();row.anime=a;row.time=start+((i++)%7)*DAY_MS+20*60*60*1000;row.episode=Math.max(1,a.episodesAired>0?a.episodesAired+1:a.episodes);row.kind="Онгоинг";row.precision="Скоро";row.source="YORU";list.add(row);if(list.size()>=120)break;}}catch(Exception ignored){}}list.sort((a,b)->{int t=Long.compare(a.time,b.time);if(t!=0)return t;double bs=b.anime==null?0:b.anime.score,as=a.anime==null?0:a.anime.score;return Double.compare(bs,as);});if(list.isEmpty()&&fail!=null)throw fail;return list;}
+    public ArrayList<AiringItem> airingSchedule(int days,List<Anime> focus)throws Exception {
+        int period=Math.max(7,Math.min(28,days));
+        long now=System.currentTimeMillis(),start=startOfDay(now),end=start+period*DAY_MS;
+        CalendarFeed.Result<String,AiringItem> map=CalendarFeed.collect(
+            rows->{
+                Exception failure=null;
+                try{for(int page=1;page<=8;page++){TaskQueue.check();airingPage(rows,"ongoing","popularity",page,now,start,end,false);}}
+                catch(Exception e){TaskQueue.check();failure=e;}
+                try{for(int page=1;page<=3;page++){TaskQueue.check();airingPage(rows,"anons","aired_on",page,now,start,end,true);}}
+                catch(Exception e){TaskQueue.check();failure=e;}
+                if(failure!=null)throw failure;
+            },
+            rows->{
+                Exception failure=null;
+                try{airingRest(rows,"ongoing",now,start,end,false);}catch(Exception e){TaskQueue.check();failure=e;}
+                try{airingRest(rows,"anons",now,start,end,true);}catch(Exception e){TaskQueue.check();failure=e;}
+                if(rows.isEmpty()&&failure!=null)throw failure;
+            },
+            rows->appendFavoriteAirings(rows,focus,now,start,end)
+        );
+        ArrayList<AiringItem> list=new ArrayList<>(map.values());
+        if(!map.generalAvailable)for(AiringItem item:list)item.source="personal-fallback";
+        list.sort((a,b)->{int t=Long.compare(a.time,b.time);if(t!=0)return t;double bs=b.anime==null?0:b.anime.score,as=a.anime==null?0:a.anime.score;return Double.compare(bs,as);});
+        return list;
+    }
+
+    private void airingRest(LinkedHashMap<String,AiringItem> map,String status,long now,long start,long end,boolean premiere)throws Exception {
+        for(int page=1;page<=(premiere?3:8);page++) {
+            TaskQueue.check();
+            JSONArray rows=new JSONArray(shikiRest("/api/animes?limit=50&page="+page+"&status="+status+"&order="+(premiere?"aired_on":"popularity")));
+            for(int i=0;i<rows.length();i++) {
+                JSONObject raw=rows.optJSONObject(i);if(raw==null)continue;
+                JSONObject row=new JSONObject(raw.toString());
+                row.put("episodesAired",raw.optInt("episodes_aired",0));
+                row.put("nextEpisodeAt",raw.optString("next_episode_at",""));
+                String date=raw.optString("aired_on","");
+                JSONObject aired=new JSONObject();
+                if(!date.isEmpty()&&!date.equals("null")){aired.put("date",date);if(date.length()>=4)aired.put("year",parseInt(date.substring(0,4)));}
+                row.put("airedOn",aired);
+                JSONObject image=raw.optJSONObject("image");
+                if(image!=null)row.put("poster",new JSONObject().put("mainUrl",shikiImage(image.optString("original",image.optString("preview","")))));
+                putAiring(map,row,now,start,end,premiere);
+            }
+            if(rows.length()<50)break;
+        }
+    }
     private void appendFavoriteAirings(LinkedHashMap<String,AiringItem> map,List<Anime> focus,long now,long start,long end){if(focus==null||focus.isEmpty())return;LinkedHashMap<Integer,Anime> ids=new LinkedHashMap<>();ArrayList<Anime> unresolved=new ArrayList<>();int seen=0;for(Anime fav:focus){if(!Anime.valid(fav))continue;putFavoriteKnownDate(map,fav,now,start,end);int id=scheduleId(fav);if(id>0&&!ids.containsKey(id))ids.put(id,fav);else if(unresolved.size()<120)unresolved.add(Anime.from(fav.json()));if(++seen>=120)break;}favoriteBatches(map,ids,now,start,end);if(unresolved.isEmpty())return;LinkedHashSet<Integer> found=new LinkedHashSet<>();ExecutorService pool=Executors.newFixedThreadPool(Math.max(1,Math.min(4,unresolved.size())));CompletionService<Integer> done=new ExecutorCompletionService<>(pool);int jobs=0;for(Anime fav:unresolved){done.submit(()->searchScheduleId(fav));jobs++;}long deadline=System.currentTimeMillis()+3800;try{for(int i=0;i<jobs;i++){long left=deadline-System.currentTimeMillis();if(left<=0)break;Future<Integer> f;try{f=done.poll(left,TimeUnit.MILLISECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();break;}if(f==null)break;try{int id=f.get();if(id>0)found.add(id);}catch(Exception ignored){}}}finally{pool.shutdownNow();}if(!found.isEmpty()){LinkedHashMap<Integer,Anime> more=new LinkedHashMap<>();for(Integer id:found)more.put(id,new Anime());favoriteBatches(map,more,now,start,end);}}
     private void favoriteBatches(LinkedHashMap<String,AiringItem> map,LinkedHashMap<Integer,Anime> ids,long now,long start,long end){if(ids==null||ids.isEmpty())return;ArrayList<Integer> batch=new ArrayList<>();for(Integer id:ids.keySet()){batch.add(id);if(batch.size()>=40){favoriteBatch(map,batch,now,start,end);batch.clear();}}if(!batch.isEmpty())favoriteBatch(map,batch,now,start,end);}
     private int searchScheduleId(Anime fav){try{for(String q:searchTerms(fav)){Anime.Page page=catalog("shikimori",q,1,new Filter());for(Anime candidate:page.items)if(matchesAnime(candidate,fav)||ApiRepository.plainName(candidate.title).equals(ApiRepository.plainName(fav.title))||(!fav.original.isEmpty()&&ApiRepository.plainName(candidate.original).equals(ApiRepository.plainName(fav.original))))return scheduleId(candidate);}}catch(Exception ignored){}return 0;}

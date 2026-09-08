@@ -35,3 +35,13 @@ assert 'removeAllViews()' not in (java/'CalendarScreen.java').read_text()
 assert 'DiffUtil.calculateDiff' in (java/'CalendarScreen.java').read_text()
 assert 'DiffUtil.calculateDiff' in (java/'DetailsActivity.java').read_text()
 print('Static update checks: OK')
+
+calendar=(java/'CalendarScreen.java').read_text()
+assert 'PAGE_SIZE' not in calendar
+assert 'public void quickShow(){filter="all";selected=-1;' in calendar
+assert 'CalendarFeed.displayCount(allRows.size())' in calendar
+downloads=(java/'DownloadsScreen.java').read_text()
+assert 'ScheduledDownloads.showQueue(a)' not in downloads
+assert 'void bindPlan(' in downloads
+assert 'Будущее скачивание' in downloads
+print('Calendar and planned download card regression checks: OK')

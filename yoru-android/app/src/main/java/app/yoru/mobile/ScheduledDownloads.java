@@ -144,8 +144,8 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                     try (ScheduledDownloads store = new ScheduledDownloads(activity)) {
                         store.add(anime,episode,selectedVoice,selectedQuality,due);
                         boolean scheduled=schedule(activity);
-                        message=scheduled?"Запланировано. Очередь — в разделе «Загрузки».":"План сохранён, но Android не разрешил фоновую проверку. Откройте YORU позже.";
-                    } catch (IllegalStateException e) { message="Эта серия уже запланирована. Измените очередь в «Загрузках»."; }
+                        message=scheduled?"Запланировано. Карточка задания — в разделе «Загрузки».":"План сохранён, но Android не разрешил фоновую проверку. Откройте YORU позже.";
+                    } catch (IllegalStateException e) { message="Эта серия уже запланирована. Отмените задание на его карточке в «Загрузках»."; }
                     catch (Exception e) { message="Не удалось сохранить план скачивания."; }
                     String result=message;
                     YoruApp.app().main.post(()->{if(!activity.isDestroyed())Ui.toast(activity,result);});

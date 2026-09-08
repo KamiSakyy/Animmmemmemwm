@@ -10,13 +10,45 @@ import org.json.*;
 import java.util.*;
 
 public final class DownloadsScreen extends LinearLayout {
-    private final Activity activity;private final DownloadHub hub;private final ArrayList<Download> rows=new ArrayList<>();private final TextView summary,empty;private final ListView list;private final Adapter adapter;private final Handler handler=new Handler(Looper.getMainLooper());private String lastSignature="";
+    private final Activity activity;private final DownloadHub hub;private final ArrayList<Entry> rows=new ArrayList<>();private final TextView summary,empty;private final ListView list;private final Adapter adapter;private final Handler handler=new Handler(Looper.getMainLooper());private String lastSignature="";
     private final Runnable update=new Runnable(){public void run(){refreshSafe();handler.postDelayed(this,5000);}};
-    public DownloadsScreen(Activity a){super(a);activity=a;hub=YoruApp.app().downloads();setOrientation(VERTICAL);setPadding(Ui.dp(a,17),Ui.dp(a,15),Ui.dp(a,17),Ui.dp(a,8));addView(Ui.label(a,"ОФЛАЙН-БИБЛИОТЕКА"));Ui.space(this,10);addView(Ui.text(a,"Загрузки",28,Ui.TEXT,true));Ui.space(this,9);addView(Ui.text(a,"Скачанные серии с превью, качеством и быстрым запуском во встроенном плеере YORU.",12,Ui.MUTED,false));Ui.space(this,12);addView(Ui.button(a,"Будущие скачивания",false,()->ScheduledDownloads.showQueue(a)));Ui.space(this,16);summary=Ui.text(a,"",12,Ui.PURPLE,true);addView(summary);Ui.space(this,12);list=new ListView(a);list.setDivider(null);list.setClipToPadding(false);list.setVerticalScrollBarEnabled(false);list.setPadding(0,0,0,Ui.dp(a,15));list.setBackgroundColor(Ui.BG);adapter=new Adapter();list.setAdapter(adapter);empty=Ui.text(a,"Здесь появятся скачанные серии.\n\nОткройте аниме и нажмите «Скачать» рядом с нужной серией. Готовые загрузки открываются прямо в YORU.",14,Ui.MUTED,false);empty.setPadding(Ui.dp(a,20),Ui.dp(a,40),Ui.dp(a,20),Ui.dp(a,20));empty.setGravity(Gravity.CENTER);FrameLayout frame=new FrameLayout(a);frame.addView(list,new FrameLayout.LayoutParams(-1,-1));frame.addView(empty,new FrameLayout.LayoutParams(-1,-1));addView(frame,new LinearLayout.LayoutParams(-1,0,1));list.setOnItemClickListener((parent,v,pos,id)->{try{if(pos>=0&&pos<rows.size()){Download d=rows.get(pos);if(d!=null&&d.state==Download.STATE_COMPLETED){JSONObject m=DownloadHub.metadata(d);Ui.openOffline(activity,d.request.id,Anime.from(m.optJSONObject("anime")),m.optDouble("episode",1));}}}catch(Throwable ignored){}});}
-    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();handler.post(update);}
-    @Override protected void onDetachedFromWindow(){handler.removeCallbacksAndMessages(null);super.onDetachedFromWindow();}
-    private void refreshSafe(){try{refresh();}catch(Throwable e){summary.setText("Загрузки восстановлены после битой записи. Если повторится — удалите старую загрузку.");empty.setVisibility(rows.isEmpty()?VISIBLE:GONE);try{adapter.notifyDataSetChanged();}catch(Throwable ignored){}}}
-    private void refresh(){ArrayList<Download> fresh=new ArrayList<>(hub.all());int complete=0,active=0;StringBuilder sig=new StringBuilder();for(Download d:new ArrayList<>(fresh)){if(d==null||d.request==null)continue;if(d.state==Download.STATE_COMPLETED)complete++;if(d.state==Download.STATE_DOWNLOADING)active++;int pct=d.getPercentDownloaded()<0?-1:(int)d.getPercentDownloaded();sig.append(d.request.id).append(':').append(d.state).append(':').append(pct/8).append('|');}summary.setText("Готово: "+complete+" · скачивается: "+active+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes()));empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);String next=sig.toString();if(!next.equals(lastSignature)){lastSignature=next;rows.clear();rows.addAll(fresh);adapter.notifyDataSetChanged();}}
+    public DownloadsScreen(Activity a){super(a);activity=a;hub=YoruApp.app().downloads();setOrientation(VERTICAL);setPadding(Ui.dp(a,17),Ui.dp(a,15),Ui.dp(a,17),Ui.dp(a,8));addView(Ui.label(a,"ОФЛАЙН-БИБЛИОТЕКА"));Ui.space(this,10);addView(Ui.text(a,"Загрузки",28,Ui.TEXT,true));Ui.space(this,9);addView(Ui.text(a,"Скачанные серии с превью, качеством и быстрым запуском во встроенном плеере YORU.",12,Ui.MUTED,false));Ui.space(this,16);summary=Ui.text(a,"",12,Ui.PURPLE,true);addView(summary);Ui.space(this,12);list=new ListView(a);list.setDivider(null);list.setClipToPadding(false);list.setVerticalScrollBarEnabled(false);list.setPadding(0,0,0,Ui.dp(a,15));list.setBackgroundColor(Ui.BG);adapter=new Adapter();list.setAdapter(adapter);empty=Ui.text(a,"Здесь появятся скачанные серии.\n\nОткройте аниме и нажмите «Скачать» рядом с нужной серией. Готовые загрузки открываются прямо в YORU.",14,Ui.MUTED,false);empty.setPadding(Ui.dp(a,20),Ui.dp(a,40),Ui.dp(a,20),Ui.dp(a,20));empty.setGravity(Gravity.CENTER);FrameLayout frame=new FrameLayout(a);frame.addView(list,new FrameLayout.LayoutParams(-1,-1));frame.addView(empty,new FrameLayout.LayoutParams(-1,-1));addView(frame,new LinearLayout.LayoutParams(-1,0,1));list.setOnItemClickListener((parent,v,pos,id)->{try{if(pos>=0&&pos<rows.size()){Download d=rows.get(pos).download;if(d!=null&&d.state==Download.STATE_COMPLETED){JSONObject m=DownloadHub.metadata(d);Ui.openOffline(activity,d.request.id,Anime.from(m.optJSONObject("anime")),m.optDouble("episode",1));}}}catch(Throwable ignored){}});}
+    private static final class Entry {
+        final Download download;
+        final ScheduledDownloads.Plan plan;
+        Entry(Download value){download=value;plan=null;}
+        Entry(ScheduledDownloads.Plan value){download=null;plan=value;}
+    }
+    private boolean attached,refreshing;
+    private int generation;
+    private java.util.concurrent.Future<?> refreshFuture;
+
+    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;handler.post(update);}
+    @Override protected void onDetachedFromWindow(){attached=false;generation++;refreshing=false;if(refreshFuture!=null)refreshFuture.cancel(true);handler.removeCallbacksAndMessages(null);super.onDetachedFromWindow();}
+    private void refreshSafe(){if(!attached||refreshing)return;refreshing=true;int gen=generation;
+        refreshFuture=YoruApp.app().io.submit(()->{
+            try {
+                ArrayList<Download> downloads=new ArrayList<>(hub.all());
+                List<ScheduledDownloads.Plan> plans;
+                try(ScheduledDownloads store=new ScheduledDownloads(activity)){plans=store.all();}
+                ArrayList<Entry> fresh=new ArrayList<>();HashSet<String> ids=new HashSet<>();
+                StringBuilder signature=new StringBuilder();int complete=0,active=0,pending=0;
+                for(Download d:downloads){if(d==null||d.request==null)continue;ids.add(d.request.id);fresh.add(new Entry(d));if(d.state==Download.STATE_COMPLETED)complete++;if(d.state==Download.STATE_DOWNLOADING)active++;signature.append(d.request.id).append(':').append(d.state).append(':').append((int)d.getPercentDownloaded()/8).append('|');}
+                for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
+                String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
+                String next=signature.toString();
+                YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);if(!next.equals(lastSignature)){lastSignature=next;rows.clear();rows.addAll(fresh);adapter.notifyDataSetChanged();}});
+            } catch(Exception e){YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText("Не удалось обновить загрузки. Повторим проверку.");});}
+        });
+        if(refreshFuture.isCancelled()){refreshing=false;summary.setText("Очередь занята. Повторим обновление.");}
+    }
+    private void cancelPlan(ScheduledDownloads.Plan plan){
+        Ui.confirm(activity,"Отменить будущее скачивание?",plan.label(),"Отменить скачивание",()->YoruApp.app().io.execute(()->{
+            try(ScheduledDownloads store=new ScheduledDownloads(activity)){store.remove(plan.id);ScheduledDownloads.schedule(activity);}
+            catch(Exception e){YoruApp.app().main.post(()->{if(attached)Ui.toast(activity,"Не удалось отменить задание");});return;}
+            YoruApp.app().main.post(()->{if(attached){lastSignature="";refreshSafe();}});
+        }),"Назад");
+    }
     private void actions(Download d){if(d==null||d.request==null){Ui.toast(activity,"Эта запись загрузки повреждена");return;}JSONObject meta=DownloadHub.metadata(d);Anime a=Anime.from(meta.optJSONObject("anime"));String voice=meta.optString("voice","");String title=(a.title==null||a.title.isEmpty()?"Загрузка":a.title)+" · серия "+Ui.number(meta.optDouble("episode",1))+(voice.isEmpty()?"":" · "+voice);ArrayList<String> choices=new ArrayList<>();if(d.state==Download.STATE_COMPLETED){choices.add("Смотреть в YORU");if(OfflineExporter.canExport(d)){choices.add("Сохранить через проводник");choices.add("Сохранить в Видео / YORU");choices.add("Поделиться файлом");}choices.add("Информация");}else if(d.state==Download.STATE_STOPPED)choices.add("Продолжить");else if(d.state==Download.STATE_FAILED)choices.add("Обновить и повторить");else if(d.state!=Download.STATE_REMOVING)choices.add("Пауза");choices.add("Удалить загрузку");Ui.choices(activity,title,choices.toArray(new String[0]),which->handle(d,a,meta,choices.get(which)));}
     private void handle(Download d,Anime a,JSONObject meta,String choice){try{if(choice.equals("Смотреть в YORU"))Ui.openOffline(activity,d.request.id,a,meta.optDouble("episode",1));else if(choice.equals("Сохранить через проводник"))OfflineExporter.saveWithPicker(activity,d);else if(choice.equals("Сохранить в Видео / YORU"))OfflineExporter.saveToMovies(activity,d);else if(choice.equals("Поделиться файлом"))OfflineExporter.share(activity,d);else if(choice.equals("Информация"))Ui.message(activity,"Информация",OfflineExporter.details(d));else if(choice.equals("Продолжить"))hub.resume(d.request.id);else if(choice.equals("Пауза"))hub.pause(d.request.id);else if(choice.equals("Обновить и повторить"))hub.retry(d.request.id);else confirmDelete(d);}catch(Throwable e){Ui.toast(activity,"Действие загрузки не выполнено");}}
     private void confirmDelete(Download d){Ui.confirm(activity,"Удалить загрузку?","Удалить скачанные файлы этой серии?", "Удалить",()->{hub.remove(d.request.id);refreshSafe();},"Отмена");}
@@ -28,7 +60,7 @@ public final class DownloadsScreen extends LinearLayout {
             DownloadRow holder;
             if(old!=null&&old.getTag() instanceof DownloadRow)holder=(DownloadRow)old.getTag();
             else holder=new DownloadRow();
-            holder.bind(rows.get(position));return holder.outer;
+            Entry entry=rows.get(position);if(entry.plan!=null)holder.bindPlan(entry.plan);else holder.bind(entry.download);return holder.outer;
         }
     }
 
@@ -39,6 +71,7 @@ public final class DownloadsScreen extends LinearLayout {
         final TextView placeholder,caption,title,description,type,state,size,primary,save;
         final ProgressBar progress;
         Download download;
+        ScheduledDownloads.Plan plan;
         Anime anime;
         JSONObject metadata;
         String imageKey="";
@@ -63,10 +96,10 @@ public final class DownloadsScreen extends LinearLayout {
             primary=Ui.button(activity,"",false,this::primaryAction);controls.addView(primary,new LinearLayout.LayoutParams(0,-2,1));
             save=Ui.button(activity,"Сохранить",false,()->{if(download!=null)OfflineExporter.saveWithPicker(activity,download);});
             controls.addView(save,new LinearLayout.LayoutParams(0,-2,1));
-            controls.addView(Ui.iconButton(activity,"trash","Удалить загрузку",()->{if(download!=null)confirmDelete(download);}),Ui.lp(activity,44,44));
+            controls.addView(Ui.iconButton(activity,"trash","Удалить загрузку",()->{if(plan!=null)cancelPlan(plan);else if(download!=null)confirmDelete(download);}),Ui.lp(activity,44,44));
             card.addView(controls);
             preview.setOnClickListener(v->{if(download!=null&&download.state==Download.STATE_COMPLETED)Ui.openOffline(activity,download.request.id,anime,metadata.optDouble("episode",1));});
-            card.setOnLongClickListener(v->{if(download!=null)actions(download);return true;});
+            card.setOnLongClickListener(v->{if(plan!=null)cancelPlan(plan);else if(download!=null)actions(download);return true;});
         }
         void primaryAction() {
             if(download==null)return;
@@ -76,8 +109,20 @@ public final class DownloadsScreen extends LinearLayout {
             else hub.pause(download.request.id);
             refreshSafe();
         }
+        void bindPlan(ScheduledDownloads.Plan value) {
+            plan=value;download=null;anime=value.anime;metadata=null;
+            title.setText(YoruBrain.title(anime));
+            description.setText("Серия "+Ui.number(value.episode)+" · "+(value.quality==QualityPlus.BEST?"Лучшее доступное":value.quality+"p")+" · "+(value.voice.isEmpty()?"Любая доступная озвучка":value.voice));
+            caption.setText("Будущее скачивание");type.setText("Скачать после выхода серии");
+            String date=value.due>0?new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm",new Locale("ru")).format(new Date(value.due)):"Дата выхода уточняется";
+            state.setText(date+"\n"+value.message);state.setTextColor(Ui.MUTED);
+            progress.setVisibility(View.GONE);size.setVisibility(View.GONE);primary.setVisibility(View.GONE);save.setVisibility(View.GONE);
+            String url=ApiRepository.safeUrl(anime.poster),key="plan:"+value.id+"|"+url;
+            poster.setVisibility(url.isEmpty()?View.GONE:View.VISIBLE);placeholder.setVisibility(url.isEmpty()?View.VISIBLE:View.GONE);placeholder.setText("Серия\n"+Ui.number(value.episode));
+            if(!key.equals(imageKey)){imageKey=key;poster.setTag(null);poster.setImageDrawable(null);if(!url.isEmpty())YoruApp.app().images.load(poster,url,key);}
+        }
         void bind(Download d) {
-            download=d;metadata=DownloadHub.metadata(d);anime=Anime.from(metadata.optJSONObject("anime"));
+            plan=null;primary.setVisibility(View.VISIBLE);size.setVisibility(View.VISIBLE);download=d;metadata=DownloadHub.metadata(d);anime=Anime.from(metadata.optJSONObject("anime"));
             title.setText(Anime.valid(anime)?YoruBrain.title(anime):"Загрузка");
             double episode=metadata.optDouble("episode",1);int quality=metadata.optInt("quality");String voice=metadata.optString("voice","");
             description.setText("Серия "+Ui.number(episode)+" · "+(quality>0?quality+"p":"Оригинал")+(voice.isEmpty()?"":" · "+voice));
