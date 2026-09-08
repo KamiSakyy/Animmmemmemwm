@@ -54,7 +54,7 @@ jobs:
           git add -f apk-output/YORU-VK-0.1.0-prototype.apk apk-output/YORU-VK-0.1.0-prototype.apk.sha256
           git add handoff/YORU-VK-0.1.0-build.json
           git commit -m 'Deliver isolated YORU VK prototype APK and test evidence [skip ci]' || exit 0
-          git pull --rebase origin arena/01a0828d-animmmemmemwm
+          git pull --rebase --strategy-option=theirs origin arena/01a0828d-animmmemmemwm
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - uses: actions/upload-artifact@v4
         if: always()
