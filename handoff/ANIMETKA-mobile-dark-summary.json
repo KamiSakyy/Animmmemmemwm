@@ -1,6 +1,6 @@
 {
-  "sha256": "fb2eec28ed85c332904121ba576afa6309de95db4d4aee3cfc397f274021b899",
-  "zip_bytes": 13102388,
+  "sha256": "10b5581f21a03294b087239da0894375ba9b9a452b7b8af1b8d9dbc819ca9a33",
+  "zip_bytes": 13844176,
   "observations": [
     {
       "capture": "01-menu-light-before-toggle",
@@ -57,9 +57,28 @@
       }
     },
     {
+      "capture": "05-filters-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "06-genres-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
       "step": "Open filters and genre picker",
-      "result": "failed",
-      "error": "Locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Фильтры\", exact=True)\n"
+      "result": "ok"
     },
     {
       "capture": "07-top-dark",
@@ -120,6 +139,16 @@
       }
     },
     {
+      "capture": "10c-player-open-dark",
+      "url": "https://animetka.com/anime/31933",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
       "step": "Open title sheet and player page, media requests blocked",
       "result": "ok"
     },
@@ -148,6 +177,30 @@
       "result": "ok"
     },
     {
+      "capture": "11c-mobile-search-overlay",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "11d-mobile-search-suggestions",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Mobile search overlay and suggestions",
+      "result": "ok"
+    },
+    {
       "capture": "12-guest-history-dark",
       "url": "https://animetka.com/",
       "dark": true,
@@ -162,9 +215,18 @@
       "result": "ok"
     },
     {
+      "capture": "13-login-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
       "step": "Open login dialog only, do not authenticate",
-      "result": "failed",
-      "error": "Locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Войти\", exact=True)\n"
+      "result": "ok"
     },
     {
       "capture": "14-home-dark-360",
