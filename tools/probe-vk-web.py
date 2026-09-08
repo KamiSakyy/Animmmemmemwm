@@ -25,7 +25,7 @@ async def main():
                 response=await page.goto(url,wait_until='domcontentloaded',timeout=40000)
                 await page.wait_for_timeout(3500)
                 row.update(status=response.status if response else None,title=await page.title(),final_url=page.url)
-                row['inputs']=await page.locator('input').evaluate_all('(es)=>es.map(e=>({placeholder:e.placeholder,type:e.type,name:e.name,visible:!!e.getBoundingClientRect().width}))')
+                row['inputs']=await page.locator('input').evaluate_all('(es)=>es.map(e=>({placeholder:e.placeholder,type:e.type,name:e.name,value:e.value,visible:!!e.getBoundingClientRect().width}))')
                 if interact and response and response.status<400:
                     inputs=page.locator('input:visible').filter(visible=True)
                     found=False
@@ -34,7 +34,7 @@ async def main():
                         if 'поиск' in placeholder or 'search' in placeholder:
                             await field.fill(QUERY)
                             await field.press('Enter')
-                            await page.wait_for_timeout(5000)
+                            await page.wait_for_timeout(9000)
                             row['search_submitted']=True;found=True;break
                     row['search_control_found']=found
                     row['after_search_url']=page.url
@@ -43,14 +43,17 @@ async def main():
                 await page.screenshot(path=str(WORK/(name+'.png')),full_page=False)
             except Exception as e:row['error']=str(e)[:250]
             rows.append(row)
-        await capture('01-vkvideo-home-search','https://vkvideo.ru/',True)
-        for name,url in [('02-vkvideo-query','https://vkvideo.ru/?q='+quote(QUERY)),('03-vkvideo-search','https://vkvideo.ru/video?q='+quote(QUERY)),('04-classic-vk-search','https://vk.com/video?section=search&q='+quote(QUERY)),('05-yandex','https://yandex.ru/search/?text='+quote('(site:vkvideo.ru/video OR site:vk.com/video) '+QUERY)),('06-google','https://www.google.com/search?q='+quote('(site:vkvideo.ru/video OR site:vk.com/video) '+QUERY))]:
-            await capture(name,url)
+        await capture('01-mobile-utf8','https://m.vkvideo.ru/?q='+quote(QUERY)+'&action=search')
+        await capture('02-mobile-ui-submit','https://m.vkvideo.ru/?q='+quote(QUERY)+'&action=search',True)
+        desktop=await browser.new_context(viewport={'width':1280,'height':900},locale='ru-RU')
+        await desktop.route('**/*',route)
+        page=await desktop.new_page()
+        await capture('03-desktop-ui-submit','https://vkvideo.ru/?q='+quote(QUERY),True)
         await browser.close()
     result={'date':'2026-09-09','scope':'Public mobile Chromium navigation; no login, cookies exported, protection bypass or video playback. Media requests blocked. HTTP 200 alone is not proof of functional search.','rows':rows}
-    out=ROOT/'handoff/YORU-VK-web-probe-2026-09-09.json'
+    out=ROOT/'handoff/YORU-VK-web-verified-2026-09-09.json'
     out.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
-    with zipfile.ZipFile(ROOT/'handoff/YORU-VK-web-probe-2026-09-09.zip','w',zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(ROOT/'handoff/YORU-VK-web-verified-2026-09-09.zip','w',zipfile.ZIP_DEFLATED) as z:
         z.write(out,out.name)
         for f in WORK.glob('*.png'):z.write(f,f.name)
     print(json.dumps([{k:v for k,v in r.items() if k not in ('text','inputs','video_links')} for r in rows],ensure_ascii=False,indent=2))
