@@ -1,0 +1,204 @@
+{
+  "sha256": "fb2eec28ed85c332904121ba576afa6309de95db4d4aee3cfc397f274021b899",
+  "zip_bytes": 13102388,
+  "observations": [
+    {
+      "capture": "01-menu-light-before-toggle",
+      "url": "https://animetka.com/",
+      "dark": false,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "02-menu-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "03-theme-palette",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Open accent palette",
+      "result": "ok"
+    },
+    {
+      "capture": "04-home-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "04b-home-dark-full",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Open filters and genre picker",
+      "result": "failed",
+      "error": "Locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Фильтры\", exact=True)\n"
+    },
+    {
+      "capture": "07-top-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Switch top tab",
+      "result": "ok"
+    },
+    {
+      "capture": "08-random-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Switch random tab",
+      "result": "ok"
+    },
+    {
+      "capture": "09-anime-sheet-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "10-anime-player-dark",
+      "url": "https://animetka.com/anime/31933",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "10b-anime-player-dark-full",
+      "url": "https://animetka.com/anime/31933",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Open title sheet and player page, media requests blocked",
+      "result": "ok"
+    },
+    {
+      "capture": "11-search-dark",
+      "url": "https://animetka.com/search?q=%D0%9D%D0%B0%D1%80%D1%83%D1%82%D0%BE",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "capture": "11b-search-dark-full",
+      "url": "https://animetka.com/search?q=%D0%9D%D0%B0%D1%80%D1%83%D1%82%D0%BE",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Public search page with Naruto query",
+      "result": "ok"
+    },
+    {
+      "capture": "12-guest-history-dark",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390
+      }
+    },
+    {
+      "step": "Guest history",
+      "result": "ok"
+    },
+    {
+      "step": "Open login dialog only, do not authenticate",
+      "result": "failed",
+      "error": "Locator.click: Timeout 6000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Войти\", exact=True)\n"
+    },
+    {
+      "capture": "14-home-dark-360",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 360,
+        "height": 844,
+        "scrollWidth": 360
+      }
+    },
+    {
+      "capture": "14-home-dark-430",
+      "url": "https://animetka.com/",
+      "dark": true,
+      "viewport": {
+        "width": 430,
+        "height": 844,
+        "scrollWidth": 430
+      }
+    }
+  ],
+  "resources": [
+    {
+      "url": "https://animetka.com/assets/index-DD8JNovU.js",
+      "file": "index-DD8JNovU.js",
+      "sha256": "60654b8ef6bd14ecb5324ab72014fa04dbd1ea57d02ae72111b139ba5a00b3bf",
+      "bytes": 962566
+    },
+    {
+      "url": "https://animetka.com/assets/index-DLq25J_f.css",
+      "file": "index-DLq25J_f.css",
+      "sha256": "bcc4ab308a653eedee5c7f3c21ca7d58bd180630ee4b9b74b3a4f8ecec0d8750",
+      "bytes": 89335
+    }
+  ]
+}
