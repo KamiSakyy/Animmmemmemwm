@@ -1,0 +1,41 @@
+{
+  "manual_token_required": false,
+  "native_vk_api_calls": false,
+  "workflow_run": "34284333596",
+  "commit": "4110655440e7f57bcd2e3462477dfc62da14828e",
+  "tests": [
+    {
+      "name": "app.yoru.vk.CoreTest",
+      "tests": "36",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "manifest": "package: name='app.yoru.vk.web' versionCode='2' versionName='0.2.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'\nsdkVersion:'26'\ntargetSdkVersion:'36'\nuses-permission: name='android.permission.INTERNET'\napplication-label:'YORU VK Web'\napplication-icon-160:'res/r2.xml'\napplication: label='YORU VK Web' icon='res/r2.xml'\nlaunchable-activity: name='app.yoru.vk.MainActivity'  label='' icon=''\nfeature-group: label=''\n  uses-feature: name='android.hardware.faketouch'\n  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'\nmain\nother-activities\nsupports-screens: 'small' 'normal' 'large' 'xlarge'\nsupports-any-density: 'true'\nlocales: '--_--'\ndensities: '160'\n",
+  "certificate": "Signer #1 certificate DN: C=US, O=Android, CN=Android Debug\nSigner #1 certificate SHA-256 digest: c057db87bf85a514ca5d06e65e3bb8483d0696e9b942a3ff81e64cb8e7d04c24\nSigner #1 certificate SHA-1 digest: b800767d98df491c9112c28e5d060cd47c160fa4\nSigner #1 certificate MD5 digest: 4612096440939531e153cf406e80aa1a\n",
+  "apk_sha256": "e6ad20ed4a4331a8957408006791c2ad903abc16c9cdbabe436dbdfdadb7c0fc",
+  "vk_authenticated_playback_tested": false,
+  "device_ui_tested": false,
+  "shikimori_public_probe": {
+    "ok": true,
+    "id": "11757",
+    "name": "Sword Art Online",
+    "fields": [
+      "id",
+      "name",
+      "russian",
+      "english",
+      "kind",
+      "score",
+      "status",
+      "episodes",
+      "episodesAired",
+      "airedOn",
+      "poster",
+      "genres",
+      "descriptionHtml"
+    ],
+    "errors": []
+  }
+}
