@@ -6,6 +6,7 @@ root=Path(__file__).resolve().parents[1]
 version='4.19.1'
 output=root/'handoff'/f'YORU-{version}-source.zip'
 paths=[root/'AGENTS.md',root/'README.md',root/'.github/workflows/build-apk.yml',root/'tools/package-yoru-source.py',root/'tools/check-yoru-update.py',root/'handoff'/f'YORU-{version}-BUILD.ru.md']
+paths.extend([root/'handoff/YORU-FUTURE-IDEAS-2026-09-09.ru.md',root/'handoff/YORU-VK-CLOUD-ASSESSMENT-2026-09-09.ru.md'])
 for name in ['build.gradle','settings.gradle','gradle.properties','gradlew','gradlew.bat','CHANGELOG.ru.md']:
     paths.append(root/'yoru-android'/name)
 paths.extend((root/'yoru-android/gradle').rglob('*'))
