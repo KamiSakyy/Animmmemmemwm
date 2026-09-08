@@ -29,6 +29,7 @@ profile=(java/'ProfileScreen.java').read_text()
 assert 'Новые серии' not in profile
 assert 'Только встроенный просмотр' not in profile
 assert 'new WebView(' not in (java/'PlayerActivity.java').read_text()
+assert 'Intent.ACTION_VIEW' not in (java/'OfflineExporter.java').read_text()
 assert 'CallerRunsPolicy' not in (java/'YoruApp.java').read_text()
 assert 'removeAllViews()' not in (java/'CalendarScreen.java').read_text()
 assert 'DiffUtil.calculateDiff' in (java/'CalendarScreen.java').read_text()
