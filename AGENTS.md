@@ -69,3 +69,13 @@ VPN полностью удалён в YORU 2.9.0. Не возвращать `Vp
 - Не обещать скачивание в точную минуту: JobScheduler 15 минут + ограничения Android; строгий выбор заданной озвучки/разрешения. При отсутствии варианта ждать.
 - Будущие задания не экспортируются как часть коллекции; это отдельная локальная очередь. Уже переданный download не отменяется удалением записи плана — управляется отдельно в загрузках.
 - Existing signing workflow сохранён для совместимости установленного APK. Новые исходники не включают owner-signing. Требуется отдельное согласование безопасной миграции подписи; эта задача не меняет ключ.
+
+### Проверенная выдача 4.19.0
+
+- Финальный CI: https://github.com/KamiSakyy/Animmmemmemwm/actions/runs/34273631860 — success (unit tests, debug/release assembly, apksigner verify).
+- Код сборки: `8988a6814ace085be1d80dacaf86a7e9dda8010d`; APK commit: `c872c27`.
+- Release: `apk-output/YORU-4.19.0-release.apk`, SHA-256 `d0c15f808e3333b80ceae9d75816e5ef1af564d76d421477c9eb65ab46ec9b1a`.
+- Debug: `apk-output/YORU-4.19.0-debug.apk`, SHA-256 `17f9e51793f3e2224f6bfd0c4db1b2e83b7d12db86f56154804597f31acda634`.
+- Проверены binary manifest: 4.19.0 / 69, package `app.yoru.mobile` / `.debug`, ScheduledDownloadJob с BIND_JOB_SERVICE; ZIP integrity и SHA-256 обоих APK.
+- Сертификат release совпадает с APK 4.17.2. Проверок на физическом устройстве не было; не выдавать unit tests за Android UI/background smoke.
+- Source ZIP: `handoff/YORU-4.19.0-source.zip` + SHA-256 рядом. Последующие изменения памяти/документации после CI не меняют собранный Android-код.
