@@ -21,10 +21,10 @@ public final class ScheduledDownloadJob extends JobService {
         AtomicBoolean stop=new AtomicBoolean(false);
         cancelled=stop;
         worker=new Thread(()->{
-            try { checkPlans(stop); }
+            try { TaskQueue.attach(stop);checkPlans(stop); }
             catch(Exception ignored) {}
             finally {
-                worker=null;
+                TaskQueue.detach();worker=null;
                 YoruApp.app().main.post(()->{if(!stop.get()){jobFinished(params,false);YoruApp.app().discovery.execute(()->ScheduledDownloads.schedule(this));}});
             }
         },"yoru-scheduled-downloads");

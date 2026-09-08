@@ -39,4 +39,20 @@ public class TaskQueueTest {
             scope.cancel();assertTrue(running.isCancelled());assertTrue(queued.isCancelled());assertTrue(interrupted.await(2,TimeUnit.SECONDS));
         } finally {pool.shutdownNow();}
     }
+    @Test public void cancellationSurvivesConsumedInterrupt() throws Exception {
+        ExecutorService pool=new TaskQueue.Executor(1,1,1,TimeUnit.SECONDS,new ArrayBlockingQueue<>(1),Executors.defaultThreadFactory(),new TaskQueue.Policy());
+        CountDownLatch entered=new CountDownLatch(1),checked=new CountDownLatch(1);
+        AtomicBoolean stopped=new AtomicBoolean();
+        try {
+            Future<?> future=pool.submit(()->{
+                entered.countDown();
+                try{new CountDownLatch(1).await();}catch(InterruptedException ignored){}
+                try{TaskQueue.check();}catch(java.io.InterruptedIOException expected){stopped.set(true);}
+                checked.countDown();
+            });
+            assertTrue(entered.await(2,TimeUnit.SECONDS));future.cancel(true);
+            assertTrue(checked.await(2,TimeUnit.SECONDS));assertTrue(stopped.get());
+            pool.submit(()->{try{TaskQueue.check();}catch(java.io.IOException e){throw new AssertionError(e);}}).get(2,TimeUnit.SECONDS);
+        } finally {pool.shutdownNow();}
+    }
 }
