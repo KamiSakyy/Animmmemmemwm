@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private void attach(View v){try{ViewParent p=v.getParent();if(p instanceof ViewGroup)((ViewGroup)p).removeView(v);}catch(Exception ignored){}content.addView(v,new FrameLayout.LayoutParams(-1,-1));}
     private void capture(int t,String key){if(t<0||t>=screenCache.length||content.getChildCount()==0)return;if(t==3)return;screenCache[t]=content.getChildAt(0);screenKeys[t]=key;}
     private void invalidateScreen(int t){if(t>=0&&t<screenCache.length){screenCache[t]=null;screenKeys[t]=null;}}
-    private Future<?> uiTask(Runnable r){Future<?> f=YoruApp.app().ui.submit(r);uiTasks.add(f);return f;}
+    private Future<?> uiTask(Runnable r){uiTasks.removeIf(Future::isDone);Future<?> f=YoruApp.app().ui.submit(r);uiTasks.add(f);return f;}
     private void cancelUiTasks(){for(Future<?> f:new ArrayList<>(uiTasks))if(f!=null&&!f.isDone())f.cancel(true);uiTasks.clear();if(catalogFuture!=null&&!catalogFuture.isDone())catalogFuture.cancel(true);if(searchTask!=null)handler.removeCallbacks(searchTask);}
     private int slot(boolean profile,int value){return profile?5:Math.max(0,Math.min(4,value));}
     private void rememberScroll(){try{if(content==null||content.getChildCount()==0)return;View v=content.getChildAt(0);ScrollView sc=findScroll(v);int slot=slot(renderedProfileView,renderedTab);if(sc!=null)scrollState[slot]=sc.getScrollY();else if(grid!=null&&slot==1)scrollState[slot]=grid.getFirstVisiblePosition();}catch(Exception ignored){}}

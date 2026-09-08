@@ -59,7 +59,7 @@ public final class CalendarScreen extends FrameLayout {
         CalendarEntry(int type,ApiRepository.AiringItem item) {
             this.type=type;this.item=item;
             key=item==null?"section:"+type:item.anime.key()+"|"+item.episode+"|"+item.kind;
-            signature=item==null?state+"|"+filter+"|"+selected+"|"+summaryLine()+"|"+nearestTitle()+"|"+allRows.size()+"|"+visible.size():YoruBrain.title(item.anime)+"|"+item.anime.poster+"|"+item.time+"|"+item.precision+"|"+statusSuffix(item)+"|"+countdown(item.time);
+            signature=item==null?state+"|"+filter+"|"+selected+"|"+filterCounts.toString()+"|"+Arrays.toString(shortDays)+"|"+summaryLine()+"|"+nearestTitle()+"|"+allRows.size()+"|"+visible.size():YoruBrain.title(item.anime)+"|"+item.anime.poster+"|"+item.time+"|"+item.precision+"|"+statusSuffix(item)+"|"+countdown(item.time);
         }
     }
 
@@ -170,7 +170,7 @@ public final class CalendarScreen extends FrameLayout {
         LinearLayout horizontal(){HorizontalScrollView scroll=new HorizontalScrollView(activity);scroll.setHorizontalScrollBarEnabled(false);LinearLayout row=Ui.row(activity);scroll.addView(row);addView(scroll,Ui.lp(activity,-1,-2));return row;}
         TextView chip(LinearLayout row,Runnable click){TextView view=Ui.chip(activity,"",false,click);LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);row.addView(view,p);return view;}
         void select(){rebuildVisible(true);adapter.publish();recycler.scrollToPosition(0);}
-        void style(TextView view,String value,boolean active){view.setText(value);view.setTextColor(active?Ui.TEXT:Ui.MUTED);view.setBackground(Ui.stroke(active?0xff443052:Ui.SURFACE,12,activity));view.setSelected(active);}
+        void style(TextView view,String value,boolean active){view.setText(value);view.setTextColor(active?0xff21152f:Ui.MUTED);view.setBackground(active?Ui.gradient(0xffe2ccff,Ui.PURPLE,13,activity):Ui.stroke(Ui.SURFACE,13,activity));view.setSelected(active);}
         void bind(){
             title.setText(visible.isEmpty()?"Календарь YORU":nearestTitle());info.setText(items.isEmpty()?"События появятся автоматически.":summaryLine());status.setText(state);
             style(all,"Все дни · "+filteredCount(),selected<0);

@@ -21,4 +21,11 @@ public class ScheduledDownloadRulesTest {
         assertFalse(ScheduledDownloadRules.accepts(9,720,Double.POSITIVE_INFINITY,720,false));
         assertFalse(ScheduledDownloadRules.accepts(0,720,0,720,false));
     }
+    @Test public void selectedVoiceIsNotReplacedByFallback() {
+        assertFalse(ScheduledDownloadRules.voiceAllowed("AniDUB","AnimeVost"));
+        assertFalse(ScheduledDownloadRules.voiceAllowed("AniStar","AniStar & DEEP"));
+        assertFalse(ScheduledDownloadRules.voiceAllowed("AniDUB",""));
+        assertTrue(ScheduledDownloadRules.voiceAllowed("AniLibria.TV","AniLiberty"));
+        assertTrue(ScheduledDownloadRules.voiceAllowed("","AnimeVost"));
+    }
 }

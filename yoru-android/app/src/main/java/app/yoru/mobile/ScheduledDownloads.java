@@ -95,22 +95,22 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
 
     void remove(String id) { getWritableDatabase().delete("plans", "id=?", new String[]{id}); }
 
-    static void schedule(Context context) {
+    static boolean schedule(Context context) {
         Context c = context.getApplicationContext();
         try (ScheduledDownloads store = new ScheduledDownloads(c)) {
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-            if (js == null) return;
+            if (js == null) return false;
             boolean pending = false;
             for (Plan p : store.all()) if (!p.state.equals("queued")) { pending = true; break; }
-            if (!pending) { js.cancel(JOB); return; }
+            if (!pending) { js.cancel(JOB); return true; }
             JobInfo existing = js.getPendingJob(JOB);
-            if (existing != null) return;
+            if (existing != null) return true;
             JobInfo job = new JobInfo.Builder(JOB, new ComponentName(c, ScheduledDownloadJob.class))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true)
                     .setPeriodic(PERIOD, 5L * 60 * 1000)
                     .setBackoffCriteria(PERIOD, JobInfo.BACKOFF_POLICY_EXPONENTIAL).build();
-            js.schedule(job);
-        }
+            return js.schedule(job)==JobScheduler.RESULT_SUCCESS;
+        } catch(Exception e) { return false; }
     }
 
     static void choose(Activity activity, Anime anime, double episode, long due, String date) {
@@ -143,8 +143,8 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                     String message;
                     try (ScheduledDownloads store = new ScheduledDownloads(activity)) {
                         store.add(anime,episode,selectedVoice,selectedQuality,due);
-                        schedule(activity);
-                        message="Запланировано. Очередь — в разделе «Загрузки».";
+                        boolean scheduled=schedule(activity);
+                        message=scheduled?"Запланировано. Очередь — в разделе «Загрузки».":"План сохранён, но Android не разрешил фоновую проверку. Откройте YORU позже.";
                     } catch (IllegalStateException e) { message="Эта серия уже запланирована. Измените очередь в «Загрузках»."; }
                     catch (Exception e) { message="Не удалось сохранить план скачивания."; }
                     String result=message;
@@ -170,6 +170,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                     Plan p=rows.get(index);
                     Ui.confirm(activity,p.state.equals("queued")?"Убрать запись плана?":"Отменить ожидание серии?",p.label()+"\nУже переданная в загрузки серия управляется отдельно в списке загрузок.","Убрать",()->YoruApp.app().io.execute(()->{
                         try(ScheduledDownloads store=new ScheduledDownloads(activity)){store.remove(p.id);schedule(activity);}
+                        catch(Exception e){YoruApp.app().main.post(()->Ui.toast(activity,"Не удалось удалить план"));return;}
                         YoruApp.app().main.post(()->{if(!activity.isDestroyed())showQueue(activity);});
                     }),"Назад");
                 });
