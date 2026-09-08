@@ -1,0 +1,39 @@
+{
+  "workflow_run": "34282226171",
+  "commit": "54df0bef11cf3df3074b463cd361d215c8590d54",
+  "tests": [
+    {
+      "name": "app.yoru.vk.CoreTest",
+      "tests": "26",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "manifest": "package: name='app.yoru.vk.prototype' versionCode='1' versionName='0.1.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'\nsdkVersion:'26'\ntargetSdkVersion:'36'\nuses-permission: name='android.permission.INTERNET'\nuses-permission: name='android.permission.ACCESS_NETWORK_STATE'\nuses-permission: name='app.yoru.vk.prototype.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'\napplication-label:'YORU VK'\napplication-label-af:'YORU VK'\napplication-label-am:'YORU VK'\napplication-label-ar:'YORU VK'\napplication-label-as:'YORU VK'\napplication-label-az:'YORU VK'\napplication-label-be:'YORU VK'\napplication-label-bg:'YORU VK'\napplication-label-bn:'YORU VK'\napplication-label-bs:'YORU VK'\napplication-label-ca:'YORU VK'\napplication-label-cs:'YORU VK'\napplication-label-da:'YORU VK'\napplication-label-de:'YORU VK'\napplication-label-el:'YORU VK'\napplication-label-en-AU:'YORU VK'\napplication-label-en-CA:'YORU VK'\napplication-label-en-GB:'YORU VK'\napplication-label-en-IN:'YORU VK'\napplication-label-en-XC:'YORU VK'\napplication-label-es:'YORU VK'\napplication-label-es-US:'YORU VK'\napplication-label-et:'YORU VK'\napplication-label-eu:'YORU VK'\napplication-label-fa:'YORU VK'\napplication-label-fi:'YORU VK'\napplication-label-fr:'YORU VK'\napplication-label-fr-CA:'YORU VK'\napplication-label-gl:'YORU VK'\napplication-label-gu:'YORU VK'\napplication-label-hi:'YORU VK'\napplication-label-hr:'YORU VK'\napplication-label-hu:'YORU VK'\napplication-label-hy:'YORU VK'\napplication-label-in:'YORU VK'\napplication-label-is:'YORU VK'\napplication-label-it:'YORU VK'\napplication-label-iw:'YORU VK'\napplication-label-ja:'YORU VK'\napplication-label-ka:'YORU VK'\napplication-label-kk:'YORU VK'\napplication-label-km:'YORU VK'\napplication-label-kn:'YORU VK'\napplication-label-ko:'YORU VK'\napplication-label-ky:'YORU VK'\napplication-label-lo:'YORU VK'\napplication-label-lt:'YORU VK'\napplication-label-lv:'YORU VK'\napplication-label-mk:'YORU VK'\napplication-label-ml:'YORU VK'\napplication-label-mn:'YORU VK'\napplication-label-mr:'YORU VK'\napplication-label-ms:'YORU VK'\napplication-label-my:'YORU VK'\napplication-label-nb:'YORU VK'\napplication-label-ne:'YORU VK'\napplication-label-nl:'YORU VK'\napplication-label-or:'YORU VK'\napplication-label-pa:'YORU VK'\napplication-label-pl:'YORU VK'\napplication-label-pt:'YORU VK'\napplication-label-pt-BR:'YORU VK'\napplication-label-pt-PT:'YORU VK'\napplication-label-ro:'YORU VK'\napplication-label-ru:'YORU VK'\napplication-label-si:'YORU VK'\napplication-label-sk:'YORU VK'\napplication-label-sl:'YORU VK'\napplication-label-sq:'YORU VK'\napplication-label-sr:'YORU VK'\napplication-label-sr-Latn:'YORU VK'\napplication-label-sv:'YORU VK'\napplication-label-sw:'YORU VK'\napplication-label-ta:'YORU VK'\napplication-label-te:'YORU VK'\napplication-label-th:'YORU VK'\napplication-label-tl:'YORU VK'\napplication-label-tr:'YORU VK'\napplication-label-uk:'YORU VK'\napplication-label-ur:'YORU VK'\napplication-label-uz:'YORU VK'\napplication-label-vi:'YORU VK'\napplication-label-zh-CN:'YORU VK'\napplication-label-zh-HK:'YORU VK'\napplication-label-zh-TW:'YORU VK'\napplication-label-zu:'YORU VK'\napplication-icon-120:'res/r2.xml'\napplication-icon-160:'res/r2.xml'\napplication-icon-240:'res/r2.xml'\napplication-icon-320:'res/r2.xml'\napplication-icon-480:'res/r2.xml'\napplication-icon-640:'res/r2.xml'\napplication-icon-65534:'res/r2.xml'\napplication: label='YORU VK' icon='res/r2.xml'\nlaunchable-activity: name='app.yoru.vk.MainActivity'  label='' icon=''\nfeature-group: label=''\n  uses-feature: name='android.hardware.faketouch'\n  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'\nmain\nother-activities\nsupports-screens: 'small' 'normal' 'large' 'xlarge'\nsupports-any-density: 'true'\nlocales: '--_--' 'af' 'am' 'ar' 'as' 'az' 'be' 'bg' 'bn' 'bs' 'ca' 'cs' 'da' 'de' 'el' 'en-AU' 'en-CA' 'en-GB' 'en-IN' 'en-XC' 'es' 'es-US' 'et' 'eu' 'fa' 'fi' 'fr' 'fr-CA' 'gl' 'gu' 'hi' 'hr' 'hu' 'hy' 'in' 'is' 'it' 'iw' 'ja' 'ka' 'kk' 'km' 'kn' 'ko' 'ky' 'lo' 'lt' 'lv' 'mk' 'ml' 'mn' 'mr' 'ms' 'my' 'nb' 'ne' 'nl' 'or' 'pa' 'pl' 'pt' 'pt-BR' 'pt-PT' 'ro' 'ru' 'si' 'sk' 'sl' 'sq' 'sr' 'sr-Latn' 'sv' 'sw' 'ta' 'te' 'th' 'tl' 'tr' 'uk' 'ur' 'uz' 'vi' 'zh-CN' 'zh-HK' 'zh-TW' 'zu'\ndensities: '120' '160' '240' '320' '480' '640' '65534'\n",
+  "certificate": "Signer #1 certificate DN: C=US, O=Android, CN=Android Debug\nSigner #1 certificate SHA-256 digest: 25ed0b3b1f645f08df7efc7cfd1d5e1bb925c07cd5a9b321b4570f93b77eac3e\nSigner #1 certificate SHA-1 digest: a0268623e5ec7efef97c682f25cd6498e606eb1f\nSigner #1 certificate MD5 digest: 31b5f2b4ccacd6538e3be26531300cbe\n",
+  "apk_sha256": "5f7e72f1d4378f13bb5ab31b12aa66c1bcee7442004ddc32aee151322ff97ed5",
+  "vk_authenticated_playback_tested": false,
+  "device_ui_tested": false,
+  "shikimori_public_probe": {
+    "ok": true,
+    "id": "11757",
+    "name": "Sword Art Online",
+    "fields": [
+      "id",
+      "name",
+      "russian",
+      "english",
+      "kind",
+      "score",
+      "status",
+      "episodes",
+      "episodesAired",
+      "airedOn",
+      "poster",
+      "genres",
+      "descriptionHtml"
+    ],
+    "errors": []
+  }
+}
