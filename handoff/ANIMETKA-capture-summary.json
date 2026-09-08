@@ -1,0 +1,21 @@
+{
+  "resources": 17,
+  "resource_bytes": 4546277,
+  "source_map_sources": 0,
+  "zip_bytes": 11725387,
+  "sha256": "45ee8914a35d650ba00b0ae3882169be87401b927f8c8fef44757f767486a9c0",
+  "observations": [
+    "Filters clicked and captured",
+    "First catalog card clicked; resulting URL: https://animetka.com/"
+  ],
+  "issues": [
+    {
+      "url": "https://animetka.com/src/assets/locator-logo-modern-sm.svg",
+      "reason": "HTTP 404"
+    },
+    {
+      "url": "https://animetka.com/assets/${D}",
+      "reason": "HTML fallback instead of static asset"
+    }
+  ]
+}
