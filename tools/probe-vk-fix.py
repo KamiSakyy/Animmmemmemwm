@@ -31,3 +31,5 @@ async def probe():
 asyncio.run(probe())
 (ROOT/'handoff/YORU-VK-0.2.1-search-probe.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps(rows,ensure_ascii=False,indent=2))
+
+# Probes the shipped field-submission asset, not a simulated search URL.
