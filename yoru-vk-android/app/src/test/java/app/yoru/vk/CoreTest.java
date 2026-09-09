@@ -6,6 +6,10 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class CoreTest {
+    @Test public void feedMatchesFirstVersion(){assertTrue(Api.catalogQuery("",1).startsWith("{animes(limit:20,page:1,order:ranked,rating:\"!rx\"){"));assertFalse(Api.catalogQuery("",1).contains("search:"));}
+    @Test public void secondFeedPage(){assertTrue(Api.catalogQuery("",2).contains("page:2"));}
+    @Test public void shikiSearchNotVideoQuery(){String q=Api.catalogQuery("Мастера меча онлайн",1);assertTrue(q.contains("search:\"Мастера меча онлайн\""));assertFalse(q.contains("1 сезон"));}
+    @Test public void shikiQueryEscapesInput(){assertTrue(Api.catalogQuery("A \"quoted\" title",1).contains(JSONObject.quote("A \"quoted\" title")));}
     @Test public void swordArtQuery(){assertEquals("Мастера меча онлайн 1 сезон 1 серия",SearchRules.query("Мастера меча онлайн",1,1,false,""));}
     @Test public void alternativeTitle(){assertEquals("Sword Art Online 1 сезон 12 серия AniDUB",SearchRules.query("Sword Art Online",1,12,false,"AniDUB"));}
     @Test public void film(){assertEquals("Твоё имя фильм",SearchRules.query("Твоё имя",0,0,true,""));}

@@ -8,6 +8,15 @@ import java.util.*;
 
 final class Api {
     private static long lastCall;
+    private static final java.util.concurrent.ConcurrentHashMap<Thread,HttpURLConnection> active=new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ThreadPoolExecutor closers=new java.util.concurrent.ThreadPoolExecutor(1,1,30,java.util.concurrent.TimeUnit.SECONDS,new java.util.concurrent.ArrayBlockingQueue<>(8),r->{Thread t=new Thread(r,"shiki-cancel");t.setDaemon(true);return t;},new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy());
+    static HttpURLConnection activeFor(Thread thread){return thread==null?null:active.get(thread);}
+    static void abort(HttpURLConnection connection){if(connection!=null)closers.execute(connection::disconnect);}
+    static String catalogQuery(String query,int page){
+        if(page<1)throw new IllegalArgumentException("Номер страницы должен быть положительным.");
+        String q=query==null?"":query.trim();
+        return "{animes(limit:20,page:"+page+",order:ranked,rating:\"!rx\""+(q.isEmpty()?"":",search:"+JSONObject.quote(q))+"){"+FIELDS+"}}";
+    }
     static final class Failure extends IOException {
         final int code;
         Failure(int code,String message){super(message);this.code=code;}
@@ -20,19 +29,21 @@ final class Api {
         pace();if(Thread.currentThread().isInterrupted())throw new InterruptedException();
         HttpURLConnection c=(HttpURLConnection)new URL(address).openConnection();
         c.setConnectTimeout(7000);c.setReadTimeout(12000);c.setInstanceFollowRedirects(false);c.setUseCaches(false);
-        c.setRequestProperty("User-Agent","YORU-VK-Web/0.2.0 (Android; independent prototype)");c.setRequestProperty("Accept","application/json");
+        c.setRequestProperty("User-Agent","YORU-VK/0.1.0 (Android; independent prototype)");c.setRequestProperty("Accept","application/json");
+        active.put(Thread.currentThread(),c);
         try{
+            if(Thread.currentThread().isInterrupted())throw new InterruptedException();
             if(body!=null){c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type",contentType);byte[] bytes=body.getBytes(StandardCharsets.UTF_8);c.setFixedLengthStreamingMode(bytes.length);try(OutputStream os=c.getOutputStream()){os.write(bytes);}}
             int status=c.getResponseCode();if(status!=200)throw new Failure(-status,"Сервис ответил HTTP "+status+". Проверьте сеть и повторите позже.");
             try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedException();if(out.size()+n>6*1024*1024)throw new IOException("Слишком большой ответ сервиса.");out.write(buffer,0,n);}return out.toString("UTF-8");}
-        }finally{c.disconnect();}
+        }finally{active.remove(Thread.currentThread(),c);c.disconnect();}
     }
     private static final String FIELDS="id name russian english kind score status episodes episodesAired airedOn{year} poster{mainUrl originalUrl} genres{russian name}";
     static List<Models.Anime> catalog(String query,int page) throws Exception {
-        String args="limit:20,page:"+page+",order:ranked,rating:\"!rx\""+(query.isEmpty()?"":",search:"+JSONObject.quote(query));
-        try {JSONArray rows=graph("{animes("+args+"){"+FIELDS+"}}");return animeRows(rows,true);}
+        String request=catalogQuery(query,page);
+        try {JSONArray rows=graph(request);return animeRows(rows,true);}
         catch(InterruptedException e){throw e;}
-        catch(Exception ignored){return animeRows(restArray("/api/animes?limit=20&page="+page+"&order=ranked&censored=true&search="+encode(query)),false);}
+        catch(Exception original){if(Thread.currentThread().isInterrupted())throw new InterruptedException();return animeRows(restArray("/api/animes?limit=20&page="+page+"&order=ranked&censored=true&search="+encode(query)),false);}
     }
     static Models.Anime details(long id) throws Exception {
         try {JSONArray rows=graph("{animes(ids:"+JSONObject.quote(String.valueOf(id))+",limit:1){"+FIELDS+" descriptionHtml}}");if(rows.length()>0)return Models.anime(rows.getJSONObject(0),true);}
@@ -44,11 +55,11 @@ final class Api {
         for(int i=0;i<rows.length();i++){JSONObject anime=rows.getJSONObject(i).optJSONObject("anime");if(anime!=null)result.add(Models.anime(anime,false));}return result;
     }
     private static JSONArray graph(String query) throws Exception {
-        Exception last=null;for(String base:new String[]{"https://shikimori.io","https://shikimori.one"}){try{JSONObject json=new JSONObject(request(base+"/api/graphql",new JSONObject().put("query",query).toString(),"application/json; charset=UTF-8"));if(json.has("errors"))throw new IOException("Shikimori отклонил запрос.");return json.getJSONObject("data").getJSONArray("animes");}catch(InterruptedException e){throw e;}catch(Exception e){last=e;}}throw new IOException("Shikimori GraphQL недоступен.",last);
+        Exception last=null;for(String base:new String[]{"https://shikimori.io","https://shikimori.one","https://shikimori.me"}){try{JSONObject json=new JSONObject(request(base+"/api/graphql",new JSONObject().put("query",query).toString(),"application/json; charset=UTF-8"));if(json.has("errors"))throw new IOException("Shikimori отклонил запрос.");return json.getJSONObject("data").getJSONArray("animes");}catch(InterruptedException e){throw e;}catch(Exception e){last=e;}}throw new IOException("Shikimori GraphQL недоступен.",last);
     }
     private static String rest(String path) throws Exception {
-        for(String base:new String[]{"https://shikimori.io","https://shikimori.one"}){try{return request(base+path,null,null);}catch(InterruptedException e){throw e;}catch(Exception ignored){}}
-        throw new IOException("Shikimori сейчас недоступен. Проверьте сеть и повторите запрос.");
+        for(String base:new String[]{"https://shikimori.io","https://shikimori.one","https://shikimori.me"}){try{return request(base+path,null,null);}catch(InterruptedException e){throw e;}catch(Exception ignored){}}
+        throw new Failure(0,"Shikimori не отвечает через .io, .one и .me. Проверьте доступ к сайту в своей сети и повторите поиск.");
     }
     private static JSONArray restArray(String path) throws Exception{return new JSONArray(rest(path));}
     private static List<Models.Anime> animeRows(JSONArray rows,boolean graph){List<Models.Anime> out=new ArrayList<>();for(int i=0;i<rows.length();i++){JSONObject j=rows.optJSONObject(i);if(j!=null){Models.Anime a=Models.anime(j,graph);if(a.id>0&&!a.title.isEmpty())out.add(a);}}return out;}

@@ -11,8 +11,14 @@ public final class VkApp extends Application {
     @Override public void onCreate(){super.onCreate();}
     interface Work<T>{T run() throws Exception;}
     interface Result<T>{void done(T value,Exception error);}
+    private static final class Job extends FutureTask<Void>{
+        private volatile Thread runner;
+        Job(Runnable work){super(work,null);}
+        @Override public void run(){runner=Thread.currentThread();try{super.run();}finally{runner=null;}}
+        @Override public boolean cancel(boolean interrupt){java.net.HttpURLConnection connection=Api.activeFor(runner);boolean cancelled=super.cancel(interrupt);if(cancelled&&interrupt)Api.abort(connection);return cancelled;}
+    }
     <T> Future<?> run(Work<T> work,Result<T> result){
-        try{return io.submit(()->{T data=null;Exception error=null;try{data=work.run();}catch(Exception e){error=e;}if(Thread.currentThread().isInterrupted())return;T value=data;Exception problem=error;main.post(()->result.done(value,problem));});}
+        try{io.purge();Job job=new Job(()->{T data=null;Exception error=null;try{data=work.run();}catch(Exception e){error=e;}if(Thread.currentThread().isInterrupted())return;T value=data;Exception problem=error;main.post(()->result.done(value,problem));});io.execute(job);return job;}
         catch(RejectedExecutionException e){main.post(()->result.done(null,new IllegalStateException("Очередь занята. Повторите через несколько секунд.")));return null;}
     }
 }

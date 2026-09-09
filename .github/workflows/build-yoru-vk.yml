@@ -12,7 +12,9 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      RUN_SHIKI_LIVE: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -42,26 +44,42 @@ jobs:
       - name: Verify and collect APK and test evidence
         run: |
           mkdir -p apk-output
-          cp yoru-vk-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-VK-0.2.0-prototype.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs apk-output/YORU-VK-0.2.0-prototype.apk > vk-cert.txt
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging apk-output/YORU-VK-0.2.0-prototype.apk > vk-manifest.txt
-          sha256sum apk-output/YORU-VK-0.2.0-prototype.apk > apk-output/YORU-VK-0.2.0-prototype.apk.sha256
+          cp yoru-vk-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-VK-0.2.1-prototype.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs apk-output/YORU-VK-0.2.1-prototype.apk > vk-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging apk-output/YORU-VK-0.2.1-prototype.apk > vk-manifest.txt
+          sha256sum apk-output/YORU-VK-0.2.1-prototype.apk > apk-output/YORU-VK-0.2.1-prototype.apk.sha256
           python yoru-vk-android/tools/ci-evidence.py
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Exercise real Android catalog and search screen
+        uses: reactivecircus/android-emulator-runner@v2
+        continue-on-error: true
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: python tools/smoke-vk-android.py
       - name: Save separate deliverable
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f apk-output/YORU-VK-0.2.0-prototype.apk apk-output/YORU-VK-0.2.0-prototype.apk.sha256
-          git add handoff/YORU-VK-0.2.0-build.json
+          git add -f apk-output/YORU-VK-0.2.1-prototype.apk apk-output/YORU-VK-0.2.1-prototype.apk.sha256
+          git add handoff/YORU-VK-0.2.1-build.json
+          if test -f handoff/YORU-VK-0.2.1-android-smoke.json; then git add handoff/YORU-VK-0.2.1-android-smoke.json; fi
           git commit -m 'Deliver isolated YORU VK prototype APK and test evidence [skip ci]' || exit 0
           git pull --rebase --strategy-option=theirs origin arena/01a0828d-animmmemmemwm
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yoru-vk-0.2.0-prototype
+          name: yoru-vk-0.2.1-prototype
           path: |
-            apk-output/YORU-VK-0.2.0-prototype.apk*
-            handoff/YORU-VK-0.2.0-build.json
+            apk-output/YORU-VK-0.2.1-prototype.apk*
+            handoff/YORU-VK-0.2.1-build.json
             yoru-vk-android/app/build/test-results/testDebugUnitTest/
             vk-build.log
+            vk-ui-last.xml
+            handoff/YORU-VK-0.2.1-android-smoke.json
