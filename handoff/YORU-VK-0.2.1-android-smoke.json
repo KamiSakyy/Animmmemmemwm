@@ -1,0 +1,8 @@
+{
+  "steps": [],
+  "physical_device": false,
+  "authenticated_playback_tested": false,
+  "apk_sha256": "bbad7e9656cc2e7168ba0b1dc89803adea9871bb983b9e8ffda8baa7928ebd79",
+  "native_catalog_smoke_ok": false,
+  "error": "Expected UI element did not appear"
+}

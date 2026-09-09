@@ -1,0 +1,48 @@
+{
+  "manual_token_required": false,
+  "native_vk_api_calls": false,
+  "workflow_run": "34320934476",
+  "commit": "bde79f0423ac93c8548993261b4634d0e892e95a",
+  "tests": [
+    {
+      "name": "app.yoru.vk.CoreTest",
+      "tests": "40",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "app.yoru.vk.LiveShikimoriTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "manifest": "package: name='app.yoru.vk.web' versionCode='3' versionName='0.2.1' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'\nsdkVersion:'26'\ntargetSdkVersion:'36'\nuses-permission: name='android.permission.INTERNET'\napplication-label:'YORU VK Web'\napplication-icon-160:'res/r2.xml'\napplication: label='YORU VK Web' icon='res/r2.xml'\nlaunchable-activity: name='app.yoru.vk.MainActivity'  label='' icon=''\nfeature-group: label=''\n  uses-feature: name='android.hardware.faketouch'\n  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'\nmain\nother-activities\nsupports-screens: 'small' 'normal' 'large' 'xlarge'\nsupports-any-density: 'true'\nlocales: '--_--'\ndensities: '160'\n",
+  "certificate": "Signer #1 certificate DN: C=US, O=Android, CN=Android Debug\nSigner #1 certificate SHA-256 digest: 3873b8409c74ed9bfe2df1acf7919cd4d518b30b8fa4d72642ff69b1677e284a\nSigner #1 certificate SHA-1 digest: 25e67db399207ed4f940de1fb5432b932d1bfa20\nSigner #1 certificate MD5 digest: dbd02acaf8ee3e16de9e943e769be052\n",
+  "apk_sha256": "bbad7e9656cc2e7168ba0b1dc89803adea9871bb983b9e8ffda8baa7928ebd79",
+  "vk_authenticated_playback_tested": false,
+  "device_ui_tested": false,
+  "shikimori_public_probe": {
+    "ok": true,
+    "id": "11757",
+    "name": "Sword Art Online",
+    "fields": [
+      "id",
+      "name",
+      "russian",
+      "english",
+      "kind",
+      "score",
+      "status",
+      "episodes",
+      "episodesAired",
+      "airedOn",
+      "poster",
+      "genres",
+      "descriptionHtml"
+    ],
+    "errors": []
+  }
+}
