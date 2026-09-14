@@ -20,15 +20,18 @@ public final class ScheduledDownloadJob extends JobService {
         if(worker!=null)return false;
         AtomicBoolean stop=new AtomicBoolean(false);
         cancelled=stop;
+        AtomicBoolean finishedJob=new AtomicBoolean(false);
+        Runnable timeout=()->{if(stop.get()||!finishedJob.compareAndSet(false,true))return;stop.set(true);HttpTransport.cancel(stop);Thread active=worker;if(cancelled==stop&&active!=null)active.interrupt();jobFinished(params,true);};
         worker=new Thread(()->{
             try { TaskQueue.attach(stop);checkPlans(stop); }
             catch(Exception ignored) {}
             finally {
-                TaskQueue.detach();worker=null;
-                YoruApp.app().main.post(()->{if(!stop.get()){jobFinished(params,false);YoruApp.app().discovery.execute(()->ScheduledDownloads.schedule(this));}});
+                TaskQueue.detach();worker=null;YoruApp.app().main.removeCallbacks(timeout);
+                YoruApp.app().main.post(()->{if(!stop.get()&&finishedJob.compareAndSet(false,true)){jobFinished(params,false);YoruApp.app().discovery.execute(()->ScheduledDownloads.schedule(this));}});
             }
         },"yoru-scheduled-downloads");
         worker.setPriority(Thread.NORM_PRIORITY-1);
+        YoruApp.app().main.postDelayed(timeout,75_000);
         worker.start();
         return true;
     }
