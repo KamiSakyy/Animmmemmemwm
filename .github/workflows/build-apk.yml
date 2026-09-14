@@ -138,7 +138,7 @@ jobs:
           for profile in jvm android; do
             options=(-PverifyOnSdk36)
             tasks=(:app:testDebugUnitTest)
-            if [ "$profile" = jvm ]; then options+=(-PverifyJvmTransport); else tasks+=(:app:assembleDebug); fi
+            if [ "$profile" = jvm ]; then options+=(-PverifyJvmTransport); else options+=(-PcompactApk); tasks+=(:app:assembleDebug); fi
             set +e
             ./gradlew --no-daemon "${options[@]}" "${tasks[@]}" > "$profile-verification.log" 2>&1
             code=$?

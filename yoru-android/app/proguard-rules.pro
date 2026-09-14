@@ -12,3 +12,7 @@
 }
 
 -keep class go.** { *; }
+
+-keep class app.yoru.mobile.DocumentExportWorker {
+ public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
