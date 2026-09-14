@@ -155,7 +155,11 @@ jobs:
           done
       - name: Preserve explicitly labelled compatibility APK
         run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk || { echo "::error title=APK publication::Signature verification failed"; exit 1; }
+          cp handoff/YORU-4.20.0-dev.2-verification-tests.json "$RUNNER_TEMP/yoru-verification-tests.json"
+          git restore -- handoff/YORU-4.20.0-dev.2-verification-tests.json
+          git pull --rebase origin arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::Branch synchronization failed"; exit 1; }
+          cp "$RUNNER_TEMP/yoru-verification-tests.json" handoff/YORU-4.20.0-dev.2-verification-tests.json
           mkdir -p apk-output
           cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.2-compat-sdk36-okhttp5.4.apk
           sha256sum apk-output/YORU-4.20.0-dev.2-compat-sdk36-okhttp5.4.apk > apk-output/YORU-4.20.0-dev.2-compat-sdk36-okhttp5.4.apk.sha256
@@ -164,8 +168,7 @@ jobs:
           git add -f apk-output/YORU-4.20.0-dev.2-compat-sdk36-okhttp5.4.apk apk-output/YORU-4.20.0-dev.2-compat-sdk36-okhttp5.4.apk.sha256
           git add handoff/YORU-4.20.0-dev.2-verification-tests.json
           git commit -m "Save separately labelled YORU SDK36 compatibility APK and actual test counts [skip ci]" || exit 0
-          git pull --rebase origin arena/01a0828d-animmmemmemwm
-          git push origin HEAD:arena/01a0828d-animmmemmemwm
+          git push origin HEAD:arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::APK push failed"; exit 1; }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
