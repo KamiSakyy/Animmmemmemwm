@@ -8,7 +8,40 @@ import android.widget.*;
 
 public final class ImageViewerActivity extends Activity {
     private ZoomImage image;
-    @Override public void onCreate(Bundle b){super.onCreate(b);if(!Ui.allow(this))return;getWindow().setStatusBarColor(Color.BLACK);getWindow().setNavigationBarColor(Color.BLACK);FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);setContentView(root);image=new ZoomImage(this);image.setBackgroundColor(Color.BLACK);root.addView(image,new FrameLayout.LayoutParams(-1,-1));String url=getIntent().getStringExtra("url"),title=getIntent().getStringExtra("title");YoruApp.app().images.load(image,url==null?"":url,"image-viewer");LinearLayout top=Ui.row(this);top.setPadding(Ui.dp(this,14),Ui.dp(this,22),Ui.dp(this,14),Ui.dp(this,8));top.setBackgroundColor(0x66000000);top.addView(Ui.iconButton(this,"back","Назад",this::finish),Ui.lp(this,46,46));TextView name=Ui.text(this,title==null||title.isEmpty()?"Скриншот":title,14,Ui.TEXT,true);name.setMaxLines(1);name.setEllipsize(android.text.TextUtils.TruncateAt.END);LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(0,-2,1);np.leftMargin=Ui.dp(this,12);top.addView(name,np);root.addView(top,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));TextView hint=Ui.text(this,"Разведите пальцы, чтобы приблизить",11,0xffd9ccef,false);hint.setGravity(Gravity.CENTER);hint.setPadding(Ui.dp(this,14),Ui.dp(this,10),Ui.dp(this,14),Ui.dp(this,22));hint.setBackgroundColor(0x44000000);root.addView(hint,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));}
+    @Override public void onCreate(Bundle b){super.onCreate(b);if(!Ui.allow(this))return;getWindow().setStatusBarColor(Color.BLACK);getWindow().setNavigationBarColor(Color.BLACK);FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);setContentView(root);image=new ZoomImage(this);image.setBackgroundColor(Color.BLACK);root.addView(image,new FrameLayout.LayoutParams(-1,-1));String url=getIntent().getStringExtra("url"),title=getIntent().getStringExtra("title");YoruApp.app().images.load(image,url==null?"":url,"image-viewer");LinearLayout top=Ui.row(this);top.setPadding(Ui.dp(this,14),Ui.dp(this,22),Ui.dp(this,14),Ui.dp(this,8));top.setBackgroundColor(0x66000000);top.addView(Ui.iconButton(this,"back","Назад",this::finish),Ui.lp(this,46,46));TextView name=Ui.text(this,title==null||title.isEmpty()?"Скриншот":title,14,Ui.TEXT,true);name.setMaxLines(1);name.setEllipsize(android.text.TextUtils.TruncateAt.END);LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(0,-2,1);np.leftMargin=Ui.dp(this,12);top.addView(name,np);top.addView(Ui.iconButton(this,"download","Сохранить изображение",this::saveImage),Ui.lp(this,46,46));root.addView(top,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));TextView hint=Ui.text(this,"Разведите пальцы, чтобы приблизить",11,0xffd9ccef,false);hint.setGravity(Gravity.CENTER);hint.setPadding(Ui.dp(this,14),Ui.dp(this,10),Ui.dp(this,14),Ui.dp(this,22));hint.setBackgroundColor(0x44000000);root.addView(hint,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));}
+    private void saveImage(){
+        android.graphics.drawable.Drawable drawable=image==null?null:image.getDrawable();
+        if(!(drawable instanceof android.graphics.drawable.BitmapDrawable)){Ui.toast(this,"Изображение ещё не загружено");return;}
+        Bitmap bitmap=((android.graphics.drawable.BitmapDrawable)drawable).getBitmap();
+        String name=getIntent().getStringExtra("title");if(name==null||name.isEmpty())name="YORU";
+        final String label="yoru-"+name.replaceAll("[^\\p{L}\\p{N}._-]","_")+"-"+System.currentTimeMillis()+".jpg";
+        YoruApp.app().io.submit(()->{
+            boolean saved=false;
+            try{
+                if(Build.VERSION.SDK_INT>=29){
+                    ContentValues values=new ContentValues();
+                    values.put(MediaStore.Images.Media.DISPLAY_NAME,label);
+                    values.put(MediaStore.Images.Media.MIME_TYPE,"image/jpeg");
+                    values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/YORU");
+                    values.put(MediaStore.Images.Media.IS_PENDING,1);
+                    Uri uri=getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+                    if(uri!=null){
+                        android.os.ParcelFileDescriptor descriptor=getContentResolver().openFileDescriptor(uri,"w");
+                        if(descriptor!=null){
+                            java.io.OutputStream out=new java.io.FileOutputStream(descriptor.getFileDescriptor());
+                            bitmap.compress(Bitmap.CompressFormat.JPEG,95,out);out.close();descriptor.close();saved=true;
+                        }
+                        values.clear();values.put(MediaStore.Images.Media.IS_PENDING,0);getContentResolver().update(uri,values,null,null);
+                    }
+                }else{
+                    String path=MediaStore.Images.Media.insertImage(getContentResolver(),bitmap,label,"YORU");
+                    saved=path!=null&&!path.isEmpty();
+                }
+            }catch(Exception ignored){}
+            final boolean done=saved;
+            YoruApp.app().main.post(()->Ui.toast(ImageViewerActivity.this,done?"Изображение сохранено в галерею":"Не удалось сохранить изображение"));
+        });
+    }
     public static final class ZoomImage extends ImageView {
         private final Matrix matrix=new Matrix();private final float[] values=new float[9];private ScaleGestureDetector scale;private float lastX,lastY,minScale=1f;private boolean drag;
         public ZoomImage(android.content.Context c){super(c);setScaleType(ScaleType.MATRIX);scale=new ScaleGestureDetector(c,new ScaleGestureDetector.SimpleOnScaleGestureListener(){@Override public boolean onScale(ScaleGestureDetector d){float factor=d.getScaleFactor();float current=currentScale();float max=Math.max(5f,minScale*5f);float next=Math.max(minScale,Math.min(max,current*factor));float real=current<=0?1f:next/current;matrix.postScale(real,real,d.getFocusX(),d.getFocusY());fitBounds();setImageMatrix(matrix);return true;}});}
