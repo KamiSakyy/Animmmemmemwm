@@ -66,6 +66,21 @@ jobs:
           path: workspace-output/yoru-final/*
           compression-level: 0
           if-no-files-found: error
+      - name: Store build diagnostics in repository
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci-logs
+          { grep -nE "error:|FAILED|What went wrong:|\.java:[0-9]+" yoru-android/android-final-build.log | head -80 || true; } > ci-logs/last-failure.txt
+          echo "----- tail -----" >> ci-logs/last-failure.txt
+          tail -n 120 yoru-android/android-final-build.log >> ci-logs/last-failure.txt 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f ci-logs/last-failure.txt
+          git commit -m "Build diagnostics for run ${GITHUB_RUN_ID}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
