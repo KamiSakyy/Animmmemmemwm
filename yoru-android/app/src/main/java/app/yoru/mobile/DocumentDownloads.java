@@ -64,7 +64,7 @@ final class DocumentDownloads {
         }
     }
     private static void check(BooleanSupplier cancelled)throws InterruptedIOException{if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted())throw new InterruptedIOException();}
-    static void copy(Context context,Download download,String folder,boolean manual,String operation,BooleanSupplier cancelled,java.util.function.LongConsumer progress,File prepared)throws Exception{
+    static void copy(Context context,Download download,String folder,boolean manual,String operation,BooleanSupplier cancelled,java.util.function.LongConsumer progress,File prepared,ExportCancellation cancellation)throws Exception{
         String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);
         if(finished(context,download,folder,manual,operation))return;check(cancelled);requireFolder(context,folder);
         ContentResolver resolver=context.getContentResolver();String pending,previous;
@@ -86,10 +86,16 @@ final class DocumentDownloads {
             synchronized(DocumentDownloads.class){check(cancelled);if(!journal.edit().putString("pending:"+identity,target.toString()).putString("pending-operation:"+identity,operation).commit())throw new IOException();}
             DataSpec.Builder spec=new DataSpec.Builder().setUri(prepared==null?download.request.uri:Uri.fromFile(prepared));if(prepared==null&&download.request.customCacheKey!=null)spec.setKey(download.request.customCacheKey);
             source=prepared==null?YoruApp.app().mediaCache.offlineFactory().createDataSource():new FileDataSource();long available=source.open(spec.build()),total=0;
-            try(OutputStream output=resolver.openOutputStream(target,"w")){
-                if(output==null)throw new IOException();byte[] buffer=new byte[65536];int count;
-                while((count=source.read(buffer,0,buffer.length))!=-1){check(cancelled);output.write(buffer,0,count);total+=count;progress.accept(total);}output.flush();
-            }
+            check(cancelled);
+            android.os.ParcelFileDescriptor descriptor=resolver.openFileDescriptor(target,"w",cancellation.signal);
+            if(descriptor==null)throw new IOException();
+            OutputStream output=new android.os.ParcelFileDescriptor.AutoCloseOutputStream(descriptor);
+            try{
+                cancellation.attach(output);
+                byte[] buffer=new byte[65536];int count;
+                while(true){check(cancelled);count=source.read(buffer,0,buffer.length);if(count==-1)break;check(cancelled);output.write(buffer,0,count);total+=count;progress.accept(total);}
+                check(cancelled);output.flush();
+            }finally{try{output.close();}finally{cancellation.detach(output);}}
             check(cancelled);long expected=prepared==null?(download.contentLength>0?download.contentLength:available>0?available:download.getBytesDownloaded()):prepared.length();if(total<=0||(expected>0&&total!=expected))throw new EOFException();
             synchronized(DocumentDownloads.class){
                 check(cancelled);if(!ownsPending(journal,identity,operation,target))throw new InterruptedIOException();

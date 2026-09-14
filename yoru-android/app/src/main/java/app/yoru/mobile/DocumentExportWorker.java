@@ -16,6 +16,9 @@ import androidx.work.WorkerParameters;
 
 public final class DocumentExportWorker extends Worker {
     public DocumentExportWorker(@NonNull Context context,@NonNull WorkerParameters parameters){super(context,parameters);}
+    private final ExportCancellation cancellation=new ExportCancellation();
+    @Override public void onStopped(){cancellation.cancel();super.onStopped();}
+    private boolean cancelled(){return isStopped()||cancellation.isStopped();}
     private long lastProgress;
     private androidx.work.Data output(String result){return new androidx.work.Data.Builder().putString("result",result).putLong("updated",System.currentTimeMillis()).build();}
     private void publish(String stage,int percent,long copied,long total){
@@ -56,10 +59,10 @@ public final class DocumentExportWorker extends Worker {
             if(AdaptiveVideoExport.supports(download)){
                 setForegroundAsync(foreground("Подготавливаем видеофайл","Видео и звук сохраняются без перекодирования",-1));
                 publish("prepare",-1,0,-1);
-                prepared=AdaptiveVideoExport.create(getApplicationContext(),download,getId().toString(),this::isStopped,percent->{publish("prepare",percent,0,-1);if(!isStopped())try{setForegroundAsync(foreground("Подготавливаем видеофайл",percent>=0?"Готово: "+percent+"%":"Объединяем видео и звук",percent));}catch(RuntimeException ignored){}});
+                prepared=AdaptiveVideoExport.create(getApplicationContext(),download,getId().toString(),this::cancelled,percent->{publish("prepare",percent,0,-1);if(!isStopped())try{setForegroundAsync(foreground("Подготавливаем видеофайл",percent>=0?"Готово: "+percent+"%":"Объединяем видео и звук",percent));}catch(RuntimeException ignored){}});
             }
             long length=prepared==null?(download.contentLength>0?download.contentLength:download.getBytesDownloaded()):prepared.length();lastProgress=0;publish("copy",length>0?0:-1,0,length);
-            DocumentDownloads.copy(getApplicationContext(),download,folder,manual,getId().toString(),this::isStopped,copied->{long now=android.os.SystemClock.elapsedRealtime();if(isStopped()||now-lastProgress<1000)return;lastProgress=now;publish("copy",length>0?(int)Math.min(99,copied*100.0/length):-1,copied,length);try{setForegroundAsync(foreground(copied,length));}catch(RuntimeException ignored){}},prepared);
+            DocumentDownloads.copy(getApplicationContext(),download,folder,manual,getId().toString(),this::cancelled,copied->{long now=android.os.SystemClock.elapsedRealtime();if(isStopped()||now-lastProgress<1000)return;lastProgress=now;publish("copy",length>0?(int)Math.min(99,copied*100.0/length):-1,copied,length);try{setForegroundAsync(foreground(copied,length));}catch(RuntimeException ignored){}},prepared,cancellation);
             if(manual&&!isStopped())YoruApp.app().main.post(()->Ui.toast(getApplicationContext(),"Видеофайл сохранён в выбранную папку"));
             return Result.success(output("saved"));
         }catch(Exception error){

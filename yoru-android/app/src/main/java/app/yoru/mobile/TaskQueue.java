@@ -28,7 +28,7 @@ final class TaskQueue {
         private final java.util.Set<Thread> active=ConcurrentHashMap.newKeySet();
         @Override protected void beforeExecute(Thread thread,Runnable work){super.beforeExecute(thread,work);active.add(thread);}
         @Override protected void afterExecute(Runnable work,Throwable error){active.remove(Thread.currentThread());super.afterExecute(work,error);}
-        @Override public java.util.List<Runnable> shutdownNow(){for(Thread thread:active){AtomicBoolean flag=runningFlags.get(thread);if(flag!=null){flag.set(true);HttpTransport.cancel(flag);}}return super.shutdownNow();}
+        @Override public java.util.List<Runnable> shutdownNow(){for(Thread thread:active){AtomicBoolean flag=runningFlags.get(thread);if(flag!=null){flag.set(true);HttpTransport.cancel(flag);}}java.util.List<Runnable> pending=super.shutdownNow();for(Runnable work:pending)if(work instanceof Future<?>)((Future<?>)work).cancel(false);return pending;}
         Executor(int core,int max,long timeout,TimeUnit unit,BlockingQueue<Runnable> queue,ThreadFactory factory,RejectedExecutionHandler policy){super(core,max,timeout,unit,queue,factory,policy);}
         @Override protected <T> RunnableFuture<T> newTaskFor(Callable<T> work){return new CancelFuture<>(work);}
         @Override protected <T> RunnableFuture<T> newTaskFor(Runnable work,T value){return new CancelFuture<>(Executors.callable(work,value));}
