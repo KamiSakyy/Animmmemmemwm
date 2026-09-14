@@ -1,14 +1,21 @@
 name: Assemble YORU major update
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - arena/01a0a14a-animmmemmemwm
+    paths:
+      - 'yoru-android/**'
+      - 'tools/package-yoru-major.py'
+      - '.github/workflows/build-apk.yml'
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: yoru-final-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   assemble:
-    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm'
+    if: github.ref == 'refs/heads/arena/01a0a14a-animmmemmemwm'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +36,12 @@ jobs:
           ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug 2>&1 | tee android-final-build.log
       - name: Package matching APK and sources
         run: python3 tools/package-yoru-major.py
+      - name: Publish final APK and sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd workspace-output/yoru-final
+          gh release create yoru-4.20.0 --target "$GITHUB_SHA" --title "YORU 4.20.0" --notes "Финальная сборка объединённого обновления YORU 4.20.0 (code 82)." YORU-4.20.0.apk YORU-4.20.0.apk.sha256 YORU-4.20.0-source.zip YORU-4.20.0-source.zip.sha256 BUILD-RECEIPT.json
       - uses: actions/upload-artifact@v4
         with:
           name: yoru-4.20.0-final
