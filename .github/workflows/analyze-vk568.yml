@@ -1,0 +1,43 @@
+name: Decompile supplied VK video APK before YORU changes
+on:
+  push:
+    branches: [arena/01a0828d-animmmemmemwm]
+    paths: ['.github/workflows/analyze-vk568.yml', 'tools/export-vk568-audit.py']
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Obtain pinned decompilers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p workspace-output/vk568/build/tools
+          gh release download v1.5.6 --repo skylot/jadx -p jadx-1.5.6.zip -D workspace-output/vk568/build/tools
+          gh release download v3.0.3 --repo iBotPeaches/Apktool -p apktool_3.0.3.jar -D workspace-output/vk568/build/tools
+          unzip -q workspace-output/vk568/build/tools/jadx-1.5.6.zip -d workspace-output/vk568/build/tools/jadx
+          chmod +x workspace-output/vk568/build/tools/jadx/bin/jadx
+      - name: Decode all DEX and resources
+        run: |
+          set +e
+          workspace-output/vk568/build/tools/jadx/bin/jadx -j 2 --show-bad-code -d workspace-output/vk568/build/jadx org.xjiop.vkvideoapp-568.apk > workspace-output/vk568/build/jadx-diagnostics.txt 2>&1
+          echo "JADX_EXIT=$?" >> "$GITHUB_ENV"
+          java -jar workspace-output/vk568/build/tools/apktool_3.0.3.jar d -f -o workspace-output/vk568/build/apktool org.xjiop.vkvideoapp-568.apk > workspace-output/vk568/build/apktool-diagnostics.txt 2>&1
+          echo "APKTOOL_EXIT=$?" >> "$GITHUB_ENV"
+      - name: Export review without opaque credentials
+        run: python tools/export-vk568-audit.py
+      - name: Publish research only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add handoff/VKVIDEO-568-decompiled-review.zip handoff/VKVIDEO-568-decompiled-review.zip.sha256 handoff/VKVIDEO-568-decompilation.json
+          git commit -m 'Save full decompiler review and coverage evidence before YORU update [skip ci]'
+          git pull --rebase --strategy-option=theirs origin arena/01a0828d-animmmemmemwm
+          git push origin HEAD:arena/01a0828d-animmmemmemwm
