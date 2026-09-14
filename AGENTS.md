@@ -499,3 +499,10 @@ GitHub не регистрирует новый workflow вне основной
 - В `build-apk.yml` добавлен шаг сохранения диагностики сборки в `ci-logs/last-failure.txt` при ошибке: логи GitHub Actions недоступны для скачивания из этой среды.
 - Сборка: CI run `34892213764`→`34892213766` success, commit `928434986f3eb488e77f3e42c59841199a1c7101`. APK `apk-output/YORU-4.21.0-release.apk`, 16 507 316 байт, SHA-256 `d3c8375927bd911256a2086628a13a828fe495881c05feb67f2ebab87f6da326`; 393 записи STORED; сертификат совпадает с 4.20.0. Релиз `yoru-4.21.0`.
 - Тесты, провайдерские и проверки на устройстве не выполнялись.
+
+
+## Сборка без внешнего экшена — 15 сентября 2026
+
+- `android-actions/setup-android@v3` перестал отрабатывать на runner (шаг падает до Gradle). Workflow больше не зависит от него: SDK ставится напрямую — command-line tools c dl.google.com, затем `sdkmanager --sdk_root` ставит `platform-tools`, `platforms;android-36`, `build-tools;36.0.0`. Переменные `ANDROID_SDK_ROOT`/`ANDROID_HOME` и PATH задаются вручную.
+- Сборка 4.21.0/code83 после этой замены: run `34893239782` success, commit `354b7c665cbf03fc874782242a7e83c39685aa67`, APK SHA-256 `072c44bf517a148608b0d92d42c41b2327d19b9db71c2a9b041f4f993c9a0645`.
+- При ошибке сборки workflow сохраняет диагностику в `ci-logs/last-failure.txt` и пушит её в ветку: логи Actions из этой среды не скачиваются.
