@@ -10,13 +10,13 @@ root = Path(__file__).resolve().parents[1]
 source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
 output = root / "workspace-output/yoru-final"
 output.mkdir(parents=True, exist_ok=True)
-apk = output / "YORU-4.40.0.apk"
+apk = output / "YORU-4.41.0.apk"
 shutil.copyfile(root / "yoru-android/app/build/outputs/apk/debug/app-debug.apk", apk)
 with zipfile.ZipFile(apk) as bundle:
     if any(entry.compress_type != zipfile.ZIP_STORED for entry in bundle.infolist()):
         raise RuntimeError("APK compression must remain disabled")
 report = {
-    "version": "4.40.0", "version_code": 102, "source_commit": source,
+    "version": "4.41.0", "version_code": 103, "source_commit": source,
     "run_id": os.environ.get("GITHUB_RUN_ID", ""), "assembled": True,
     "apk_bytes": apk.stat().st_size, "apk_sha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
     "build_profile": "existing verifyOnSdk36 ownerSignedApk assembleStoredDebug",
@@ -31,7 +31,7 @@ receipt = (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode()
 files = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", source, "yoru-android"], cwd=root, text=True).splitlines()
 files += ["AGENTS.md", "handoff/YORU-4.20.0-FINAL.ru.md", ".github/workflows/deliver-yoru-major.yml", ".github/workflows/build-apk.yml", "tools/package-yoru-major.py"]
 manifest = {}
-archive = output / "YORU-4.40.0-source.zip"
+archive = output / "YORU-4.41.0-source.zip"
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
     for name in sorted(set(files)):
         path = Path(name)

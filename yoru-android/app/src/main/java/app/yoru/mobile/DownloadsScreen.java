@@ -45,6 +45,19 @@ public final class DownloadsScreen extends LinearLayout {
     }
     private void updateFilterChips(){for(TextView chip:filterChips){boolean on=listFilter.equals(chip.getTag());
         chip.setTextColor(on?0xff21152f:Ui.MUTED);chip.setBackground(on?Ui.gradient(0xffe2ccff,Ui.PURPLE,13,activity):Ui.stroke(Ui.SURFACE,13,activity));}}
+    private static int stateRank(Entry entry){
+        if(entry.plan!=null)return 2;
+        if(entry.download==null)return 9;
+        switch(entry.download.state){
+            case Download.STATE_DOWNLOADING:return 0;
+            case Download.STATE_RESTARTING:return 0;
+            case Download.STATE_QUEUED:return 1;
+            case Download.STATE_STOPPED:return 3;
+            case Download.STATE_FAILED:return 3;
+            case Download.STATE_COMPLETED:return 8;
+            default:return 4;
+        }
+    }
     private void bulkChip(LinearLayout row,String title,Runnable action){
         TextView chip=Ui.chip(activity,title,false,action);LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);row.addView(chip,p);
     }
@@ -105,6 +118,7 @@ public final class DownloadsScreen extends LinearLayout {
                     boolean keep=("done".equals(listFilter)&&finished)||("active".equals(listFilter)&&running);
                     if(!keep)it.remove();
                 }}
+                fresh.sort((x,y)->Integer.compare(stateRank(x),stateRank(y)));
                 signature.append("#").append(listFilter);
                 String next=signature.toString();
                 YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);boolean changed=!next.equals(lastSignature);lastSignature=next;rows.clear();rows.addAll(fresh);if(changed)adapter.notifyDataSetChanged();else refreshVisibleRows();});

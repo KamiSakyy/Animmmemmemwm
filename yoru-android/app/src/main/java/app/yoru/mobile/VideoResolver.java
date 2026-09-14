@@ -41,7 +41,9 @@ final class VideoResolver {
         return scan(api,url);
     }
     static TreeMap<Integer,String> probe(ApiRepository api,String input){try{String url=ApiRepository.safeUrl(input);if(url.isEmpty())return new TreeMap<>();TreeMap<Integer,String> direct=direct(api,url);if(!direct.isEmpty())return direct;return probeUrl(api,url,"https://yani.tv/");}catch(Exception e){return new TreeMap<>();}}
-    static boolean downloadable(String url){String safe=ApiRepository.safeUrl(url);if(safe.isEmpty())return false;String lower=safe.toLowerCase(Locale.ROOT);String path=Uri.parse(safe).getPath();String p=path==null?lower:path.toLowerCase(Locale.ROOT);return p.contains(".m3u8")||p.contains(".mpd")||p.contains(".mp4")||p.contains(".mkv")||p.contains(".webm")||lower.contains(".m3u8")||lower.contains(".mpd")||lower.contains(".mp4")||lower.contains(".mkv")||lower.contains(".webm")||lower.contains("hls")||lower.contains("playlist")||lower.contains("manifest");}
+    static boolean downloadable(String url){String safe=ApiRepository.safeUrl(url);if(safe.isEmpty())return false;String lower=safe.toLowerCase(Locale.ROOT);String path=Uri.parse(safe).getPath();String p=path==null?lower:path.toLowerCase(Locale.ROOT);return p.contains(".m3u8")||p.contains(".mpd")||p.contains(".mp4")||p.contains(".mkv")||p.contains(".webm")||p.contains(".m4v")||p.contains(".mov")||p.contains(".avi")||p.contains(".ogv")
+||lower.contains(".m3u8")||lower.contains(".mpd")||lower.contains(".mp4")||lower.contains(".mkv")||lower.contains(".webm")||lower.contains(".m4v")||lower.contains(".mov")||lower.contains(".avi")||lower.contains(".ogv")
+||lower.contains("hls")||lower.contains("playlist")||lower.contains("manifest");}
     static int qualityOf(String url){return quality(url);}
     private static boolean has(String host,String...names){for(String n:names)if(host.equals(n)||host.endsWith("."+n))return true;return false;}
     private static String host(String url){try{String h=Uri.parse(url).getHost();return h==null?"":h.toLowerCase(Locale.ROOT);}catch(Exception e){return "";}}
