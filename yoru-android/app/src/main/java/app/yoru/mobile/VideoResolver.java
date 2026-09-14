@@ -53,7 +53,6 @@ final class VideoResolver {
         TreeMap<Integer,String> out=new TreeMap<>();if(manifest==null)return out;
         String text=manifest.trim();if(text.startsWith("\uFEFF"))text=text.substring(1).trim();
         if(!text.startsWith("#EXTM3U"))return out;
-        boolean grouped=text.contains("#EXT-X-MEDIA:")||text.contains("#EXT-X-DEFINE:");
         int pending=0;
         try(BufferedReader lines=new BufferedReader(new StringReader(text))){
             for(String line;(line=lines.readLine())!=null;){
@@ -63,7 +62,7 @@ final class VideoResolver {
                     pending=size.find()&&manifestHeight(size.group(1))>0?manifestHeight(size.group(2)):0;
                 }else if(value.startsWith("#EXTINF:")||value.startsWith("#EXT-X-ENDLIST"))pending=0;
                 else if(!value.isEmpty()&&!value.startsWith("#")){
-                    if(pending>0){String variant=grouped&&value.contains("{$")?url:absolute(url,value);if(!variant.isEmpty())out.put(pending,grouped||out.containsKey(pending)?url:variant);}
+                    if(pending>0)out.put(pending,url);
                     pending=0;
                 }
             }
