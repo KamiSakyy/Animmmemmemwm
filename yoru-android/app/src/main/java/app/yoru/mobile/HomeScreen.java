@@ -3,6 +3,7 @@ package app.yoru.mobile;
 import android.app.Activity;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
+import org.json.JSONObject;
 import android.widget.*;
 import androidx.recyclerview.widget.*;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -106,6 +107,10 @@ final class HomeScreen extends SwipeRefreshLayout {
             View shade=new View(activity);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x22120c1b,0xcc20172d,0xff21162e}));hero.addView(shade,new FrameLayout.LayoutParams(-1,-1));
             LinearLayout text=Ui.column(activity);text.setPadding(Ui.dp(activity,20),Ui.dp(activity,24),Ui.dp(activity,20),Ui.dp(activity,21));text.addView(Ui.label(activity,"Рекомендации"));Ui.space(text,13);
             TextView title=Ui.text(activity,YoruBrain.title(anime),25,Ui.TEXT,true);title.setMaxLines(3);text.addView(title);Ui.space(text,12);text.addView(Ui.text(activity,anime.cardMeta(),11,0xffcdbbdc,false));Ui.space(text,18);
+            JSONObject progress=YoruApp.app().store.progress(anime);boolean started=progress.length()>0;double resume=started?progress.optDouble("episode",1):1;
+            final double startEpisode=resume;final String startMode=progress.optString("playerMode","auto");
+            text.addView(Ui.button(activity,started?"Продолжить серию "+Ui.number(startEpisode):"Смотреть",false,()->Ui.openPlayer(activity,anime,startMode,startEpisode)),Ui.lp(activity,-1,-2));
+            Ui.space(text,8);
             text.addView(Ui.button(activity,"Подробнее",true,()->Ui.openDetails(activity,anime)),Ui.lp(activity,-1,-2));hero.addView(text,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));box.addView(hero,Ui.lp(activity,-1,340));Ui.space(box,24);
         }
         extras.accept(box);Ui.space(box,24);LinearLayout topRow=Ui.row(activity);topRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
