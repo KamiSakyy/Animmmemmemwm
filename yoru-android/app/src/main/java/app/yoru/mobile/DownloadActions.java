@@ -59,7 +59,7 @@ public final class DownloadActions {
                     int limit=preferred<0?YoruApp.app().store.downloadResolution():preferred;
                     ApiRepository.DownloadOption chosen=choose(YoruApp.app().api.downloadOptions(anime,ready,ep.number,voice,limit,strict),limit);
                     if(chosen==null||chosen.episode==null||chosen.episode.future||Double.compare(chosen.episode.number,ep.number)!=0||EpisodeRules.conflicts(anime,chosen.source)||(strict&&!ApiRepository.voiceMatches(voice,chosen.voice+" "+chosen.episode.name))){failed++;continue;}
-                    MediaSize.Info info=MediaSize.probeInfo(chosen.episode.streams.get(chosen.quality));TaskQueue.check();prepared.add(chosen);sizes.add(info.bytes);formats.add(info.mime);
+                    MediaSize.Info info=MediaSize.probeInfo(chosen.episode.streams.get(chosen.quality),true);TaskQueue.check();prepared.add(chosen);sizes.add(info.bytes);formats.add(info.mime);
                 }catch(Exception error){if(cancelled.get())return;failed++;}
             }
             int missing=failed;YoruApp.app().main.post(()->{
@@ -93,7 +93,7 @@ public final class DownloadActions {
         String url=option.episode.streams.get(option.quality);
         TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,"Уточняем размер…",true,()->cancelled.set(true));
         TaskQueue.run(YoruApp.app().ui,cancelled,()->{
-            MediaSize.Info info=MediaSize.probeInfo(url);long bytes=info.bytes;
+            MediaSize.Info info=MediaSize.probeInfo(url,true);long bytes=info.bytes;
             YoruApp.app().main.post(()->{
                 if(dead(activity)||cancelled.get())return;wait.dismiss();
                 boolean mobile=YoruApp.app().traffic.metered()&&!YoruApp.app().store.wifiDownloads();

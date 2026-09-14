@@ -114,7 +114,13 @@ final class InlinePlayer extends LinearLayout {
     private void accept(Map<Integer,String> values){streams.clear();for(Map.Entry<Integer,String> row:values.entrySet())if(!ApiRepository.safeUrl(row.getValue()).isEmpty())streams.put(row.getKey(),row.getValue());if(streams.isEmpty()){state(false,"Нет доступного видео для собственного плеера");return;}quality=QualityPlus.bestAtOrBelow(streams.keySet(),requestedQuality);voiceButton.setText(voice.isEmpty()?"Озвучка источника":voice);long position=initialPosition;initialPosition=-1;play(streams.get(quality),position);}
     private void play(String url,long position){
         if(url==null||url.isEmpty())return;release();tasks.cancel();int token=++generation;state(true,"Подготавливаем видео…");
-        tasks.submit(YoruApp.app().ui,()->{try{MediaSize.Info info=MediaSize.probeInfo(url);TaskQueue.check();post(()->{if(!alive(token))return;sizeLabel=MediaSize.label(info.bytes);startVideo(url,position,info.mime);});}catch(Exception error){post(()->{if(alive(token))state(false,"Не удалось подготовить видео. Повторите позже.");});}},()->state(false,"Очередь занята. Повторите позже."));
+        tasks.submit(YoruApp.app().ui,()->{try{MediaSize.Info info=MediaSize.probeInfo(url);TaskQueue.check();post(()->{if(!alive(token))return;sizeLabel=MediaSize.label(info.bytes);startVideo(url,position,info.mime);exactSizeTask(url,token);});}catch(Exception error){post(()->{if(alive(token))state(false,"Не удалось подготовить видео. Повторите позже.");});}},()->state(false,"Очередь занята. Повторите позже."));
+    }
+    private void exactSizeTask(String url,int token){
+        tasks.submit(YoruApp.app().ui,()->{try{
+            MediaSize.Info exact=MediaSize.probeInfo(url,true);if(exact.bytes<=0)return;TaskQueue.check();
+            post(()->{if(alive(token)&&episode!=null&&!busy){sizeLabel=MediaSize.label(exact.bytes);status.setText(streamStatus());}});
+        }catch(Exception ignored){}},null);
     }
     private void startVideo(String url,long position,String mime){
         if(url==null||url.isEmpty())return;release();player=NativePlayers.create(activity);YoruApp.app().activePlayers++;video.setPlayer(player);actualHeight=0;ExoPlayer active=player;

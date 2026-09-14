@@ -83,7 +83,7 @@ public final class ScheduledDownloadJob extends JobService {
                     }
                     if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p,"waiting","Ожидает подходящий выпуск",ScheduledDownloads.nextCheck(p.due));continue;}
                     if(SystemClock.elapsedRealtime()+10_000>=deadline)return;
-                    String stream=best.episode.streams.get(best.quality);MediaSize.Info info=MediaSize.probeInfo(stream);long bytes=info.bytes;TaskQueue.check();
+                    String stream=best.episode.streams.get(best.quality);MediaSize.Info info=MediaSize.probeInfo(stream,true);long bytes=info.bytes;TaskQueue.check();
                     if(!VideoResolver.downloadable(stream)&&!MediaSize.mediaMime(info.mime)){store.update(p,"waiting","Источник пока не подтвердил формат видео",ScheduledDownloads.nextCheck(p.due));continue;}
                     if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(0));continue;}
                     if(stop.get()||!store.isCurrent(p))continue;

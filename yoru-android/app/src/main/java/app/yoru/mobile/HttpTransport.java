@@ -12,6 +12,22 @@ final class HttpTransport {
     private static final ConcurrentHashMap<AtomicBoolean,Set<Call>> calls=new ConcurrentHashMap<>();
     private HttpTransport(){}
     static OkHttpClient media(){return client.newBuilder().callTimeout(0,TimeUnit.MILLISECONDS).followSslRedirects(true).build();}
+    private static final Dispatcher sizingDispatcher=new Dispatcher();
+    static {sizingDispatcher.setMaxRequests(96);sizingDispatcher.setMaxRequestsPerHost(24);}
+    static OkHttpClient sizing(){return client.newBuilder().dispatcher(sizingDispatcher).connectTimeout(3000,TimeUnit.MILLISECONDS).readTimeout(6000,TimeUnit.MILLISECONDS).callTimeout(25,TimeUnit.SECONDS).followRedirects(true).followSslRedirects(true).build();}
+    static Call enqueueSized(Request request,Callback callback){
+        Call call=sizing().newCall(request);
+        java.util.List<AtomicBoolean> scopes=TaskQueue.cancellationFlags();
+        boolean stopped=false;
+        for(AtomicBoolean scope:scopes){if(scope.get()){stopped=true;break;}calls.compute(scope,(k,active)->{if(active==null)active=ConcurrentHashMap.newKeySet();active.add(call);return active;});}
+        if(stopped){call.cancel();try{callback.onFailure(call,new java.io.InterruptedIOException("Cancelled"));}catch(Exception ignored){}return call;}
+        call.enqueue(new Callback(){
+            @Override public void onFailure(Call target,java.io.IOException error){unbind(target);callback.onFailure(target,error);}
+            @Override public void onResponse(Call target,Response response){try{callback.onResponse(target,response);}finally{try{response.close();}catch(Exception ignored){}unbind(target);}}
+        });
+        return call;
+    }
+    private static void unbind(Call call){java.util.List<AtomicBoolean> scopes=TaskQueue.cancellationFlags();for(AtomicBoolean scope:scopes)calls.computeIfPresent(scope,(k,active)->{active.remove(call);return active.isEmpty()?null:active;});}
     static boolean sameOrigin(URL a,URL b){return a.getProtocol().equalsIgnoreCase(b.getProtocol())&&a.getHost().equalsIgnoreCase(b.getHost())&&(a.getPort()<0?a.getDefaultPort():a.getPort())==(b.getPort()<0?b.getDefaultPort():b.getPort());}
     static boolean sensitive(String name){return "Cookie".equalsIgnoreCase(name)||"Authorization".equalsIgnoreCase(name)||"Proxy-Authorization".equalsIgnoreCase(name);}
     static HttpURLConnection open(URL url)throws IOException{return new Connection(url);}

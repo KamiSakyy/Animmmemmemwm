@@ -129,7 +129,13 @@ public final class PlayerActivity extends Activity {
     private void playNative(String url){
         if(url==null||ApiRepository.safeUrl(url).isEmpty()){error("Выбранное видео сейчас недоступно");return;}
         attemptedStreams.add(quality+"|"+url);destroyWebForNative();resetFrameDownloads();stopMedia();playbackTasks.cancel();int token=++generation;currentUrl=url;exactSize="";nativeMode=false;showLoading("Готовим просмотр…","");if(status!=null)status.setText("Готовим просмотр…");
-        playbackTasks.submit(YoruApp.app().ui,()->{MediaSize.Info info=MediaSize.probeInfo(url);YoruApp.app().main.post(()->{if(destroyed||isFinishing()||generation!=token||!url.equals(currentUrl))return;if(!foreground&&!enteringPip&&!isInPictureInPictureMode()){restartOnResume=true;return;}exactSize=MediaSize.label(info.bytes);nativeMode=true;updatePlayerControls();status.setText(nativeStatus());video.setVisibility(View.VISIBLE);NativePlayers.limitQuality(player,quality);player.setMediaSource(NativePlayers.source(url,info.mime));player.setPlaybackSpeed(speed);player.setPlayWhenReady(playRequested&&(foreground||enteringPip||isInPictureInPictureMode()));pausedByLife=playRequested&&!foreground&&!enteringPip&&!isInPictureInPictureMode();player.prepare();video.requestFocus();});},()->error("Не удалось подготовить просмотр. Попробуйте ещё раз."));
+        playbackTasks.submit(YoruApp.app().ui,()->{MediaSize.Info info=MediaSize.probeInfo(url);YoruApp.app().main.post(()->{if(destroyed||isFinishing()||generation!=token||!url.equals(currentUrl))return;if(!foreground&&!enteringPip&&!isInPictureInPictureMode()){restartOnResume=true;return;}exactSize=MediaSize.label(info.bytes);nativeMode=true;updatePlayerControls();status.setText(nativeStatus());video.setVisibility(View.VISIBLE);NativePlayers.limitQuality(player,quality);player.setMediaSource(NativePlayers.source(url,info.mime));player.setPlaybackSpeed(speed);player.setPlayWhenReady(playRequested&&(foreground||enteringPip||isInPictureInPictureMode()));pausedByLife=playRequested&&!foreground&&!enteringPip&&!isInPictureInPictureMode();player.prepare();video.requestFocus();exactSizeTask(url,token);});},()->error("Не удалось подготовить просмотр. Попробуйте ещё раз."));
+    }
+    private void exactSizeTask(String url,int token){
+        playbackTasks.submit(YoruApp.app().ui,()->{try{
+            MediaSize.Info exact=MediaSize.probeInfo(url,true);if(exact.bytes<=0)return;TaskQueue.check();
+            YoruApp.app().main.post(()->{if(destroyed||isFinishing()||generation!=token||!url.equals(currentUrl))return;exactSize=MediaSize.label(exact.bytes);updatePlayerControls();status.setText(nativeStatus());});
+        }catch(Exception ignored){}},null);
     }
     private void showWeb(String url,boolean external){if(rescuePlayback())return;loading.setVisibility(View.GONE);error("Этот вариант сейчас не открылся в YORU Player.");}
 

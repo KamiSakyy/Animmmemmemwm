@@ -109,7 +109,7 @@ public final class DownloadHub {
                     if(Math.abs(option.episode.number-number)<.001&&!EpisodeRules.conflicts(catalog,option.source)&&option.quality==quality&&sameVoice){selected=option;break;}
                 }
                 if(retryTasks.get(id)!=operation)return;if(selected==null)throw new IOException();TaskQueue.check();
-                ApiRepository.DownloadOption ready=selected;MediaSize.Info info=MediaSize.probeInfo(ready.episode.streams.get(ready.quality));TaskQueue.check();
+                ApiRepository.DownloadOption ready=selected;MediaSize.Info info=MediaSize.probeInfo(ready.episode.streams.get(ready.quality),true);TaskQueue.check();
                 main.post(()->{
                     try{
                         Download current=get(id);
