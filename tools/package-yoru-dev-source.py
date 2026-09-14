@@ -5,7 +5,7 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-version = "4.20.0-dev.1"
+version = "4.20.0-dev.2"
 files = subprocess.check_output(["git", "ls-files", "yoru-android"], cwd=root, text=True).splitlines()
 files += [
     ".github/workflows/build-apk.yml",
@@ -14,6 +14,8 @@ files += [
     f"handoff/YORU-{version}-BUILD.ru.md",
     f"handoff/YORU-{version}-ci-jobs.json",
     "tools/package-yoru-dev-source.py",
+    "tools/collect-yoru-tests.py",
+    f"handoff/YORU-{version}-verification-tests.json",
 ]
 for name in files:
     path = Path(name)

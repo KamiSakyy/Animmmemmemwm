@@ -15,7 +15,7 @@ public final class DocumentExportWorker extends Worker {
         try{
             if(isStopped())return Result.retry();
             Download download=new DefaultDownloadIndex(YoruApp.app().mediaCache.database()).getDownload(id);if(!OfflineExporter.canExport(download))return Result.failure();
-            DocumentDownloads.copy(getApplicationContext(),download,folder,manual,this::isStopped);
+            DocumentDownloads.copy(getApplicationContext(),download,folder,manual,getId().toString(),this::isStopped);
             if(manual)YoruApp.app().main.post(()->Ui.toast(getApplicationContext(),"Видеофайл сохранён в выбранную папку"));
             return Result.success();
         }catch(Exception error){

@@ -27,8 +27,8 @@ final class DocumentDownloads {
         if(manual)Ui.toast(context,"Сохранение в папку поставлено в очередь");
     }
     static SharedPreferences journal(Context context){return context.getSharedPreferences("document-export-journal",Context.MODE_PRIVATE);}
-    static void copy(Context context,Download download,String folder,boolean manual,BooleanSupplier cancelled)throws Exception{
-        String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);if(!manual&&!journal.getString("done:"+identity,"").isEmpty())return;
+    static void copy(Context context,Download download,String folder,boolean manual,String operation,BooleanSupplier cancelled)throws Exception{
+        String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);if(operation.equals(journal.getString("operation:"+identity,""))||(!manual&&!journal.getString("done:"+identity,"").isEmpty()))return;
         ContentResolver resolver=context.getContentResolver();String pending=journal.getString("pending:"+identity,"");if(!pending.isEmpty()){try{if(!DocumentsContract.deleteDocument(resolver,Uri.parse(pending)))throw new IOException();}catch(FileNotFoundException ignored){}if(!journal.edit().remove("pending:"+identity).commit())throw new IOException();}
         Uri target=null;DataSource source=null;
         try{
@@ -39,7 +39,7 @@ final class DocumentDownloads {
             DataSpec.Builder spec=new DataSpec.Builder().setUri(download.request.uri);if(download.request.customCacheKey!=null)spec.setKey(download.request.customCacheKey);source=YoruApp.app().mediaCache.offlineFactory().createDataSource();source.open(spec.build());long total=0;
             try(OutputStream output=resolver.openOutputStream(target,"w")){if(output==null)throw new IOException();byte[] buffer=new byte[65536];int count;while((count=source.read(buffer,0,buffer.length))!=-1){if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted())throw new InterruptedIOException();output.write(buffer,0,count);total+=count;}output.flush();}
             if(cancelled.getAsBoolean())throw new InterruptedIOException();if(total<=0||(download.contentLength>0&&total!=download.contentLength))throw new EOFException();
-            if(!journal.edit().putString("done:"+identity,target.toString()).remove("pending:"+identity).commit())throw new IOException();
+            if(!journal.edit().putString("done:"+identity,target.toString()).putString("operation:"+identity,operation).remove("pending:"+identity).commit())throw new IOException();
         }catch(Exception error){if(target!=null)try{if(DocumentsContract.deleteDocument(resolver,target))journal.edit().remove("pending:"+identity).commit();}catch(Exception ignored){}throw error;}finally{if(source!=null)try{source.close();}catch(Exception ignored){}}
     }
 }
