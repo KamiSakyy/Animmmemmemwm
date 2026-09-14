@@ -74,5 +74,17 @@
   "current_combined_sources_assembled": false,
   "current_combined_sources_device_validated": false,
   "release_readiness_percent": null,
-  "intermediate_apk_created": false
+  "intermediate_apk_created": false,
+  "metric_scope": "historical_original_36_requirements",
+  "latest_owner_instruction": "Не менять SDK; пропустить недоступные возможности; завершить общий выпуск и выдать APK.",
+  "final_delivery": {
+    "version": "4.20.0",
+    "version_code": 82,
+    "sdk_profile_changed": false,
+    "stage": "assembly_blocked_by_github_actions_permission",
+    "workflow_started": false,
+    "apk_created": false,
+    "source_zip_created": false,
+    "published": false
+  }
 }
