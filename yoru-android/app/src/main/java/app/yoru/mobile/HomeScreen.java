@@ -96,7 +96,8 @@ final class HomeScreen extends SwipeRefreshLayout {
         lucky.setBackground(Ui.stroke(Ui.SURFACE,13,activity));Ui.press(lucky);lucky.setContentDescription("Открыть случайное аниме");
         lucky.setOnClickListener(v->{if(rows.isEmpty()){Ui.toast(activity,"Список ещё загружается");return;}
             Anime pick=rows.get(new java.util.Random().nextInt(rows.size()));Ui.openDetails(activity,pick);});
-        top.addView(lucky);box.addView(top);Ui.space(box,14);
+        top.addView(lucky);box.addView(top);Ui.space(box,12);
+        if(updated>0){TextView stamp=Ui.text(activity,"Обновлено в "+android.text.format.DateFormat.getTimeFormat(activity).format(new java.util.Date(updated))+" · обновляем каждый час",10,Ui.MUTED,false);box.addView(stamp);Ui.space(box,12);}
         Anime anime=recommendation;
         if(anime!=null){
             FrameLayout hero=new FrameLayout(activity);hero.setBackground(Ui.shape(Ui.CARD,20,activity));hero.setClipToOutline(true);
