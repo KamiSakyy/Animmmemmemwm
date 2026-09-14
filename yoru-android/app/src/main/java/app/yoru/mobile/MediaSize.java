@@ -34,15 +34,16 @@ final class MediaSize {
     static long probe(String raw){return probeInfo(raw).bytes;}
     static Info probeInfo(String raw){return probeInfo(raw,false);}
     static Info probeInfo(String raw,boolean exact){
-        String url=ApiRepository.safeUrl(raw);Info unknown=new Info(-1,"");if(url.isEmpty())return unknown;if(manifest(url))return exact?adaptiveInfo(url,url.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,url.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");
+        boolean precise=exact;if(precise){YoruApp app=YoruApp.app();if(app==null||app.store==null||!app.store.exactSizes())precise=false;}
+        String url=ApiRepository.safeUrl(raw);Info unknown=new Info(-1,"");if(url.isEmpty())return unknown;if(manifest(url))return precise?adaptiveInfo(url,url.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,url.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");
         Info found=unknown;
         for(int attempt=0;attempt<2;attempt++){
             HttpURLConnection connection=null;
             try{
                 TaskQueue.check();connection=HttpTransport.open(new URL(url));connection.setConnectTimeout(2500);connection.setReadTimeout(2500);connection.setRequestMethod(attempt==0?"HEAD":"GET");connection.setRequestProperty("Accept-Encoding","identity");connection.setRequestProperty("Referer","https://yani.tv/");if(attempt==1)connection.setRequestProperty("Range","bytes=0-0");
                 int code=connection.getResponseCode();if(attempt==0&&code!=200)continue;if(code!=200&&code!=206)return found;
-                String finalUrl=connection.getURL().toString();if(manifest(finalUrl))return exact?adaptiveInfo(finalUrl,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");String encoding=connection.getContentEncoding();
-                String type=connection.getContentType();String mime=type==null?"":type.toLowerCase(Locale.ROOT).split(";",2)[0].trim();if(mime.contains("mpegurl"))return exact?hlsInfo(finalUrl):new Info(-1,"application/x-mpegURL");if(mime.equals("application/dash+xml"))return new Info(-1,"application/dash+xml");boolean container=containerMime(mime);
+                String finalUrl=connection.getURL().toString();if(manifest(finalUrl))return precise?adaptiveInfo(finalUrl,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");String encoding=connection.getContentEncoding();
+                String type=connection.getContentType();String mime=type==null?"":type.toLowerCase(Locale.ROOT).split(";",2)[0].trim();if(mime.contains("mpegurl"))return precise?hlsInfo(finalUrl):new Info(-1,"application/x-mpegURL");if(mime.equals("application/dash+xml"))return new Info(-1,"application/dash+xml");boolean container=containerMime(mime);
                 if(!container&&(!singleFile(finalUrl)||(!mime.isEmpty()&&!mime.startsWith("video/")&&!mime.equals("application/octet-stream"))))continue;
                 String format=container?canonicalMime(mime):"";found=new Info(-1,format);if(encoding!=null&&!encoding.equalsIgnoreCase("identity"))continue;
                 if(code==206)return new Info(rangeTotal(connection.getHeaderField("Content-Range")),format);

@@ -191,6 +191,8 @@ public final class SecureStore {
     public synchronized boolean dataSaver(){ensure();return settings.optBoolean("dataSaver",false);}
     public synchronized boolean wifiDownloads(){ensure();return settings.optBoolean("wifiDownloads",false);}
     public synchronized void dataSaver(boolean enabled){ensure();try{settings.put("dataSaver",enabled);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized boolean exactSizes(){ensure();return settings.optBoolean("exactSizes",true);}
+    public synchronized void exactSizes(boolean enabled){ensure();try{settings.put("exactSizes",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized void wifiDownloads(boolean enabled){ensure();try{settings.put("wifiDownloads",enabled);write("settings",settings);}catch(Exception ignored){}}
 
     public synchronized List<String> searchHistory(){ensure();ArrayList<String> out=new ArrayList<>();JSONArray rows=settings.optJSONArray("searchHistory");for(int i=0;rows!=null&&i<rows.length();i++){String q=rows.optString(i,"").trim();if(!q.isEmpty()&&!out.contains(q))out.add(q);if(out.size()>=14)break;}return out;}
