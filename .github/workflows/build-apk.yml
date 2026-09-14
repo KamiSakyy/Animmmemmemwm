@@ -56,7 +56,7 @@ jobs:
           cp workspace-output/yoru-final/BUILD-RECEIPT.json apk-output/YORU-4.20.0-BUILD-RECEIPT.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk-output
+          git add -f apk-output
           git commit -m "Preserve final YORU 4.20.0 APK and sources"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
