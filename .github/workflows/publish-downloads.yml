@@ -25,7 +25,7 @@ jobs:
           cp apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
           cp handoff/YORU-4.20.0-dev.4-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
           if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — тестовое обновление" --notes "Оптимизированная тестовая копия YORU. Добавлено подтверждение массового скачивания с проверкой размера и доступности серий. Исходники соответствуют APK. Это ещё не завершённый основной релиз. Основную YORU удалять не нужно. Перед переустановкой прежней тестовой копии сохраните её данные."
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — тестовое обновление" --notes "Оптимизированная тестовая копия YORU. Исправлено сохранение выбранной озвучки и связанные ошибки просмотра. Отдельные тестовые прогоны в этой версии не выполнялись. Исходники соответствуют APK. Это ещё не завершённый основной релиз. Основную YORU удалять не нужно. Перед переустановкой прежней тестовой копии сохраните её данные."
           fi
           gh release upload "$tag" "$RUNNER_TEMP/YORU-4.20.0-test.apk" "$RUNNER_TEMP/YORU-4.20.0-source.zip" --clobber
           gh release edit "$tag" --draft=false --prerelease

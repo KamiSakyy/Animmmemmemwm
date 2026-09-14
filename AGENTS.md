@@ -252,3 +252,5 @@ VPN полностью удалён в YORU 2.9.0. Не возвращать `Vp
 - Исправляется причина потери озвучки: progress больше не перезаписывает voicePreference; ручной выбор сохраняется сразу; автоматические spinner callbacks и fallback не меняют выбор и onlyPreferredVoice. Yoru episode не обрезает список голосов до текущего предпочтения.
 - Details держит inline-плеер между отдельными верхним/нижним контейнерами: обновление деталей больше не удаляет его SurfaceView из дерева. Рейтинг в деталях использует подтверждённый Shiki score с прежней звездой.
 - APK по-прежнему компактный, постоянная подпись, тестовая отдельная копия; versionName системного экрана очищен от служебных SDK/transport suffix. Кэш/цвета/VK не менять.
+
+- Dev.4 собран без тестов: CI34827624686/source9c85e304600f428ee816a0076064d29fd9e3514e, assembly103923670312 SUCCESS, SDK37 job SKIPPED. APK2 986 540 байт/code74 сохранён bot7d3ea47. Отчёт build-report.json содержит assembled=true, tests_executed=false, device_checks_executed=false. Не называть старые55 тестов проверкой dev.4 и не заявлять device-регрессию.
