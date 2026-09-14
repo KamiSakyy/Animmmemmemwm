@@ -38,7 +38,7 @@ final class InlinePlayer extends LinearLayout {
         qualityButton=Ui.button(activity,"Разрешение",false,this::chooseQuality);addView(qualityButton,Ui.lp(activity,-1,-2));
         LinearLayout tools=Ui.row(activity);
         tools.addView(Ui.iconButton(activity,"camera","Снимок видеокадра",()->{if(!locked)NativeFrame.capture(activity,video);}),Ui.lp(activity,48,48));
-        tools.addView(Ui.iconButton(activity,"expand","На весь экран",()->{if(anime==null||locked)return;double number=episode==null?1:episode.number;suspend();Ui.openPlayer(activity,anime,"yoru",number);}),Ui.lp(activity,48,48));
+        tools.addView(Ui.iconButton(activity,"expand","На весь экран",()->{if(anime==null||locked)return;double number=episode==null?1:episode.number;suspend();activity.startActivity(new android.content.Intent(activity,PlayerActivity.class).putExtra("anime",anime.json().toString()).putExtra("mode","yoru").putExtra("episode",number).putExtra("voice",voice).putExtra("quality",quality>0?quality:YoruApp.app().store.quality()).putExtra("fullscreen",true));}),Ui.lp(activity,48,48));
         TextView lock=Ui.button(activity,"Блокировка",false,()->{});lock.setOnClickListener(v->{locked=!locked;video.setUseController(!locked);start.setEnabled(!locked&&!busy);seasonButton.setEnabled(!locked&&!busy);episodeButton.setEnabled(!locked&&!busy);voiceButton.setEnabled(!locked&&!busy);qualityButton.setEnabled(!locked&&!busy);lock.setText(locked?"Разблокировать":"Блокировка");});tools.addView(lock,new LayoutParams(0,-2,1));addView(tools);
     }
     void bind(Anime value){if(anime==null){anime=value;seasonButton.setText(value.title);}else if(anime.key().equals(value.key()))anime=value;}

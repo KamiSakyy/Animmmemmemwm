@@ -13,4 +13,7 @@ public class EpisodeRulesTest {
     @Test public void availableCountNeverDeclaresUnknownStatusFinished(){Anime anime=new Anime();anime.episodes=1;anime.episodeList.add(episode(1,false));assertEquals("Статус уточняется",anime.statusLabel());}
     @Test public void foreignProviderScoreIsNotLabelledShikimori(){Anime anime=new Anime();anime.source="yummy";anime.score=9.9;assertEquals(0,anime.ratingScore(),0);anime.shikimoriScore=8.4;assertEquals(8.4,anime.ratingScore(),0);}
     @Test public void differentSeasonIdsAreNotAbsorbed(){Anime target=new Anime(),source=new Anime();target.malId=400;target.episodes=12;source.malId=100;source.shikimoriEpisodes=36;SourceEngine.absorb(target,source);assertEquals(12,target.episodes);assertEquals(0,target.shikimoriEpisodes);}
+    @Test public void discoveredDetailsRejectConflictingMal(){Anime a=new Anime(),b=new Anime();a.malId=11;b.malId=12;assertTrue(EpisodeRules.conflicts(a,b));}
+    @Test public void discoveredDetailsRejectConflictingAnilist(){Anime a=new Anime(),b=new Anime();a.anilistId=21;b.anilistId=22;assertTrue(EpisodeRules.conflicts(a,b));}
+    @Test public void missingIdentityIsNotFabricatedConflict(){Anime a=new Anime(),b=new Anime();a.malId=11;assertFalse(EpisodeRules.conflicts(a,b));b.malId=11;assertFalse(EpisodeRules.conflicts(a,b));assertFalse(EpisodeRules.conflicts(null,b));}
 }
