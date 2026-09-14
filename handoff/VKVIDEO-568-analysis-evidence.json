@@ -1,0 +1,454 @@
+{
+  "engine": "Androguard DAD",
+  "apk_sha256": "f00edf653092c4e291c9325d3594692bb83f8232e670100fefe8ab5486898606",
+  "package": "org.xjiop.vkvideoapp",
+  "version_name": "2.23.8",
+  "version_code": "568",
+  "target_sdk": "36",
+  "dex_count": 3,
+  "classes": 20622,
+  "methods": 99545,
+  "java_ok": 20622,
+  "java_failed": [],
+  "critical": [
+    {
+      "class": "Lcb2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lda2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Leb1;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lez5;",
+      "tags": [
+        "intercept"
+      ]
+    },
+    {
+      "class": "Lfi4;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lgy5;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Ljo0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lk18;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lk54;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lka7;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Llm5;",
+      "tags": [
+        "intercept",
+        "tls"
+      ]
+    },
+    {
+      "class": "Lls5;",
+      "tags": [
+        "intercept"
+      ]
+    },
+    {
+      "class": "Lly5;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lna0;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lnj1;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lns2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lq4;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lrz5;",
+      "tags": [
+        "intercept"
+      ]
+    },
+    {
+      "class": "Lt54;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lty5;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lzh;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lzj0;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "La1;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lb8;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lea4;",
+      "tags": [
+        "vk"
+      ]
+    },
+    {
+      "class": "Lfi1;",
+      "tags": [
+        "hls",
+        "player"
+      ]
+    },
+    {
+      "class": "Lg7;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lgf4;",
+      "tags": [
+        "tls"
+      ]
+    },
+    {
+      "class": "Lgt;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lh7;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Liv;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lj54;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lkq0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Llf4;",
+      "tags": [
+        "tls"
+      ]
+    },
+    {
+      "class": "Lnq0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lo;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lop0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Loq0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lorg/chromium/support_lib_boundary/ServiceWorkerClientBoundaryInterface;",
+      "tags": [
+        "intercept"
+      ]
+    },
+    {
+      "class": "Lorg/fourthline/cling/transport/impl/jetty/StreamClientImpl$HttpContentExchange;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lorg/xjiop/vkvideoapp/MainActivity;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lorg/xjiop/vkvideoapp/downloads/DownloadsService;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lorg/xjiop/vkvideoapp/videoplayer/PlaybackService;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lpq0;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lr94;",
+      "tags": [
+        "hls",
+        "player"
+      ]
+    },
+    {
+      "class": "Lsl1;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Luq2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lvf1;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lvl1;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lvq2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Lw93;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lwq2;",
+      "tags": [
+        "player"
+      ]
+    },
+    {
+      "class": "Ly6;",
+      "tags": [
+        "vk"
+      ]
+    },
+    {
+      "class": "Lyads/fl0;",
+      "tags": [
+        "size"
+      ]
+    },
+    {
+      "class": "Lyads/ea3;",
+      "tags": [
+        "intercept",
+        "tls"
+      ]
+    },
+    {
+      "class": "Lyads/pk0;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lyads/u56;",
+      "tags": [
+        "hls"
+      ]
+    },
+    {
+      "class": "Lyads/w3;",
+      "tags": [
+        "tls"
+      ]
+    },
+    {
+      "class": "Lyd4;",
+      "tags": [
+        "vk",
+        "tls"
+      ]
+    }
+  ],
+  "full_disassembly": true,
+  "activities": [
+    "org.xjiop.vkvideoapp.MainActivity",
+    "com.yandex.mobile.ads.features.debugpanel.ui.IntegrationInspectorActivity",
+    "org.xjiop.vkvideoapp.settings.SettingsActivity",
+    "com.android.billingclient.api.ProxyBillingActivityV2",
+    "org.xjiop.vkvideoapp.PinLockActivity",
+    "com.google.android.gms.common.api.GoogleApiActivity",
+    "org.xjiop.vkvideoapp.viewimage.ViewImageActivity",
+    "com.vk.id.captcha.web.VKCaptchaWebViewActivity",
+    "com.google.android.gms.ads.AdActivity",
+    "com.google.android.play.core.common.PlayCoreDialogWrapperActivity",
+    "com.google.android.gms.ads.OutOfContextTestingActivity",
+    "com.android.billingclient.api.ProxyBillingActivity",
+    "com.google.android.gms.ads.NotificationHandlerActivity",
+    "org.xjiop.vkvideoapp.AuthActivity",
+    "com.yandex.mobile.ads.common.AdActivity"
+  ],
+  "services": [
+    "com.google.firebase.sessions.SessionLifecycleService",
+    "androidx.work.impl.background.systemjob.SystemJobService",
+    "androidx.work.impl.foreground.SystemForegroundService",
+    "com.google.android.datatransport.runtime.backends.TransportBackendDiscovery",
+    "org.xjiop.vkvideoapp.videoplayer.PlaybackService",
+    "org.xjiop.vkvideoapp.downloads.DownloadsService",
+    "com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService",
+    "com.google.firebase.components.ComponentDiscoveryService",
+    "org.fourthline.cling.android.AndroidUpnpServiceImpl",
+    "androidx.room.MultiInstanceInvalidationService",
+    "com.google.android.gms.ads.AdService",
+    "com.google.android.gms.measurement.AppMeasurementService",
+    "com.google.android.gms.measurement.AppMeasurementJobService",
+    "io.appmetrica.analytics.internal.AppMetricaService",
+    "androidx.work.impl.background.systemalarm.SystemAlarmService",
+    "com.google.android.gms.cast.framework.ReconnectionService",
+    "net.gotev.uploadservice.UploadService"
+  ],
+  "permissions": [
+    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+    "android.permission.CHANGE_NETWORK_STATE",
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.ACCESS_WIFI_STATE",
+    "com.google.android.gms.permission.AD_ID",
+    "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.VIBRATE",
+    "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+    "android.permission.USE_BIOMETRIC",
+    "android.permission.INTERNET",
+    "com.android.vending.BILLING",
+    "android.permission.ACCESS_ADSERVICES_AD_ID",
+    "android.permission.READ_EXTERNAL_STORAGE",
+    "android.permission.USE_FINGERPRINT",
+    "android.permission.WRITE_EXTERNAL_STORAGE",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.CHANGE_WIFI_MULTICAST_STATE",
+    "android.permission.ACCESS_ADSERVICES_TOPICS",
+    "android.permission.WAKE_LOCK",
+    "org.xjiop.vkvideoapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+    "android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+  ],
+  "finished": true,
+  "resource_xml_decoded": 1189,
+  "resource_xml_errors": [],
+  "native_libraries": [
+    "lib/arm64-v8a/libdatastore_shared_counter.so",
+    "lib/armeabi-v7a/libdatastore_shared_counter.so",
+    "lib/x86/libdatastore_shared_counter.so",
+    "lib/x86_64/libdatastore_shared_counter.so"
+  ],
+  "export_file": "VKVIDEO-568-local-decompiled-review.zip",
+  "export_bytes": 39051399,
+  "export_entries": 42430,
+  "masked_literals": 758,
+  "export_sha256": "4e16d24608857a8d46a99697fa774a73e16345beb1c808c5fca3c9388566b1f4",
+  "jadx_apktool_ci": {
+    "run": "34813839601",
+    "started": false,
+    "reason": "GitHub account payments/spending limit"
+  }
+}
