@@ -41,6 +41,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd workspace-output/yoru-final
+          gh release delete yoru-4.20.0 --yes --cleanup-tag || true
           gh release create yoru-4.20.0 --target "$GITHUB_SHA" --title "YORU 4.20.0" --notes "Финальная сборка объединённого обновления YORU 4.20.0 (code 82)." YORU-4.20.0.apk YORU-4.20.0.apk.sha256 YORU-4.20.0-source.zip YORU-4.20.0-source.zip.sha256 BUILD-RECEIPT.json
       - uses: actions/upload-artifact@v4
         with:
