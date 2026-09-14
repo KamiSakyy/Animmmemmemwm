@@ -1,12 +1,13 @@
 plugins { id 'com.android.application' }
-def compactApk = project.hasProperty('compactApk')
+def ownerSignedApk = project.hasProperty('ownerSignedApk')
+if (project.hasProperty('compactApk')) throw new GradleException('Compact builds are disabled; use ownerSignedApk')
 def verificationBuild = project.hasProperty('verifyOnSdk36')
 def jvmVerification = project.hasProperty('verifyJvmTransport')
 def transportDependency = verificationBuild ? (jvmVerification ? 'com.squareup.okhttp3:okhttp-jvm:5.5.0' : 'com.squareup.okhttp3:okhttp:5.4.0') : 'com.squareup.okhttp3:okhttp:5.5.0'
 if (verificationBuild && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) throw new GradleException('SDK36 verification cannot produce a release build')
 def owner = new Properties()
 def ownerFile = rootProject.file('owner-signing/signing.properties')
-if (compactApk && !ownerFile.exists()) throw new GradleException('Owner signing configuration is required for compact APK')
+if (ownerSignedApk && !ownerFile.exists()) throw new GradleException('Owner signing configuration is required for distribution')
 if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
 def certHash = rootProject.file('owner-signing/certificate-sha256.txt').exists() ? rootProject.file('owner-signing/certificate-sha256.txt').text.trim() : ''
 android {
@@ -16,8 +17,8 @@ android {
   applicationId 'app.yoru.mobile'
   minSdk 26
   targetSdk verificationBuild ? 36 : 37
-  versionCode 78
-  versionName verificationBuild ? (jvmVerification ? '4.20.0-dev.8-jvm-verification' : '4.20.0-recovery.8') : '4.20.0-dev.8'
+  versionCode 79
+  versionName verificationBuild ? (jvmVerification ? '4.20.0-dev.9-jvm-verification' : '4.20.0-restart.9') : '4.20.0-dev.9'
   resValue 'string', 'application_title', (verificationBuild ? 'YORU · проверка' : 'YORU')
   buildConfigField 'String', 'DISPLAY_VERSION', '"4.20.0' + (verificationBuild ? ' · тестовая' : '') + '"'
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
@@ -35,19 +36,20 @@ android {
   enableV3Signing true
  } }
  buildTypes {
-  release { minifyEnabled true; shrinkResources true; debuggable false; signingConfig signingConfigs.release; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' }
+  release { minifyEnabled false; shrinkResources false; debuggable false; signingConfig signingConfigs.release;  }
   debug {
    applicationIdSuffix '.debug'
-   debuggable !compactApk
-   if (compactApk) signingConfig signingConfigs.release
-   minifyEnabled compactApk
-   shrinkResources compactApk
-   proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+   debuggable !ownerSignedApk
+   if (ownerSignedApk) signingConfig signingConfigs.release
+   minifyEnabled false
+   shrinkResources false
+   
   }
  }
  buildFeatures { buildConfig true; resValues true }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
- packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] }; jniLibs { useLegacyPackaging true } }
+ androidResources { noCompress += [''] }
+ packaging { resources { excludes += ['META-INF/DEPENDENCIES','META-INF/LICENSE*','META-INF/NOTICE*'] }; jniLibs { useLegacyPackaging false } }
 }
 
 dependencies {
@@ -65,4 +67,45 @@ dependencies {
  implementation 'androidx.work:work-runtime:2.10.1'
  implementation 'androidx.recyclerview:recyclerview:1.4.0'
  implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+}
+
+
+tasks.register('assembleStoredDebug') {
+ dependsOn 'assembleDebug'
+ doLast {
+  if (!ownerSignedApk || !ownerFile.exists()) throw new GradleException('Distribution signing is required')
+  def original = layout.buildDirectory.file('outputs/apk/debug/app-debug.apk').get().asFile
+  def work = layout.buildDirectory.dir('stored-apk').get().asFile
+  work.mkdirs()
+  def unsigned = new File(work, 'unsigned.apk')
+  def aligned = new File(work, 'aligned.apk')
+  new java.util.zip.ZipFile(original).withCloseable { input ->
+   new java.util.zip.ZipOutputStream(new FileOutputStream(unsigned)).withCloseable { output ->
+    input.entries().each { entry ->
+     if (!entry.name.matches('(?i)META-INF/[^/]+\\.(SF|RSA|DSA|EC)') && !entry.name.equalsIgnoreCase('META-INF/MANIFEST.MF')) {
+      def stored = new java.util.zip.ZipEntry(entry.name)
+      stored.method = java.util.zip.ZipEntry.STORED
+      stored.size = entry.size
+      stored.compressedSize = entry.size
+      stored.crc = entry.crc
+      stored.time = entry.time
+      output.putNextEntry(stored)
+      input.getInputStream(entry).withCloseable { stream -> stream.transferTo(output) }
+      output.closeEntry()
+     }
+    }
+   }
+  }
+  def tools = new File(androidComponents.sdkComponents.sdkDirectory.get().asFile, 'build-tools/' + android.buildToolsVersion)
+  providers.exec {
+   commandLine new File(tools, 'zipalign').absolutePath, '-P', '16', '-f', '4', unsigned.absolutePath, aligned.absolutePath
+  }.result.get().assertNormalExitValue()
+  providers.exec {
+   environment 'YORU_STORE_PASSWORD', owner.getProperty('storePassword')
+   environment 'YORU_KEY_PASSWORD', owner.getProperty('keyPassword')
+   commandLine new File(tools, 'apksigner').absolutePath, 'sign', '--ks', rootProject.file('owner-signing/yoru-release.jks').absolutePath, '--ks-key-alias', owner.getProperty('keyAlias'), '--ks-pass', 'env:YORU_STORE_PASSWORD', '--key-pass', 'env:YORU_KEY_PASSWORD', '--v1-signing-enabled', 'false', '--v2-signing-enabled', 'true', '--v3-signing-enabled', 'true', '--out', original.absolutePath, aligned.absolutePath
+  }.result.get().assertNormalExitValue()
+  unsigned.delete()
+  aligned.delete()
+ }
 }

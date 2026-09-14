@@ -4,7 +4,7 @@ on:
     branches:
       - arena/01a0828d-animmmemmemwm
     paths:
-      - handoff/YORU-4.20.0-dev.8-source.zip
+      - handoff/YORU-4.20.0-dev.9-source.zip
 permissions:
   contents: write
 concurrency:
@@ -21,11 +21,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=yoru-4.20.0-dev.8
-          cp apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
-          cp handoff/YORU-4.20.0-dev.8-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
+          tag=yoru-4.20.0-dev.9
+          cp apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
+          cp handoff/YORU-4.20.0-dev.9-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
           if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — восстановление рабочей dev.2" --notes "Восстановительная сборка на исходниках dev.2, которую пользователь подтвердил рабочей. Версия повышена для обновления поверх dev.3–dev.7 без удаления приложения. Сохранена совместимость базы будущих загрузок. Изменения dev.3–dev.7 временно исключены из APK. Это возврат к известной рабочей основе, не доказательство установленной причины вылета. Отдельные тестовые прогоны не выполнялись; запуск на телефоне пользователя ещё не подтверждён."
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — основа dev.2 без минификации" --notes "Перезапуск с runtime-кода подтверждённой пользователем dev.2. Минификация и удаление ресурсов отключены, все записи APK сохранены без ZIP-сжатия. Прежняя подпись и повышенный номер позволяют обновление без удаления данных. Сохранена совместимость базы будущих загрузок. Новые функции dev.3–dev.7 не перенесены. Причина прежнего вылета не установлена; запуск этой сборки на телефоне пользователя ещё не подтверждён. Отдельные тестовые прогоны не выполнялись."
           fi
           gh release upload "$tag" "$RUNNER_TEMP/YORU-4.20.0-test.apk" "$RUNNER_TEMP/YORU-4.20.0-source.zip" --clobber
           gh release edit "$tag" --draft=false --prerelease

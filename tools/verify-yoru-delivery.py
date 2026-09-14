@@ -6,7 +6,7 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-version = "4.20.0-dev.8"
+version = "4.20.0-dev.9"
 report = json.loads((root / f"handoff/YORU-{version}-build-report.json").read_text())
 source = report["source_commit"]
 if not re.fullmatch(r"[0-9a-f]{40}", source):
@@ -16,7 +16,7 @@ if not report.get("assembled"):
 if subprocess.run(["git", "cat-file", "-e", source + "^{commit}"], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
     subprocess.run(["git", "fetch", "--no-tags", "origin", source, "--depth=1"], cwd=root, check=True, stdout=subprocess.DEVNULL)
 archive = root / f"handoff/YORU-{version}-source.zip"
-apk = root / f"apk-output/YORU-{version}-compat-sdk36-okhttp5.4.apk"
+apk = root / f"apk-output/YORU-{version}-sdk36-okhttp5.4-unminified.apk"
 if hashlib.sha256(apk.read_bytes()).hexdigest() != report["apk_sha256"]:
     raise ValueError("APK does not match the build report")
 for path in (archive, apk):

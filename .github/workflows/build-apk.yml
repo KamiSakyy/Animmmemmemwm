@@ -94,34 +94,34 @@ jobs:
         run: |
           git pull --rebase origin arena/01a0828d-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.20.0-dev.8-release.apk apk-output/YORU-4.20.0-dev.8-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.8-release.apk
-          sha256sum apk-output/YORU-4.20.0-dev.8-release.apk > apk-output/YORU-4.20.0-dev.8-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.8-debug.apk
-          sha256sum apk-output/YORU-4.20.0-dev.8-debug.apk > apk-output/YORU-4.20.0-dev.8-debug.apk.sha256
+          rm -f apk-output/YORU-4.20.0-dev.9-release.apk apk-output/YORU-4.20.0-dev.9-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.9-release.apk
+          sha256sum apk-output/YORU-4.20.0-dev.9-release.apk > apk-output/YORU-4.20.0-dev.9-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.9-debug.apk
+          sha256sum apk-output/YORU-4.20.0-dev.9-debug.apk > apk-output/YORU-4.20.0-dev.9-debug.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.8-*.apk apk-output/YORU-4.20.0-dev.8-*.apk.sha256
-          git commit -m "Add built YORU 4.20.0-dev.8 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.20.0-dev.9-*.apk apk-output/YORU-4.20.0-dev.9-*.apk.sha256
+          git commit -m "Add built YORU 4.20.0-dev.9 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.8-release-apk
+          name: yoru-4.20.0-dev.9-release-apk
           path: |
-            apk-output/YORU-4.20.0-dev.8-*.apk
-            apk-output/YORU-4.20.0-dev.8-*.apk.sha256
+            apk-output/YORU-4.20.0-dev.9-*.apk
+            apk-output/YORU-4.20.0-dev.9-*.apk.sha256
 
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.8-tests
+          name: yoru-4.20.0-dev.9-tests
           path: yoru-android/app/build/test-results/testDebugUnitTest/
           if-no-files-found: ignore
 
   compatibility-verification:
-    name: Assemble optimized test APK
+    name: Assemble unminified uncompressed APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -132,14 +132,14 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Install verification SDK
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Restore existing owner signing for compact APK
+      - name: Restore existing owner signing for update
         run: unzip -oq YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
       - name: Assemble APK without test or device runs
         working-directory: yoru-android
         run: |
           chmod +x gradlew
           set +e
-          ./gradlew --no-daemon -PverifyOnSdk36 -PcompactApk :app:assembleDebug > android-build.log 2>&1
+          ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug > android-build.log 2>&1
           code=$?
           set -e
           if [ "$code" -ne 0 ]; then
@@ -151,29 +151,29 @@ jobs:
       - name: Preserve explicitly labelled compatibility APK
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk || { echo "::error title=APK publication::Signature verification failed"; exit 1; }
-          cp handoff/YORU-4.20.0-dev.8-build-report.json "$RUNNER_TEMP/yoru-build-report.json"
-          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.8-build-report.json >/dev/null 2>&1; then
-            git restore -- handoff/YORU-4.20.0-dev.8-build-report.json
+          cp handoff/YORU-4.20.0-dev.9-build-report.json "$RUNNER_TEMP/yoru-build-report.json"
+          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.9-build-report.json >/dev/null 2>&1; then
+            git restore -- handoff/YORU-4.20.0-dev.9-build-report.json
           else
-            rm handoff/YORU-4.20.0-dev.8-build-report.json
+            rm handoff/YORU-4.20.0-dev.9-build-report.json
           fi
           git pull --rebase origin arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::Branch synchronization failed"; exit 1; }
-          cp "$RUNNER_TEMP/yoru-build-report.json" handoff/YORU-4.20.0-dev.8-build-report.json
+          cp "$RUNNER_TEMP/yoru-build-report.json" handoff/YORU-4.20.0-dev.9-build-report.json
           mkdir -p apk-output
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk
-          sha256sum apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk > apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk
+          sha256sum apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk > apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk.sha256
-          git add handoff/YORU-4.20.0-dev.8-build-report.json
+          git add -f apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk.sha256
+          git add handoff/YORU-4.20.0-dev.9-build-report.json
           git commit -m "Save separately labelled YORU SDK36 compatibility APK and build receipt [skip ci]" || exit 0
           git push origin HEAD:arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::APK push failed"; exit 1; }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yoru-4.20.0-dev.8-compatibility-checks
+          name: yoru-4.20.0-dev.9-compatibility-checks
           path: |
             yoru-android/android-build.log
-            handoff/YORU-4.20.0-dev.8-build-report.json
-            apk-output/YORU-4.20.0-dev.8-compat-sdk36-okhttp5.4.apk
+            handoff/YORU-4.20.0-dev.9-build-report.json
+            apk-output/YORU-4.20.0-dev.9-sdk36-okhttp5.4-unminified.apk
           if-no-files-found: ignore
