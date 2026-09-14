@@ -70,8 +70,6 @@ public final class SecureStore {
     public synchronized void wallpaper(boolean enabled,boolean transparent,int opacity){ensure();try{settings.put("wallpaperEnabled",enabled).put("wallpaperTransparent",transparent).put("wallpaperTransparency",Math.max(0,Math.min(90,opacity))).put("wallpaperVersion",System.currentTimeMillis());write("settings",settings);}catch(Exception ignored){}}
     public synchronized String downloadFolder(){ensure();return settings.optString("downloadFolder","");}
     public synchronized void downloadFolder(String uri){ensure();try{settings.put("downloadFolder",uri==null?"":uri);write("settings",settings);}catch(Exception ignored){}}
-    public synchronized String exportedDocument(String id){ensure();JSONObject exports=settings.optJSONObject("documentExports");return exports==null?"":exports.optString(id,"");}
-    public synchronized void exportedDocument(String id,String uri){ensure();try{JSONObject exports=settings.optJSONObject("documentExports");if(exports==null){exports=new JSONObject();settings.put("documentExports",exports);}exports.put(id,uri);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean localScheduleTime(){ensure();return settings.optBoolean("localScheduleTime",false);}
     public synchronized boolean liteMode(){ensure();return settings.optBoolean("liteMode",false);}
     public synchronized void liteMode(boolean enabled){ensure();try{settings.put("liteMode",enabled);write("settings",settings);}catch(Exception ignored){}}
