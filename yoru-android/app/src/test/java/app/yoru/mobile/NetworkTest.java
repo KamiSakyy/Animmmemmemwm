@@ -39,4 +39,14 @@ public class NetworkTest {
             workers.execute(task);assertTrue(accepted.await(3,TimeUnit.SECONDS));assertTrue(task.cancel(false));assertTrue(stopped.await(3,TimeUnit.SECONDS));
         }finally{release.countDown();workers.shutdownNow();}
     }
+    @Test public void childPoolShutdownClosesBlockedCall()throws Exception{
+        ExecutorService worker=TaskQueue.pool(1),server=Executors.newSingleThreadExecutor();
+        CountDownLatch accepted=new CountDownLatch(1),stopped=new CountDownLatch(1),release=new CountDownLatch(1);
+        try(ServerSocket socket=new ServerSocket(0)){
+            server.submit(()->{try(Socket peer=socket.accept()){accepted.countDown();release.await(5,TimeUnit.SECONDS);}catch(Exception ignored){}});
+            worker.submit(()->{HttpURLConnection connection=null;try{connection=HttpTransport.open(new URL("http://127.0.0.1:"+socket.getLocalPort()+"/"));connection.getResponseCode();}catch(IOException expected){}finally{if(connection!=null)connection.disconnect();stopped.countDown();}});
+            assertTrue(accepted.await(3,TimeUnit.SECONDS));worker.shutdownNow();assertTrue(stopped.await(3,TimeUnit.SECONDS));
+        }finally{release.countDown();worker.shutdownNow();server.shutdownNow();}
+    }
+
 }

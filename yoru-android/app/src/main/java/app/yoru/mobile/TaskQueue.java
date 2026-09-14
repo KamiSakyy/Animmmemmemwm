@@ -6,9 +6,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class TaskQueue {
     private TaskQueue() {}
     private static final ThreadLocal<AtomicBoolean> cancellation=new ThreadLocal<>();
-    static void attach(AtomicBoolean value){cancellation.set(value);}
+    private static final ConcurrentHashMap<Thread,AtomicBoolean> runningFlags=new ConcurrentHashMap<>();
+    static void attach(AtomicBoolean value){cancellation.set(value);runningFlags.put(Thread.currentThread(),value);}
     static AtomicBoolean cancellationFlag(){return cancellation.get();}
-    static void detach(){cancellation.remove();}
+    static void detach(){runningFlags.remove(Thread.currentThread());cancellation.remove();}
 
     static final class CancelFuture<V> extends FutureTask<V> {
         private final AtomicBoolean cancelled;
@@ -21,11 +22,17 @@ final class TaskQueue {
     }
 
     static final class Executor extends ThreadPoolExecutor {
+        private final java.util.Set<Thread> active=ConcurrentHashMap.newKeySet();
+        @Override protected void beforeExecute(Thread thread,Runnable work){super.beforeExecute(thread,work);active.add(thread);}
+        @Override protected void afterExecute(Runnable work,Throwable error){active.remove(Thread.currentThread());super.afterExecute(work,error);}
+        @Override public java.util.List<Runnable> shutdownNow(){for(Thread thread:active){AtomicBoolean flag=runningFlags.get(thread);if(flag!=null){flag.set(true);HttpTransport.cancel(flag);}}return super.shutdownNow();}
         Executor(int core,int max,long timeout,TimeUnit unit,BlockingQueue<Runnable> queue,ThreadFactory factory,RejectedExecutionHandler policy){super(core,max,timeout,unit,queue,factory,policy);}
         @Override protected <T> RunnableFuture<T> newTaskFor(Callable<T> work){return new CancelFuture<>(work);}
         @Override protected <T> RunnableFuture<T> newTaskFor(Runnable work,T value){return new CancelFuture<>(Executors.callable(work,value));}
     }
 
+
+    static ExecutorService pool(int count){int size=Math.max(1,Math.min(8,count));return new Executor(size,size,15,TimeUnit.SECONDS,new LinkedBlockingQueue<>(),Executors.defaultThreadFactory(),new ThreadPoolExecutor.AbortPolicy());}
 
     static final class Policy implements RejectedExecutionHandler {
         @Override public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {

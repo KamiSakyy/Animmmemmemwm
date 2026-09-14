@@ -45,6 +45,7 @@ public final class CalendarScreen extends FrameLayout {
     private String statusSuffix(ApiRepository.AiringItem item){try{if(item!=null&&item.anime!=null){if(YoruApp.app().store.ready()&&YoruApp.app().store.favorite(item.anime))return " · в коллекции";if(item.anime.year>0)return " · "+item.anime.year;}}catch(Exception ignored){}return "";}
     private java.time.ZoneId zone(){return ScheduleClock.zone(YoruApp.app().store.localScheduleTime());}
     private void prepareDays(){long now=System.currentTimeMillis();java.time.ZoneId zone=zone();for(int i=0;i<DAYS;i++){starts[i]=ScheduleClock.dayStart(now,i,zone);shortDays[i]=i==0?"Сегодня":i==1?"Завтра":ScheduleClock.format(starts[i],"EEE dd.MM",zone);longDays[i]=i==0?"Сегодня":i==1?"Завтра":ScheduleClock.format(starts[i],"EEEE, dd MMMM",zone);}}
+    private String eventTime(ApiRepository.AiringItem item){return "Точная дата".equals(item.precision)?time(item.time):"время уточняется";}
     private String time(long t){return ScheduleClock.time(t,zone());}
     private String countdown(long t){long diff=t-System.currentTimeMillis();if(diff<=-90*60*1000)return "уже вышло";if(diff<=0)return "выходит сейчас";long min=diff/60000,h=min/60,d=h/24;if(d>0)return "через "+d+" д "+(h%24)+" ч";if(h>0)return "через "+h+" ч "+(min%60)+" мин";return "через "+Math.max(1,min)+" мин";}
     private final class CalendarEntry {
@@ -109,7 +110,7 @@ public final class CalendarScreen extends FrameLayout {
                 card.addView(text,new LinearLayout.LayoutParams(0,-2,1));
                 View download=Ui.iconButton(activity,"download","Скачать после выхода",()->{
                     if(item==null)return;
-                    ScheduledDownloads.choose(activity,item.anime,item.episode,item.time,ScheduleClock.format(item.time,"dd.MM.yyyy",zone())+" "+time(item.time)+" · "+item.precision);
+                    ScheduledDownloads.choose(activity,item.anime,item.episode,"Точная дата".equals(item.precision)?item.time:0,ScheduleClock.format(item.time,"dd.MM.yyyy",zone())+" "+eventTime(item)+" · "+item.precision);
                 });card.addView(download,Ui.lp(activity,44,44));
                 Ui.press(card);card.setOnClickListener(v->{if(item!=null)Ui.openDetails(activity,item.anime);});
                 card.setOnLongClickListener(v->{if(item==null)return false;Ui.bucketDialog(activity,item.anime,()->{buildBuckets();rebuildVisible(true);adapter.publish();});return true;});
@@ -126,7 +127,7 @@ public final class CalendarScreen extends FrameLayout {
             item=entry.item;
             if(entry.type==0){header.bind();return;}
             if(entry.type==1) {
-                title.setText(YoruBrain.title(item.anime));line.setText(item.kind+" · серия "+Ui.number(item.episode)+" · "+time(item.time));line.setTextColor(kindColor(item));
+                title.setText(YoruBrain.title(item.anime));line.setText(item.kind+" · серия "+Ui.number(item.episode)+" · "+eventTime(item));line.setTextColor(kindColor(item));
                 meta.setText(countdown(item.time)+" · "+item.precision+statusSuffix(item));
                 String key=item.anime.key()+"|"+item.anime.poster;
                 if(!key.equals(imageKey)){imageKey=key;poster.setTag(null);poster.setImageDrawable(null);YoruApp.app().images.load(poster,item.anime);}
