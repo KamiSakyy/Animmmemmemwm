@@ -8,15 +8,17 @@ import java.util.*;
 
 final class GenrePicker extends LinearLayout {
     private final Activity activity;
-    private final TextView button;
+    private final TextView button,availability,retry;
     private final ArrayList<String[]> entries=new ArrayList<>();
     private String selected,selectedTitle;
     private Runnable refreshOpen;
-    GenrePicker(Activity activity,String[][] initial,String selected,String selectedTitle){super(activity);this.activity=activity;this.selectedTitle=selectedTitle==null?"":selectedTitle;this.selected=selected==null?"":selected;setOrientation(VERTICAL);addView(Ui.text(activity,"Жанр",11,Ui.MUTED,false));button=Ui.button(activity,"Все жанры",false,this::open);addView(button,Ui.lp(activity,-1,48));replace(initial);}
+    GenrePicker(Activity activity,String[][] initial,String selected,String selectedTitle){super(activity);this.activity=activity;this.selectedTitle=selectedTitle==null?"":selectedTitle;this.selected=selected==null?"":selected;setOrientation(VERTICAL);addView(Ui.text(activity,"Жанр",11,Ui.MUTED,false));button=Ui.button(activity,"Все жанры",false,this::open);addView(button,Ui.lp(activity,-1,48));availability=Ui.text(activity,"",11,Ui.MUTED,false);addView(availability,Ui.lp(activity,-1,-2));retry=Ui.button(activity,"Загрузить все жанры",false,()->{});retry.setVisibility(GONE);addView(retry,Ui.lp(activity,-1,-2));replace(initial);}
+    void loading(){availability.setText("Загружаем полный список жанров…");availability.setVisibility(VISIBLE);retry.setVisibility(GONE);}
+    void unavailable(Runnable action){availability.setText("Полный список пока недоступен. Выбранный жанр сохранён.");availability.setVisibility(VISIBLE);retry.setOnClickListener(view->action.run());retry.setVisibility(VISIBLE);}
     String selectedId(){return selected;}
     String selectedName(){if(selected.isEmpty())return "";for(String[] row:entries)if(row[0].equals(selected))return row[1];return selectedTitle;}
     void replace(String[][] rows){
-        entries.clear();entries.add(new String[]{"","Все жанры"});HashSet<String> seen=new HashSet<>();seen.add("");
+        availability.setVisibility(GONE);retry.setVisibility(GONE);entries.clear();entries.add(new String[]{"","Все жанры"});HashSet<String> seen=new HashSet<>();seen.add("");
         if(rows!=null)for(String[] row:rows)if(row!=null&&row.length>=2&&row[0]!=null&&row[1]!=null&&!row[1].trim().isEmpty()&&seen.add(row[0]))entries.add(Arrays.copyOf(row,row.length));
         String name=selectedName();button.setText(name.isEmpty()?(selected.isEmpty()?"Все жанры":"Выбранный жанр"):name);
         if(refreshOpen!=null)refreshOpen.run();

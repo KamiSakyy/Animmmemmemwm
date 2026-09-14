@@ -14,6 +14,7 @@ final class MediaSize {
         Info(long bytes,String mime){this.bytes=bytes;this.mime=mime;}
     }
     static boolean containerMime(String mime){return "video/mp4".equals(mime)||"application/mp4".equals(mime)||"video/webm".equals(mime)||"video/x-matroska".equals(mime)||"video/x-m4v".equals(mime);}
+    static boolean mediaMime(String mime){return containerMime(mime)||"application/x-mpegURL".equals(mime)||"application/vnd.apple.mpegurl".equals(mime)||"application/dash+xml".equals(mime);}
     static long probe(String raw){return probeInfo(raw).bytes;}
     static Info probeInfo(String raw){
         String url=ApiRepository.safeUrl(raw);Info unknown=new Info(-1,"");if(url.isEmpty())return unknown;if(manifest(url))return new Info(-1,url.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");

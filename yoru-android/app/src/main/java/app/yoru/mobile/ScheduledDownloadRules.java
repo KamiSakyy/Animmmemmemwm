@@ -14,6 +14,6 @@ final class ScheduledDownloadRules {
         if(!accepts(number,quality,option.episode.number,option.quality,option.episode.future))return false;
         if(!voiceAllowed(voice,option.voice==null||option.voice.isEmpty()?option.episode.name:option.voice))return false;
         String url=ApiRepository.safeUrl(option.episode.streams.get(option.quality));
-        return !url.isEmpty()&&VideoResolver.downloadable(url);
+        return !url.isEmpty();
     }
 }

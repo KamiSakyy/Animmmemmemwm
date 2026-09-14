@@ -29,7 +29,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         Anime anime;
         double episode;
         int quality;
-        long due, next;
+        long due, next,created;
         String downloadId() { return "planned-" + id; }
         String label() {
             return YoruBrain.title(anime) + " · серия " + Ui.number(episode) + "\n"
@@ -49,6 +49,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                     p.episode = c.getDouble(c.getColumnIndexOrThrow("episode"));
                     p.voice = c.getString(c.getColumnIndexOrThrow("voice"));
                     p.quality = c.getInt(c.getColumnIndexOrThrow("quality"));
+                    p.created=c.getLong(c.getColumnIndexOrThrow("created"));
                     p.due = c.getLong(c.getColumnIndexOrThrow("due"));
                     p.dateLabel=c.getString(c.getColumnIndexOrThrow("date_label"));
                     p.next = c.getLong(c.getColumnIndexOrThrow("next_check"));
@@ -65,6 +66,20 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         try (Cursor c = getReadableDatabase().rawQuery("SELECT id FROM plans WHERE id=?", new String[]{id})) {
             return c.moveToFirst();
         }
+    }
+
+    boolean isCurrent(Plan plan){
+        try(Cursor cursor=getReadableDatabase().rawQuery("SELECT created,episode,voice,quality FROM plans WHERE id=?",new String[]{plan.id})){
+            return cursor.moveToFirst()&&cursor.getLong(0)==plan.created&&Double.compare(cursor.getDouble(1),plan.episode)==0&&cursor.getString(2).equals(plan.voice)&&cursor.getInt(3)==plan.quality;
+        }
+    }
+    boolean withCurrent(Plan plan,java.util.function.BooleanSupplier action){
+        SQLiteDatabase database=getWritableDatabase();database.beginTransaction();
+        try{if(!isCurrent(plan))return false;boolean accepted=action.getAsBoolean();database.setTransactionSuccessful();return accepted;}
+        finally{database.endTransaction();}
+    }
+    void update(Plan plan,String state,String message,long next){
+        withCurrent(plan,()->{update(plan.id,state,message,next);return true;});
     }
 
     static long nextCheck(long due){long now=System.currentTimeMillis();return due>now?Math.min(due,now+6L*60*60*1000):now+PERIOD;}

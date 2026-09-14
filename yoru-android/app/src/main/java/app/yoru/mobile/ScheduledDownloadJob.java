@@ -52,19 +52,19 @@ public final class ScheduledDownloadJob extends JobService {
                 if(stop.get()||SystemClock.elapsedRealtime()>=deadline)return;
                 if(p.state.equals("queued")||p.next>System.currentTimeMillis())continue;
                 if(app.store.wifiDownloads()&&app.traffic.metered()) {
-                    store.update(p.id,"waiting","Ожидает Wi-Fi",ScheduledDownloads.nextCheck(p.due));
+                    store.update(p,"waiting","Ожидает Wi-Fi",ScheduledDownloads.nextCheck(p.due));
                     continue;
                 }
                 Download existing=app.downloads().get(p.downloadId());
                 if(existing!=null) {
-                    store.update(p.id,"queued","Передано в загрузки — управление в списке загрузок",0);
+                    store.update(p,"queued","Передано в загрузки — управление в списке загрузок",0);
                     continue;
                 }
-                store.update(p.id,"waiting","Проверяем выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
+                store.update(p,"waiting","Проверяем выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
                 try {
                     Anime fresh=app.api.details(Anime.from(p.anime.json()),false);
                     TaskQueue.check();
-                    if(EpisodeRules.conflicts(p.anime,fresh)||!EpisodeRules.allowsNumber(fresh,p.episode)){store.update(p.id,"waiting","Уточняем состав серий — план сохранён",ScheduledDownloads.nextCheck(0));continue;}
+                    if(EpisodeRules.conflicts(p.anime,fresh)||!EpisodeRules.allowsNumber(fresh,p.episode)){store.update(p,"waiting","Уточняем состав серий — план сохранён",ScheduledDownloads.nextCheck(0));continue;}
                     List<ApiRepository.DownloadOption> options=app.api.downloadOptions(fresh,null,p.episode,p.voice,p.quality,!p.voice.isEmpty());
                     ApiRepository.DownloadOption best=null;
                     for(ApiRepository.DownloadOption option:options) {
@@ -72,27 +72,28 @@ public final class ScheduledDownloadJob extends JobService {
                         if(best==null||option.quality>best.quality)best=option;
                     }
                     TaskQueue.check();
-                    if(stop.get()||!store.exists(p.id))continue;
+                    if(stop.get()||!store.isCurrent(p))continue;
                     if(best==null) {
-                        store.update(p.id,"waiting","Ожидает выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
+                        store.update(p,"waiting","Ожидает выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
                         continue;
                     }
                     if(getFilesDir().getUsableSpace()<100L*1024*1024) {
-                        store.update(p.id,"waiting","Недостаточно места — освободите память",ScheduledDownloads.nextCheck(0));
+                        store.update(p,"waiting","Недостаточно места — освободите память",ScheduledDownloads.nextCheck(0));
                         continue;
                     }
-                    if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p.id,"waiting","Ожидает подходящий выпуск",ScheduledDownloads.nextCheck(p.due));continue;}
+                    if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p,"waiting","Ожидает подходящий выпуск",ScheduledDownloads.nextCheck(p.due));continue;}
                     if(SystemClock.elapsedRealtime()+10_000>=deadline)return;
-                    MediaSize.Info info=MediaSize.probeInfo(best.episode.streams.get(best.quality));long bytes=info.bytes;TaskQueue.check();
-                    if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p.id,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(0));continue;}
-                    if(stop.get()||!store.exists(p.id))continue;
-                    store.update(p.id,"waiting","Подготавливаем скачивание · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(p.due));
+                    String stream=best.episode.streams.get(best.quality);MediaSize.Info info=MediaSize.probeInfo(stream);long bytes=info.bytes;TaskQueue.check();
+                    if(!VideoResolver.downloadable(stream)&&!MediaSize.mediaMime(info.mime)){store.update(p,"waiting","Источник пока не подтвердил формат видео",ScheduledDownloads.nextCheck(p.due));continue;}
+                    if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(0));continue;}
+                    if(stop.get()||!store.isCurrent(p))continue;
+                    store.update(p,"waiting","Подготавливаем скачивание · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(p.due));
                     if(SystemClock.elapsedRealtime()+5_000>=deadline)return;
                     boolean accepted=enqueue(p,best,info.mime,stop,Math.min(30_000,deadline-SystemClock.elapsedRealtime()));
-                    if(accepted)store.update(p.id,"queued","Передано в загрузки · "+MediaSize.label(bytes),0);
-                    else if(!stop.get())store.update(p.id,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",ScheduledDownloads.nextCheck(0));
+                    if(accepted)store.update(p,"queued","Передано в загрузки · "+MediaSize.label(bytes),0);
+                    else if(!stop.get())store.update(p,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",ScheduledDownloads.nextCheck(0));
                 } catch(java.io.InterruptedIOException|InterruptedException e) { Thread.currentThread().interrupt();return; }
-                catch(Exception e) { store.update(p.id,"waiting","Источник пока недоступен — повторим проверку",ScheduledDownloads.nextCheck(p.due)); }
+                catch(Exception e) { store.update(p,"waiting","Источник пока недоступен — повторим проверку",ScheduledDownloads.nextCheck(p.due)); }
             }
         }
     }
@@ -119,18 +120,14 @@ public final class ScheduledDownloadJob extends JobService {
                             DownloadTracks.requireSelectedQuality(ready,option.quality);
                             DownloadRequest request=ready.getDownloadRequest(plan.downloadId(),meta.toString().getBytes(StandardCharsets.UTF_8));
                             app.io.execute(()->{
-                                boolean exists;
-                                try(ScheduledDownloads store=new ScheduledDownloads(ScheduledDownloadJob.this)){exists=store.exists(plan.id);}
-                                catch(Exception e){exists=false;}
-                                boolean valid=exists;
-                                app.main.post(()->{
-                                    try {
-                                        if(!valid||stop.get()||finished.get())return;
-                                        DownloadService.sendAddDownload(ScheduledDownloadJob.this,YoruDownloadService.class,request,true);
-                                        sent.set(true);
-                                    } catch(Exception ignored) {}
-                                    finally { prepared.countDown(); }
-                                });
+                                try(ScheduledDownloads store=new ScheduledDownloads(ScheduledDownloadJob.this)){
+                                    store.withCurrent(plan,()->{
+                                        synchronized(finished){
+                                            if(stop.get()||finished.get())return false;
+                                            DownloadService.sendAddDownload(ScheduledDownloadJob.this,YoruDownloadService.class,request,true);sent.set(true);return true;
+                                        }
+                                    });
+                                }catch(Exception ignored){}finally{prepared.countDown();}
                             });
                         } catch(Exception e) { prepared.countDown(); } finally { ready.release();helper.set(null); }
                     }
@@ -147,7 +144,7 @@ public final class ScheduledDownloadJob extends JobService {
             }
             return false;
         } finally {
-            finished.set(true);
+            synchronized(finished){finished.set(true);}
             app.main.post(()->{DownloadHelper h=helper.getAndSet(null);if(h!=null)h.release();});
         }
     }

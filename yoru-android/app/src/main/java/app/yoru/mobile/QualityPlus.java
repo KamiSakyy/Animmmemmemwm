@@ -8,6 +8,7 @@ final class QualityPlus {
     static final String[] LABELS={"360p","480p","720p","1080p","1440p · 2K","2160p · 4K"};
     static final String[] LABELS_WITH_BEST={"360p","480p","720p","1080p","1440p · 2K","2160p · 4K","Лучшее доступное"};
     private QualityPlus(){}
+    static boolean validSelection(int value){return value==BEST||(value>=0&&value<=16384);}
     static int clamp(int value){if(value>=BEST)return 2160;if(value<=360)return 360;if(value<=480)return 480;if(value<=720)return 720;if(value<=1080)return 1080;if(value<=1440)return 1440;return 2160;}
     static int index(int value){int q=clamp(value);for(int i=0;i<VALUES.length;i++)if(VALUES[i]==q)return i;return 2;}
     static int indexWithBest(int value){return value==BEST?VALUES.length:index(value);}
