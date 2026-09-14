@@ -254,3 +254,5 @@ VPN полностью удалён в YORU 2.9.0. Не возвращать `Vp
 - APK по-прежнему компактный, постоянная подпись, тестовая отдельная копия; versionName системного экрана очищен от служебных SDK/transport suffix. Кэш/цвета/VK не менять.
 
 - Dev.4 собран без тестов: CI34827624686/source9c85e304600f428ee816a0076064d29fd9e3514e, assembly103923670312 SUCCESS, SDK37 job SKIPPED. APK2 986 540 байт/code74 сохранён bot7d3ea47. Отчёт build-report.json содержит assembled=true, tests_executed=false, device_checks_executed=false. Не называть старые55 тестов проверкой dev.4 и не заявлять device-регрессию.
+
+- Dev.4 опубликован GitHub Releases: workflow34828137522 SUCCESS, tagyoru-4.20.0-dev.4. Прямые assets: `https://github.com/KamiSakyy/Animmmemmemwm/releases/download/yoru-4.20.0-dev.4/YORU-4.20.0-test.apk` и `https://github.com/KamiSakyy/Animmmemmemwm/releases/download/yoru-4.20.0-dev.4/YORU-4.20.0-source.zip`. Evidence handoff/YORU-4.20.0-dev.4-downloads.json. Это сборка/публикация, не unit/device-проверки; не закрывать все36 по одному исправлению.
