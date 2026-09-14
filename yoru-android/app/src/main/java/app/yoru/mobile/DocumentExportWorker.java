@@ -29,6 +29,7 @@ public final class DocumentExportWorker extends Worker {
         Throwable cause=error;
         for(int i=0;cause!=null&&i<10;i++){
             if(cause instanceof SecurityException)return "permission";
+            if(cause instanceof DocumentDownloads.Changed)return "changed";
             if(cause instanceof AdaptiveVideoExport.NoSpace)return "space";
             if(cause instanceof android.system.ErrnoException&&((android.system.ErrnoException)cause).errno==android.system.OsConstants.ENOSPC)return "space";
             if(cause instanceof AdaptiveVideoExport.Unsupported)return "unsupported";
@@ -51,6 +52,7 @@ public final class DocumentExportWorker extends Worker {
         try{
             if(isStopped())return Result.retry();
             Download download=new DefaultDownloadIndex(YoruApp.app().mediaCache.database()).getDownload(id);if(download==null||download.state!=Download.STATE_COMPLETED)return Result.failure(output("missing"));if(!DocumentDownloads.canExport(download))return Result.failure(output("unsupported"));
+            String revision=getInputData().getString("revision");if(revision==null||!revision.equals(DownloadHub.revision(download)))return Result.failure(output("changed"));
             if(DocumentDownloads.finished(getApplicationContext(),download,folder,manual,getId().toString())){AdaptiveVideoExport.discardDraft(getApplicationContext(),getId().toString());return Result.success(output("saved"));}
             DocumentDownloads.requireFolder(getApplicationContext(),folder);
             setForegroundAsync(foreground(0,download.contentLength)).get(15,TimeUnit.SECONDS);
@@ -69,6 +71,7 @@ public final class DocumentExportWorker extends Worker {
             if(isStopped())return Result.failure(output("failed"));
             Throwable cause=error;for(int i=0;i<8&&cause.getCause()!=null&&cause.getCause()!=cause;i++)cause=cause.getCause();if(cause instanceof InterruptedException){Thread.currentThread().interrupt();return Result.retry();}
             String reason=failureReason(error);
+            if("changed".equals(reason))return Result.failure(output(reason));
             if("unsupported".equals(reason)){if(manual)YoruApp.app().main.post(()->Ui.toast(getApplicationContext(),"Этот вариант нельзя сохранить без изменения видео. Офлайн-загрузка не удалена."));return Result.failure(output(reason));}
             if("failed".equals(reason)&&getRunAttemptCount()<3)return Result.retry();
             if(manual)YoruApp.app().main.post(()->Ui.toast(getApplicationContext(),"Не удалось сохранить в папку. Проверьте доступ и свободное место. Офлайн-загрузка не удалена."));

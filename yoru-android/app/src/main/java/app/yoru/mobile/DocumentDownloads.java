@@ -14,11 +14,17 @@ import java.util.function.BooleanSupplier;
 
 final class DocumentDownloads {
     static final int REQUEST_FOLDER=4304;
-    static final String EXPORT_TAG="yoru-export",EXPORT_ITEM_TAG="yoru-export-download:",EXPORT_CREATED_TAG="yoru-export-created:";
+    static final String EXPORT_TAG="yoru-export",EXPORT_REVISION_TAG="yoru-export-revision:",EXPORT_ITEM_TAG="yoru-export-download:",EXPORT_CREATED_TAG="yoru-export-created:";
     private DocumentDownloads(){}
     static void cancel(Context context,String download){WorkManager.getInstance(context).cancelAllWorkByTag(EXPORT_ITEM_TAG+download);String folder=YoruApp.app().store.downloadFolder();if(!folder.isEmpty())WorkManager.getInstance(context).cancelUniqueWork("yoru-document:"+download+"|"+folder);}
     static boolean canExport(Download download){if(download==null||download.request==null||(download.request.keySetId!=null&&download.request.keySetId.length>0))return false;return OfflineExporter.canExport(download)||AdaptiveVideoExport.supports(download)||(download!=null&&download.state==Download.STATE_COMPLETED&&download.request!=null&&(download.request.keySetId==null||download.request.keySetId.length==0)&&download.request.streamKeys.isEmpty()&&MediaSize.containerMime(download.request.mimeType));}
-    static boolean finished(Context context,Download download,String folder,boolean manual,String operation){String identity=download.request.id+"|"+folder;SharedPreferences state=journal(context);return operation.equals(state.getString("operation:"+identity,""))||(!manual&&!state.getString("done:"+identity,"").isEmpty());}
+    static final class Changed extends IOException {}
+    static String identity(Download download,String folder){return download.request.id+"|"+folder+"|"+DownloadHub.revision(download);}
+    static void requireCurrent(Context context,Download download)throws IOException{
+        Download current=new androidx.media3.exoplayer.offline.DefaultDownloadIndex(YoruApp.app().mediaCache.database()).getDownload(download.request.id);
+        if(current==null||current.state!=Download.STATE_COMPLETED||!DownloadHub.revision(download).equals(DownloadHub.revision(current)))throw new Changed();
+    }
+    static boolean finished(Context context,Download download,String folder,boolean manual,String operation){String identity=identity(download,folder);SharedPreferences state=journal(context);return operation.equals(state.getString("operation:"+identity,""))||(!manual&&!state.getString("done:"+identity,"").isEmpty());}
     static void choose(Activity activity){choose(activity,"");}
     private static void choose(Activity activity,String download){
         if(!journal(activity).edit().putString("folder-request",download).commit()){Ui.toast(activity,"Не удалось подготовить выбор папки");return;}
@@ -34,9 +40,9 @@ final class DocumentDownloads {
         if(!canExport(download)){if(manual)Ui.toast(context,"Это видео можно смотреть без интернета в YORU, но пока нельзя сохранить отдельным файлом");return;}
         String folder=YoruApp.app().store.downloadFolder();if(folder.isEmpty()){if(manual&&context instanceof Activity)choose((Activity)context,download.request.id);else if(manual)Ui.toast(context,"Сначала выберите папку сохранения");return;}
         if(manual&&context instanceof Activity)try{requireFolder(context,folder);}catch(SecurityException error){choose((Activity)context,download.request.id);return;}
-        String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);if(!manual&&!journal.getString("done:"+identity,"").isEmpty())return;
-        Data data=new Data.Builder().putString("download",download.request.id).putString("folder",folder).putBoolean("manual",manual).build();
-        OneTimeWorkRequest task=new OneTimeWorkRequest.Builder(DocumentExportWorker.class).addTag(EXPORT_TAG).addTag(EXPORT_ITEM_TAG+download.request.id).addTag(EXPORT_CREATED_TAG+System.currentTimeMillis()).setInputData(data).setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS).build();
+        String identity=identity(download,folder);SharedPreferences journal=journal(context);if(!manual&&!journal.getString("done:"+identity,"").isEmpty())return;
+        Data data=new Data.Builder().putString("download",download.request.id).putString("folder",folder).putBoolean("manual",manual).putString("revision",DownloadHub.revision(download)).build();
+        OneTimeWorkRequest task=new OneTimeWorkRequest.Builder(DocumentExportWorker.class).addTag(EXPORT_TAG).addTag(EXPORT_REVISION_TAG+DownloadHub.revision(download)).addTag(EXPORT_ITEM_TAG+download.request.id).addTag(EXPORT_CREATED_TAG+System.currentTimeMillis()).setInputData(data).setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS).build();
         WorkManager.getInstance(context).enqueueUniqueWork("yoru-document:"+identity,ExistingWorkPolicy.KEEP,task);
         if(manual)Ui.toast(context,"Сохранение в папку поставлено в очередь");
     }
@@ -65,7 +71,7 @@ final class DocumentDownloads {
     }
     private static void check(BooleanSupplier cancelled)throws InterruptedIOException{if(cancelled.getAsBoolean()||Thread.currentThread().isInterrupted())throw new InterruptedIOException();}
     static void copy(Context context,Download download,String folder,boolean manual,String operation,BooleanSupplier cancelled,java.util.function.LongConsumer progress,File prepared,ExportCancellation cancellation)throws Exception{
-        String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);
+        String identity=identity(download,folder);SharedPreferences journal=journal(context);
         if(finished(context,download,folder,manual,operation))return;check(cancelled);requireFolder(context,folder);
         ContentResolver resolver=context.getContentResolver();String pending,previous;
         synchronized(DocumentDownloads.class){pending=journal.getString("pending:"+identity,"");previous=journal.getString("pending-operation:"+identity,"");}
@@ -96,7 +102,7 @@ final class DocumentDownloads {
                 while(true){check(cancelled);count=source.read(buffer,0,buffer.length);if(count==-1)break;check(cancelled);output.write(buffer,0,count);total+=count;progress.accept(total);}
                 check(cancelled);output.flush();
             }finally{try{output.close();}finally{cancellation.detach(output);}}
-            check(cancelled);long expected=prepared==null?(download.contentLength>0?download.contentLength:available>0?available:download.getBytesDownloaded()):prepared.length();if(total<=0||(expected>0&&total!=expected))throw new EOFException();
+            check(cancelled);requireCurrent(context,download);long expected=prepared==null?(download.contentLength>0?download.contentLength:available>0?available:download.getBytesDownloaded()):prepared.length();if(total<=0||(expected>0&&total!=expected))throw new EOFException();
             synchronized(DocumentDownloads.class){
                 check(cancelled);if(!ownsPending(journal,identity,operation,target))throw new InterruptedIOException();
                 if(!journal.edit().putString("done:"+identity,target.toString()).putString("operation:"+identity,operation).putLong("bytes:"+identity,total).remove("pending:"+identity).remove("pending-operation:"+identity).commit())throw new IOException();

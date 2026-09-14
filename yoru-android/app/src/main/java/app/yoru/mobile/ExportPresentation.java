@@ -7,10 +7,10 @@ import java.util.List;
 final class ExportPresentation {
     private ExportPresentation(){}
 
-    static WorkInfo latest(List<WorkInfo> jobs,String download){
-        WorkInfo selected=null;long newest=-1;
+    static WorkInfo latest(List<WorkInfo> jobs,androidx.media3.exoplayer.offline.Download download){
+        WorkInfo selected=null;long newest=-1;String revision=DownloadHub.revision(download);
         for(WorkInfo job:jobs){
-            if(!job.getTags().contains(DocumentDownloads.EXPORT_ITEM_TAG+download))continue;
+            if(!job.getTags().contains(DocumentDownloads.EXPORT_ITEM_TAG+download.request.id)||!job.getTags().contains(DocumentDownloads.EXPORT_REVISION_TAG+revision))continue;
             long created=job.getOutputData().getLong("updated",0);
             for(String tag:job.getTags())if(tag.startsWith(DocumentDownloads.EXPORT_CREATED_TAG)){
                 try{created=Long.parseLong(tag.substring(DocumentDownloads.EXPORT_CREATED_TAG.length()));}catch(NumberFormatException ignored){}
@@ -21,17 +21,20 @@ final class ExportPresentation {
         return selected;
     }
 
+    static boolean active(List<WorkInfo> jobs,androidx.media3.exoplayer.offline.Download download){WorkInfo job=latest(jobs,download);return job!=null&&!job.getState().isFinished();}
+
     static String status(WorkInfo job){
         if(job==null)return "";
         switch(job.getState()){
             case RUNNING:return "prepare".equals(job.getProgress().getString("stage"))?"Подготавливаем видеофайл без перекодирования":"Сохраняем в выбранную папку";
             case ENQUEUED:return job.getRunAttemptCount()>0?"Сохранение будет повторено":"Ожидает сохранения в папку";
             case BLOCKED:return "Ожидает завершения предыдущего сохранения";
-            case SUCCEEDED:return "Файл сохранён в выбранную папку";
+            case SUCCEEDED:return "Файл сохранён в папку";
             case CANCELLED:return "Сохранение остановлено · видео осталось в YORU";
             case FAILED:
                 String reason=job.getOutputData().getString("result");
                 if("permission".equals(reason))return "Нужен доступ к папке · выберите её заново";
+                if("changed".equals(reason))return "Загрузка изменилась · сохраните текущий вариант заново";
                 if("space".equals(reason))return "Недостаточно места для сохранения файла";
                 if("unsupported".equals(reason))return "Этот вариант доступен только внутри YORU";
                 return "Файл не сохранён · можно повторить";

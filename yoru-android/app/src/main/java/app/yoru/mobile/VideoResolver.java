@@ -49,14 +49,14 @@ final class VideoResolver {
     private static TreeMap<Integer,String> direct(ApiRepository api,String url)throws Exception{TreeMap<Integer,String> out=new TreeMap<>();String lower=url.toLowerCase(Locale.ROOT);String p=path(url).toLowerCase(Locale.ROOT);if(p.contains(".m3u8")||lower.contains(".m3u8")){try{out.putAll(hls(api,url));}catch(Exception ignored){}if(out.isEmpty())out.put(0,url);}else if(p.contains(".mpd")||lower.contains(".mpd")){try{out.putAll(dash(api,url));}catch(Exception ignored){}if(out.isEmpty())out.put(0,url);}else if(p.contains(".mp4")||p.contains(".mkv")||p.contains(".webm")||lower.contains(".mp4")||lower.contains(".mkv")||lower.contains(".webm")){out.put(quality(url),url);}return clean(out);}
     private static TreeMap<Integer,String> hls(ApiRepository api,String url)throws Exception{return parseHls(api.document(url),url);}
     private static TreeMap<Integer,String> hlsWithHeaders(ApiRepository api,String url,String referer)throws Exception{return parseHls(api.request(url,"GET",null,false,headers(origin(url),referer)),url);}
-    private static TreeMap<Integer,String> parseHls(String manifest,String url){
+    private static TreeMap<Integer,String> parseHls(String manifest,String url)throws InterruptedIOException{
         TreeMap<Integer,String> out=new TreeMap<>();if(manifest==null)return out;
         String text=manifest.trim();if(text.startsWith("\uFEFF"))text=text.substring(1).trim();
         if(!text.startsWith("#EXTM3U"))return out;
         int pending=0;
         try(BufferedReader lines=new BufferedReader(new StringReader(text))){
             for(String line;(line=lines.readLine())!=null;){
-                String value=line.trim();
+                TaskQueue.check();String value=line.trim();
                 if(value.startsWith("#EXT-X-STREAM-INF:")){
                     Matcher size=HLS_SIZE.matcher(value.substring(value.indexOf(':')+1));
                     pending=size.find()&&manifestHeight(size.group(1))>0?manifestHeight(size.group(2)):0;
@@ -66,7 +66,7 @@ final class VideoResolver {
                     pending=0;
                 }
             }
-        }catch(IOException ignored){}
+        }catch(InterruptedIOException error){throw error;}catch(IOException ignored){}
         return clean(out);
     }
     private static final Pattern HLS_SIZE=Pattern.compile("(?:^|,)\\s*RESOLUTION\\s*=\\s*\"?([0-9]+)[xX]([0-9]+)\"?(?=\\s*(?:,|$))",Pattern.CASE_INSENSITIVE);

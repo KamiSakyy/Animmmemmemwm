@@ -34,7 +34,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         String label() {
             return YoruBrain.title(anime) + " · серия " + Ui.number(episode) + "\n"
                     + (voice.isEmpty() ? "Любая доступная озвучка" : voice) + " · "
-                    + (quality == QualityPlus.BEST ? "Лучшее доступное" : quality + "p") + "\n" + message;
+                    + QualityPlus.name(quality) + "\n" + message;
         }
     }
 
@@ -126,6 +126,8 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         }catch(Exception ignored){}
     }
 
+    boolean remove(Plan plan){return withCurrent(plan,()->{remove(plan.id);return true;});}
+
     void remove(String id) { getWritableDatabase().delete("plans", "id=?", new String[]{id}); }
 
     static boolean schedule(Context context) {
@@ -204,7 +206,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                 Ui.choices(activity,"Будущие скачивания",labels,index->{
                     Plan p=rows.get(index);
                     Ui.confirm(activity,p.state.equals("queued")?"Убрать запись плана?":"Отменить ожидание серии?",p.label()+"\nУже переданная в загрузки серия управляется отдельно в списке загрузок.","Убрать",()->YoruApp.app().io.execute(()->{
-                        try(ScheduledDownloads store=new ScheduledDownloads(activity)){store.remove(p.id);schedule(activity);}
+                        try(ScheduledDownloads store=new ScheduledDownloads(activity)){store.remove(p);schedule(activity);}
                         catch(Exception e){YoruApp.app().main.post(()->Ui.toast(activity,"Не удалось удалить план"));return;}
                         YoruApp.app().main.post(()->{if(!activity.isDestroyed())showQueue(activity);});
                     }),"Назад");

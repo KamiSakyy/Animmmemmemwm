@@ -28,9 +28,17 @@ public final class DownloadHub {
     public List<Download> all(){ArrayList<Download> list=new ArrayList<>();DownloadCursor cursor=null;try{cursor=manager.getDownloadIndex().getDownloads();while(cursor.moveToNext())list.add(cursor.getDownload());}catch(IOException ignored){}finally{if(cursor!=null)cursor.close();}list.sort((a,b)->Long.compare(b.startTimeMs,a.startTimeMs));return list;}
     public Download get(String id){try{return manager.getDownloadIndex().getDownload(id);}catch(IOException e){return null;}}
     public static JSONObject metadata(Download d){try{return new JSONObject(new String(d.request.data,StandardCharsets.UTF_8));}catch(Exception e){return new JSONObject();}}
+    static String revision(Download download){
+        try{
+            MessageDigest digest=MessageDigest.getInstance("SHA-256");DownloadRequest request=download.request;
+            digest.update(request.data);digest.update((byte)0);
+            String identity=request.uri.toString()+"\n"+request.mimeType+"\n"+request.customCacheKey+"\n"+request.streamKeys+"\n"+download.startTimeMs;
+            byte[] value=digest.digest(identity.getBytes(StandardCharsets.UTF_8));StringBuilder result=new StringBuilder();for(byte part:value)result.append(String.format(Locale.ROOT,"%02x",part&255));return result.toString();
+        }catch(java.security.NoSuchAlgorithmException error){throw new IllegalStateException(error);}
+    }
     public static String status(Download d){switch(d.state){case Download.STATE_COMPLETED:return "Готово к просмотру офлайн";case Download.STATE_DOWNLOADING:return "Скачивается";case Download.STATE_QUEUED:return "В очереди / ожидание сети";case Download.STATE_STOPPED:return "Приостановлено";case Download.STATE_FAILED:return "Не удалось скачать";case Download.STATE_REMOVING:return "Удаляется";case Download.STATE_RESTARTING:return "Перезапускается";default:return "Подготовка";}}
     public static String idFor(Anime source,Anime.Episode ep,int quality){String input=source.key()+"|"+ep.id+"|"+ep.number+"|"+quality+"|"+ep.name;try{byte[] hash=MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));StringBuilder out=new StringBuilder();for(byte b:hash)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}catch(Exception e){return input.replace(':','_');}}
-    public boolean preparing(String id){return preparing.contains(id);}
+    public boolean preparing(String id){return preparing.contains(id)||retryTasks.containsKey(id);}
     private static String episodePoster(Anime catalog,Anime.Episode ep){String p=ep==null?"":ApiRepository.safeUrl(ep.poster);if(!p.isEmpty())return p;if(catalog!=null&&!catalog.screenshots.isEmpty()&&ep!=null)return catalog.screenshots.get(Math.abs((int)Math.floor(ep.number)-1)%catalog.screenshots.size());return "";}
     public void enqueue(Anime catalog,Anime source,Anime.Episode ep,int quality){String voice=source==null?"":ApiRepository.sourceVoice(source.source);if(voice.isEmpty()&&ep!=null)voice=ApiRepository.voiceTitle(ep.name);enqueue(catalog,source,ep,quality,voice);}
     public void enqueue(Anime catalog,Anime source,Anime.Episode ep,int quality,String voice){enqueue(catalog,source,ep,quality,voice,"");}
