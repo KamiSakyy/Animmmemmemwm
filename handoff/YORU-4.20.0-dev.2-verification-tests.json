@@ -1,9 +1,9 @@
 {
-  "source_commit": "19548d21aee58fe09ae6a6bce746c18faad7e1d3",
-  "run_id": "34822699458",
+  "source_commit": "08cdf2c9a36c6e6b531e9175d14e1501bf6be2ae",
+  "run_id": "34822974031",
   "profiles": {
     "jvm": {
-      "tests": 47,
+      "tests": 50,
       "failures": 0,
       "errors": 0,
       "skipped": 0,
@@ -31,7 +31,7 @@
         },
         {
           "name": "app.yoru.mobile.EpisodeRulesTest",
-          "tests": 7,
+          "tests": 10,
           "failures": 0,
           "errors": 0,
           "skipped": 0
@@ -83,7 +83,7 @@
       "transport": "okhttp-jvm:5.5.0"
     },
     "android": {
-      "tests": 47,
+      "tests": 50,
       "failures": 0,
       "errors": 0,
       "skipped": 0,
@@ -111,7 +111,7 @@
         },
         {
           "name": "app.yoru.mobile.EpisodeRulesTest",
-          "tests": 7,
+          "tests": 10,
           "failures": 0,
           "errors": 0,
           "skipped": 0
