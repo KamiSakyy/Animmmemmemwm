@@ -79,12 +79,14 @@ public final class DownloadsScreen extends LinearLayout {
                 for(Download d:downloads){if(d==null||d.request==null)continue;ids.add(d.request.id);fresh.add(new Entry(d));if(d.state==Download.STATE_COMPLETED)complete++;if(d.state==Download.STATE_DOWNLOADING)active++;signature.append(d.request.id).append(':').append(d.state).append(':').append((int)d.getPercentDownloaded()/8).append('|');}
                 for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.dateLabel).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
                 String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
-                if(!"all".equals(listFilter)){ArrayList<Entry> kept=new ArrayList<>();for(Entry e:fresh){
-                    if(e.plan!=null){if("planned".equals(listFilter))kept.add(e);continue;}
-                    if(e.download==null)continue;int st=e.download.state;boolean finished=st==Download.STATE_COMPLETED;
+                if(!"all".equals(listFilter)){java.util.Iterator<Entry> it=fresh.iterator();while(it.hasNext()){Entry e=it.next();
+                    if(e.plan!=null){if(!"planned".equals(listFilter))it.remove();continue;}
+                    if(e.download==null){it.remove();continue;}
+                    int st=e.download.state;boolean finished=st==Download.STATE_COMPLETED;
                     boolean running=st==Download.STATE_DOWNLOADING||st==Download.STATE_QUEUED||st==Download.STATE_RESTARTING||st==Download.STATE_STOPPED;
-                    if("done".equals(listFilter)&&finished)kept.add(e);else if("active".equals(listFilter)&&running)kept.add(e);
-                }fresh=kept;}
+                    boolean keep=("done".equals(listFilter)&&finished)||("active".equals(listFilter)&&running);
+                    if(!keep)it.remove();
+                }}
                 signature.append("#").append(listFilter);
                 String next=signature.toString();
                 YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);boolean changed=!next.equals(lastSignature);lastSignature=next;rows.clear();rows.addAll(fresh);if(changed)adapter.notifyDataSetChanged();else refreshVisibleRows();});
