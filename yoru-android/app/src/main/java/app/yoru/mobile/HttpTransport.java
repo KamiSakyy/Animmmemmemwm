@@ -21,7 +21,7 @@ final class HttpTransport {
         private final ByteArrayOutputStream output=new ByteArrayOutputStream();
         private Response reply;
         private Call call;
-        private AtomicBoolean scope;
+        private List<AtomicBoolean> scopes=Collections.emptyList();
         private boolean closed;
         Connection(URL url){super(url);setConnectTimeout(6500);setReadTimeout(12000);}
         @Override public void setRequestProperty(String key,String value){if(connected)throw new IllegalStateException("Соединение уже открыто");headers.set(key,value);}
@@ -36,11 +36,12 @@ final class HttpTransport {
             if(doOutput||verb.equals("POST")||verb.equals("PUT")||verb.equals("PATCH"))body=RequestBody.create(output.toByteArray(),null);
             Request request=new Request.Builder().url(url).headers(headers.build()).method(verb,body).build();
             call=client.newBuilder().connectTimeout(getConnectTimeout(),TimeUnit.MILLISECONDS).readTimeout(getReadTimeout(),TimeUnit.MILLISECONDS).followRedirects(getInstanceFollowRedirects()).build().newCall(request);
-            scope=TaskQueue.cancellationFlag();
-            if(scope!=null){calls.compute(scope,(k,active)->{if(active==null)active=ConcurrentHashMap.newKeySet();active.add(call);return active;});if(scope.get()){call.cancel();unbind();throw new InterruptedIOException("Cancelled");}}
+            scopes=TaskQueue.cancellationFlags();
+            for(AtomicBoolean scope:scopes)calls.compute(scope,(k,active)->{if(active==null)active=ConcurrentHashMap.newKeySet();active.add(call);return active;});
+            for(AtomicBoolean scope:scopes)if(scope.get()){call.cancel();unbind();throw new InterruptedIOException("Cancelled");}
             try{reply=call.execute();connected=true;responseCode=reply.code();responseMessage=reply.message();url=reply.request().url().url();}catch(IOException e){unbind();throw e;}
         }
-        private void unbind(){if(scope!=null&&call!=null){calls.computeIfPresent(scope,(k,active)->{active.remove(call);return active.isEmpty()?null:active;});}}
+        private void unbind(){if(call!=null)for(AtomicBoolean scope:scopes){calls.computeIfPresent(scope,(k,active)->{active.remove(call);return active.isEmpty()?null:active;});}}
         @Override public int getResponseCode()throws IOException{connect();return reply.code();}
         @Override public String getResponseMessage()throws IOException{connect();return reply.message();}
         @Override public String getHeaderField(String name){try{connect();return name==null?"HTTP/1.1 "+reply.code()+" "+reply.message():reply.header(name);}catch(IOException e){return null;}}

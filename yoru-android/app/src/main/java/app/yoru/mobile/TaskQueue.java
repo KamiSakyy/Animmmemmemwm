@@ -6,16 +6,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class TaskQueue {
     private TaskQueue() {}
     private static final ThreadLocal<AtomicBoolean> cancellation=new ThreadLocal<>();
+    private static final ThreadLocal<java.util.List<AtomicBoolean>> ancestors=new ThreadLocal<>();
     private static final ConcurrentHashMap<Thread,AtomicBoolean> runningFlags=new ConcurrentHashMap<>();
-    static void attach(AtomicBoolean value){cancellation.set(value);runningFlags.put(Thread.currentThread(),value);}
+    static void attach(AtomicBoolean value){ancestors.remove();cancellation.set(value);runningFlags.put(Thread.currentThread(),value);}
     static AtomicBoolean cancellationFlag(){return cancellation.get();}
-    static void detach(){runningFlags.remove(Thread.currentThread());cancellation.remove();}
+    static java.util.List<AtomicBoolean> cancellationFlags(){java.util.ArrayList<AtomicBoolean> flags=new java.util.ArrayList<>();java.util.List<AtomicBoolean> inherited=ancestors.get();if(inherited!=null)flags.addAll(inherited);AtomicBoolean own=cancellation.get();if(own!=null&&!flags.contains(own))flags.add(own);return flags;}
+    private static void attach(AtomicBoolean value,java.util.List<AtomicBoolean> inherited){attach(value);ancestors.set(inherited);}
+    static void detach(){runningFlags.remove(Thread.currentThread());cancellation.remove();ancestors.remove();}
 
     static final class CancelFuture<V> extends FutureTask<V> {
         private final AtomicBoolean cancelled;
-        CancelFuture(Callable<V> work){this(new AtomicBoolean(),work);}
-        private CancelFuture(AtomicBoolean flag,Callable<V> work){
-            super(()->{attach(flag);try{check();return work.call();}finally{detach();}});
+        CancelFuture(Callable<V> work){this(new AtomicBoolean(),cancellationFlags(),work);}
+        private CancelFuture(AtomicBoolean flag,java.util.List<AtomicBoolean> inherited,Callable<V> work){
+            super(()->{attach(flag,inherited);try{check();return work.call();}finally{detach();}});
             cancelled=flag;
         }
         @Override public boolean cancel(boolean interrupt){cancelled.set(true);HttpTransport.cancel(cancelled);return super.cancel(interrupt);}
@@ -55,7 +58,7 @@ final class TaskQueue {
                 return null;
             });
             tasks.add(task);
-            executor.execute(task);
+            try{executor.execute(task);}catch(RejectedExecutionException error){task.cancel(false);}
             if (task.isCancelled() && !started.get() && rejected != null) rejected.run();
             return task;
         }
@@ -75,12 +78,13 @@ final class TaskQueue {
 
     static void run(ExecutorService executor,Signal signal,Runnable work,Runnable rejected) {
         FutureTask<Void> task=new CancelFuture<>(()->{if(!signal.get())work.run();return null;});
-        signal.bind(task);executor.execute(task);
+        signal.bind(task);try{executor.execute(task);}catch(RejectedExecutionException error){task.cancel(false);}
         if(task.isCancelled()&&!signal.get()&&rejected!=null)rejected.run();
     }
 
     static void check() throws java.io.InterruptedIOException {
         AtomicBoolean flag=cancellation.get();
         if (Thread.currentThread().isInterrupted() || (flag!=null&&flag.get())) throw new java.io.InterruptedIOException("Cancelled");
+        java.util.List<AtomicBoolean> inherited=ancestors.get();if(inherited!=null)for(AtomicBoolean parent:inherited)if(parent.get())throw new java.io.InterruptedIOException("Cancelled");
     }
 }

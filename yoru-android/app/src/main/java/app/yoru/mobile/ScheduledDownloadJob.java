@@ -20,21 +20,24 @@ public final class ScheduledDownloadJob extends JobService {
         if(worker!=null)return false;
         AtomicBoolean stop=new AtomicBoolean(false);
         cancelled=stop;
+        AtomicBoolean finishedJob=new AtomicBoolean(false);
+        Runnable timeout=()->{if(stop.get()||!finishedJob.compareAndSet(false,true))return;stop.set(true);HttpTransport.cancel(stop);Thread active=worker;if(cancelled==stop&&active!=null)active.interrupt();jobFinished(params,true);};
         worker=new Thread(()->{
             try { TaskQueue.attach(stop);checkPlans(stop); }
             catch(Exception ignored) {}
             finally {
-                TaskQueue.detach();worker=null;
-                YoruApp.app().main.post(()->{if(!stop.get()){jobFinished(params,false);YoruApp.app().discovery.execute(()->ScheduledDownloads.schedule(this));}});
+                TaskQueue.detach();worker=null;YoruApp.app().main.removeCallbacks(timeout);
+                YoruApp.app().main.post(()->{if(!stop.get()&&finishedJob.compareAndSet(false,true)){jobFinished(params,false);YoruApp.app().discovery.execute(()->ScheduledDownloads.schedule(this));}});
             }
         },"yoru-scheduled-downloads");
         worker.setPriority(Thread.NORM_PRIORITY-1);
+        YoruApp.app().main.postDelayed(timeout,75_000);
         worker.start();
         return true;
     }
 
     @Override public boolean onStopJob(JobParameters params) {
-        if(cancelled!=null)cancelled.set(true);
+        if(cancelled!=null){cancelled.set(true);HttpTransport.cancel(cancelled);}
         Thread t=worker;
         if(t!=null)t.interrupt();
         return true;
@@ -49,7 +52,7 @@ public final class ScheduledDownloadJob extends JobService {
                 if(stop.get()||SystemClock.elapsedRealtime()>=deadline)return;
                 if(p.state.equals("queued")||p.next>System.currentTimeMillis())continue;
                 if(app.store.wifiDownloads()&&app.traffic.metered()) {
-                    store.update(p.id,"waiting","Ожидает Wi-Fi",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
+                    store.update(p.id,"waiting","Ожидает Wi-Fi",ScheduledDownloads.nextCheck(p.due));
                     continue;
                 }
                 Download existing=app.downloads().get(p.downloadId());
@@ -57,7 +60,7 @@ public final class ScheduledDownloadJob extends JobService {
                     store.update(p.id,"queued","Передано в загрузки — управление в списке загрузок",0);
                     continue;
                 }
-                store.update(p.id,"waiting","Проверяем выбранную озвучку и качество",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
+                store.update(p.id,"waiting","Проверяем выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
                 try {
                     Anime fresh=app.api.details(Anime.from(p.anime.json()),false);
                     TaskQueue.check();
@@ -70,19 +73,25 @@ public final class ScheduledDownloadJob extends JobService {
                     TaskQueue.check();
                     if(stop.get()||!store.exists(p.id))continue;
                     if(best==null) {
-                        store.update(p.id,"waiting","Ожидает выбранную озвучку и качество",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
+                        store.update(p.id,"waiting","Ожидает выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
                         continue;
                     }
                     if(getFilesDir().getUsableSpace()<100L*1024*1024) {
-                        store.update(p.id,"waiting","Недостаточно места — освободите память",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
+                        store.update(p.id,"waiting","Недостаточно места — освободите память",ScheduledDownloads.nextCheck(0));
                         continue;
                     }
+                    if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p.id,"waiting","Ожидает подходящий выпуск",ScheduledDownloads.nextCheck(p.due));continue;}
+                    if(SystemClock.elapsedRealtime()+10_000>=deadline)return;
+                    long bytes=MediaSize.probe(best.episode.streams.get(best.quality));TaskQueue.check();
+                    if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p.id,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(0));continue;}
+                    if(stop.get()||!store.exists(p.id))continue;
+                    store.update(p.id,"waiting","Подготавливаем скачивание · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(p.due));
                     if(SystemClock.elapsedRealtime()+5_000>=deadline)return;
                     boolean accepted=enqueue(p,best,stop,Math.min(30_000,deadline-SystemClock.elapsedRealtime()));
-                    if(accepted)store.update(p.id,"queued","Передано в загрузки — управление в списке загрузок",0);
-                    else if(!stop.get())store.update(p.id,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
+                    if(accepted)store.update(p.id,"queued","Передано в загрузки · "+MediaSize.label(bytes),0);
+                    else if(!stop.get())store.update(p.id,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",ScheduledDownloads.nextCheck(0));
                 } catch(java.io.InterruptedIOException|InterruptedException e) { Thread.currentThread().interrupt();return; }
-                catch(Exception e) { store.update(p.id,"waiting","Источник пока недоступен — повторим проверку",System.currentTimeMillis()+ScheduledDownloads.PERIOD); }
+                catch(Exception e) { store.update(p.id,"waiting","Источник пока недоступен — повторим проверку",ScheduledDownloads.nextCheck(p.due)); }
             }
         }
     }

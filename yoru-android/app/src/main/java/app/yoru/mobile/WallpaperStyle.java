@@ -10,15 +10,17 @@ import java.io.File;
 final class WallpaperStyle {
     private WallpaperStyle(){}
     static void apply(Activity activity,View root){
+        if((activity instanceof WallpaperPreviewActivity||YoruApp.app().store.wallpaperEnabled())&&root.getTag(R.id.wallpaper_style_listener)==null){ViewTreeObserver.OnGlobalLayoutListener listener=()->refreshSurfaces(root);root.setTag(R.id.wallpaper_style_listener,listener);root.getViewTreeObserver().addOnGlobalLayoutListener(listener);}
         SecureStore store=YoruApp.app().store;long version=store.wallpaperVersion();
-        if(!store.wallpaperEnabled()){root.setBackgroundColor(Ui.BG);surfaces(root,255);return;}
+        boolean enabled=activity instanceof WallpaperPreviewActivity?((WallpaperPreviewActivity)activity).previewEnabled():store.wallpaperEnabled();
+        if(!enabled){root.setBackgroundColor(Ui.BG);surfaces(root,255);return;}
         refreshSurfaces(root);
-        YoruApp.app().io.submit(()->{Bitmap image=null;try{BitmapFactory.Options options=new BitmapFactory.Options();options.inPreferredConfig=Bitmap.Config.ARGB_8888;image=BitmapFactory.decodeFile(new File(activity.getFilesDir(),"wallpaper.png").getAbsolutePath(),options);}catch(Exception|OutOfMemoryError ignored){}Bitmap ready=image;
+        YoruApp.app().io.submit(()->{Bitmap image=null;try{BitmapFactory.Options options=new BitmapFactory.Options();options.inPreferredConfig=Bitmap.Config.ARGB_8888;File file=activity instanceof WallpaperPreviewActivity?((WallpaperPreviewActivity)activity).previewFile():new File(activity.getFilesDir(),"wallpaper.png");if(file!=null)image=BitmapFactory.decodeFile(file.getAbsolutePath(),options);}catch(Exception|OutOfMemoryError ignored){}Bitmap ready=image;
             activity.runOnUiThread(()->{if(activity.isFinishing()||activity.isDestroyed()||version!=store.wallpaperVersion()){if(ready!=null)ready.recycle();return;}if(ready!=null){root.setBackground(new Background(ready));refreshSurfaces(root);}});
         });
     }
-    static void refreshSurfaces(View root){SecureStore store=YoruApp.app().store;int alpha=store.wallpaperEnabled()&&store.wallpaperTransparent()?Math.max(25,255*(100-store.wallpaperTransparency())/100):255;surfaces(root,alpha);}
-    static void surfaces(View root,int alpha){if(root instanceof android.view.SurfaceView||root instanceof PlayerView)return;if(root instanceof ViewGroup){ViewGroup group=(ViewGroup)root;for(int i=0;i<group.getChildCount();i++){View child=group.getChildAt(i);if(!(child instanceof android.widget.ImageView)&&!(child instanceof PlayerView)&&child.getBackground()!=null)child.getBackground().mutate().setAlpha(alpha);surfaces(child,alpha);}}}
+    static void refreshSurfaces(View root){SecureStore store=YoruApp.app().store;boolean enabled=store.wallpaperEnabled(),transparent=store.wallpaperTransparent();int opacity=store.wallpaperTransparency();if(root.getContext() instanceof WallpaperPreviewActivity){WallpaperPreviewActivity preview=(WallpaperPreviewActivity)root.getContext();enabled=preview.previewEnabled();transparent=preview.previewTransparent();opacity=preview.previewOpacity();}int alpha=enabled&&transparent?Math.max(25,255*(100-opacity)/100):255;surfaces(root,alpha);}
+    static void surfaces(View root,int alpha){if(root instanceof android.view.SurfaceView||root instanceof PlayerView)return;if(root instanceof ViewGroup){ViewGroup group=(ViewGroup)root;for(int i=0;i<group.getChildCount();i++){View child=group.getChildAt(i);if(!(child instanceof android.widget.ImageView)&&!(child instanceof PlayerView)&&child.getBackground()!=null&&child.getBackground().getAlpha()!=alpha)child.getBackground().mutate().setAlpha(alpha);surfaces(child,alpha);}}}
     private static final class Background extends Drawable {
         private final Bitmap image;private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
         Background(Bitmap image){this.image=image;}
