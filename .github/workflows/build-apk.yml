@@ -1,121 +1,14 @@
-name: Build Android APK
-
-permissions:
-  contents: write
-
+name: Assemble YORU major update
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        description: 'Final delivery target'
-        type: choice
-        options:
-          - compatibility
-          - sdk37
-        default: compatibility
-      final_delivery:
-        description: 'Major implementation block is complete and ready for APK assembly'
-        type: boolean
-        default: false
-        required: true
-
+permissions:
+  contents: read
 concurrency:
-  group: yoru-apk-${{ github.ref }}
+  group: yoru-final-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
-  android-apk:
-    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm' && inputs.final_delivery && inputs.target == 'sdk37'
-    runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-    defaults:
-      run:
-        working-directory: yoru-android
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-          cache-dependency-path: |
-            yoru-android/*.gradle
-            yoru-android/**/*.gradle
-            yoru-android/gradle/wrapper/gradle-wrapper.properties
-      - uses: android-actions/setup-android@v3
-      - name: Restore Android SDK cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.ANDROID_HOME }}/platforms/android-37
-            ${{ env.ANDROID_HOME }}/build-tools/36.0.0
-            ${{ env.ANDROID_HOME }}/platform-tools
-          key: yoru-android-sdk-37-36.0.0-${{ runner.os }}
-      - name: Install missing Android SDK components
-        run: |
-          if [ ! -d "$ANDROID_HOME/platforms/android-37" ] || [ ! -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
-            sdkmanager --list --channel=3 | grep -E 'android-(37|Cinnamon)|build-tools;37' >> "$GITHUB_STEP_SUMMARY" || true
-            if ! sdkmanager --channel=3 "platforms;android-37" "build-tools;36.0.0" "platform-tools" > sdk-install.log 2>&1; then
-              cat sdk-install.log >> "$GITHUB_STEP_SUMMARY"
-              message=$(tr '\r' '\n' < sdk-install.log | grep -E 'Warning:|Error:|Failed|not found' | tail -5 | tr '\n' ' ')
-              echo "::error title=SDK 37 installation::$message"
-              exit 1
-            fi
-          else
-            echo "Android SDK 37 already restored"
-          fi
-      - name: Restore release signing files
-        working-directory: .
-        run: unzip -o YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Build Java release APK
-        run: |
-          set +e
-          chmod +x gradlew
-          ./gradlew --no-daemon -PownerSignedApk :app:assembleStoredDebug :app:assembleStoredRelease 2>&1 | tee ../build-release.log
-          code=${PIPESTATUS[0]}
-          if [ "$code" -ne 0 ]; then
-            {
-              echo "### Java release build failed"
-              echo '```'
-              tail -120 ../build-release.log
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            message=$(tail -40 ../build-release.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
-            echo "::error title=Gradle Java release build failed::$message"
-            exit "$code"
-          fi
-      - name: Verify APK signatures
-        run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/release/app-release.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/debug/app-debug.apk
-      - name: Save APK into branch
-        working-directory: .
-        run: |
-          git pull --rebase origin arena/01a0828d-animmmemmemwm
-          mkdir -p apk-output
-          rm -f apk-output/YORU-4.20.0-dev.11-release.apk apk-output/YORU-4.20.0-dev.11-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.11-release.apk
-          sha256sum apk-output/YORU-4.20.0-dev.11-release.apk > apk-output/YORU-4.20.0-dev.11-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.11-debug.apk
-          sha256sum apk-output/YORU-4.20.0-dev.11-debug.apk > apk-output/YORU-4.20.0-dev.11-debug.apk.sha256
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.11-*.apk apk-output/YORU-4.20.0-dev.11-*.apk.sha256
-          git commit -m "Add built YORU 4.20.0-dev.11 release APK [skip ci]" || exit 0
-          git push origin HEAD:arena/01a0828d-animmmemmemwm
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: yoru-4.20.0-dev.11-release-apk
-          path: |
-            apk-output/YORU-4.20.0-dev.11-*.apk
-            apk-output/YORU-4.20.0-dev.11-*.apk.sha256
-
-  compatibility-verification:
-    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm' && inputs.final_delivery && inputs.target == 'compatibility'
-    name: Assemble unminified uncompressed APK
+  assemble:
+    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,50 +17,27 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
-      - name: Install verification SDK
+      - name: Install unchanged build profile dependencies
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Restore existing owner signing for update
+      - name: Restore existing update signature
         run: unzip -oq YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Assemble APK without test or device runs
+      - name: Assemble final APK without test runs
         working-directory: yoru-android
         run: |
           chmod +x gradlew
-          set +e
-          ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug > android-build.log 2>&1
-          code=$?
-          set -e
-          if [ "$code" -ne 0 ]; then
-            message=$(tail -70 android-build.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
-            echo "::error title=APK build::$message"
-            exit "$code"
-          fi
-          python3 ../tools/collect-yoru-build.py
-      - name: Preserve explicitly labelled compatibility APK
-        run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk || { echo "::error title=APK publication::Signature verification failed"; exit 1; }
-          cp handoff/YORU-4.20.0-dev.11-build-report.json "$RUNNER_TEMP/yoru-build-report.json"
-          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.11-build-report.json >/dev/null 2>&1; then
-            git restore -- handoff/YORU-4.20.0-dev.11-build-report.json
-          else
-            rm handoff/YORU-4.20.0-dev.11-build-report.json
-          fi
-          git pull --rebase origin arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::Branch synchronization failed"; exit 1; }
-          cp "$RUNNER_TEMP/yoru-build-report.json" handoff/YORU-4.20.0-dev.11-build-report.json
-          mkdir -p apk-output
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk
-          sha256sum apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk > apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk.sha256
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk.sha256
-          git add handoff/YORU-4.20.0-dev.11-build-report.json
-          git commit -m "Save separately labelled YORU SDK36 compatibility APK and build receipt [skip ci]" || exit 0
-          git push origin HEAD:arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::APK push failed"; exit 1; }
+          set -o pipefail
+          ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug 2>&1 | tee android-final-build.log
+      - name: Package matching APK and sources
+        run: python3 tools/package-yoru-major.py
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: yoru-4.20.0-dev.11-compatibility-checks
-          path: |
-            yoru-android/android-build.log
-            handoff/YORU-4.20.0-dev.11-build-report.json
-            apk-output/YORU-4.20.0-dev.11-sdk36-okhttp5.4-unminified.apk
+          name: yoru-4.20.0-final
+          path: workspace-output/yoru-final/*
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: yoru-final-build-diagnostics
+          path: yoru-android/android-final-build.log
           if-no-files-found: ignore

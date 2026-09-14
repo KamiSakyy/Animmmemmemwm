@@ -29,7 +29,7 @@ report = {
 receipt = (json.dumps(report, ensure_ascii=False, indent=2) + "\n").encode()
 (output / "BUILD-RECEIPT.json").write_bytes(receipt)
 files = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", source, "yoru-android"], cwd=root, text=True).splitlines()
-files += ["AGENTS.md", "handoff/YORU-4.20.0-FINAL.ru.md", ".github/workflows/deliver-yoru-major.yml", "tools/package-yoru-major.py"]
+files += ["AGENTS.md", "handoff/YORU-4.20.0-FINAL.ru.md", ".github/workflows/deliver-yoru-major.yml", ".github/workflows/build-apk.yml", "tools/package-yoru-major.py"]
 manifest = {}
 archive = output / "YORU-4.20.0-source.zip"
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
