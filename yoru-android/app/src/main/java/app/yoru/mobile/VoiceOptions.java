@@ -16,6 +16,13 @@ final class VoiceOptions {
         selected=Math.max(0,found);
     }
 
+    static void retainPreferred(ArrayList<String> names,ArrayList<String> values,String preferred){
+        String key=ApiRepository.voiceKey(preferred);if(key.isEmpty())return;
+        for(String value:values)if(key.equals(ApiRepository.voiceKey(value)))return;
+        String title=ApiRepository.voiceTitle(preferred);if(title.isEmpty())title=preferred;
+        names.add(title+" · пока недоступна");values.add(preferred);
+    }
+
     String[] names(){return names.toArray(new String[0]);}
     int index(){return selected;}
     String value(int index){return index<0||index>=values.size()||index==selected?preferred:values.get(index);}

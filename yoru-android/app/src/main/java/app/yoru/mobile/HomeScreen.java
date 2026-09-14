@@ -47,15 +47,16 @@ final class HomeScreen extends SwipeRefreshLayout {
         request=YoruApp.app().ui.submit(()->{try{Anime.Page result=YoruApp.app().api.homePage(1);TaskQueue.check();post(()->{
             if(!attached||token!=generation)return;loading=false;if(list.getScrollState()!=RecyclerView.SCROLL_STATE_IDLE){schedule();return;}
             GridLayoutManager layout=(GridLayoutManager)list.getLayoutManager();int first=layout==null?0:layout.findFirstVisibleItemPosition();View anchorView=layout==null?null:layout.findViewByPosition(first);int offset=anchorView==null?0:anchorView.getTop()-list.getPaddingTop();String anchor=first>0&&first<=rows.size()?rows.get(first-1).key():"";
-            ArrayList<Anime> old=new ArrayList<>(rows);LinkedHashMap<String,Anime> merged=new LinkedHashMap<>();for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime))merged.put(anime.key(),anime);for(Anime anime:old)merged.putIfAbsent(anime.key(),anime);ArrayList<Anime> next=new ArrayList<>(merged.values());
+            ArrayList<Anime> old=new ArrayList<>(rows);LinkedHashMap<String,Anime> merged=new LinkedHashMap<>();for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime))merged.put(anime.key(),anime);if(result.more)for(Anime anime:old)merged.putIfAbsent(anime.key(),anime);ArrayList<Anime> next=new ArrayList<>(merged.values());
             DiffUtil.DiffResult changes=DiffUtil.calculateDiff(new DiffUtil.Callback(){public int getOldListSize(){return old.size()+2;}public int getNewListSize(){return next.size()+2;}public boolean areItemsTheSame(int a,int b){if(a==0||b==0)return a==b;if(a==old.size()+1||b==next.size()+1)return a==old.size()+1&&b==next.size()+1;return old.get(a-1).key().equals(next.get(b-1).key());}public boolean areContentsTheSame(int a,int b){if(a==0||a==old.size()+1)return false;Anime before=old.get(a-1),after=next.get(b-1);return before==after||before.json().toString().equals(after.json().toString());}});
-            rows.clear();rows.addAll(next);identities.clear();identities.addAll(merged.keySet());updated=System.currentTimeMillis();day=LocalDate.now().toEpochDay();int candidates=Math.min(6,rows.size());recommendation=candidates==0?null:rows.get((int)Math.floorMod(day,(long)candidates));changes.dispatchUpdatesTo(adapter);
+            failed=false;if(page<=1||!result.more){page=1;more=result.more;}rows.clear();rows.addAll(next);identities.clear();identities.addAll(merged.keySet());updated=System.currentTimeMillis();day=LocalDate.now().toEpochDay();int candidates=Math.min(6,rows.size());recommendation=candidates==0?null:rows.get((int)Math.floorMod(day,(long)candidates));changes.dispatchUpdatesTo(adapter);
             if(layout!=null){if(first==0)layout.scrollToPositionWithOffset(0,offset);else if(!anchor.isEmpty())for(int i=0;i<rows.size();i++)if(anchor.equals(rows.get(i).key())){layout.scrollToPositionWithOffset(i+1,offset);break;}}schedule();
         });}catch(Exception error){post(()->{if(attached&&token==generation){loading=false;schedule();}});}});
         if(request.isCancelled()){loading=false;schedule();}
     }
     private void load(boolean reset){
-        if(!attached||getWindowVisibility()!=VISIBLE||loading||(!reset&&!more))return;
+        if(!attached||getWindowVisibility()!=VISIBLE||(!reset&&(loading||!more)))return;
+        if(reset&&request!=null)request.cancel(true);
         loading=true;failed=false;int token=++generation;int next=reset?1:page+1;
         if(reset)setRefreshing(true);else adapter.notifyItemChanged(rows.size()+1);
         request=YoruApp.app().ui.submit(()->{
@@ -66,6 +67,7 @@ final class HomeScreen extends SwipeRefreshLayout {
                 page=next;more=result.more;loading=false;if(reset)updated=System.currentTimeMillis();setRefreshing(false);
                 if(reset){day=LocalDate.now().toEpochDay();recommendation=rows.isEmpty()?null:rows.get((int)Math.floorMod(day,(long)rows.size()));adapter.notifyDataSetChanged();}
                 else{int added=rows.size()-old;if(added>0)adapter.notifyItemRangeInserted(old+1,added);adapter.notifyItemChanged(rows.size()+1);}
+                schedule();
             });}catch(Exception e){post(()->{if(!attached||token!=generation)return;loading=false;failed=true;setRefreshing(false);adapter.notifyItemChanged(rows.size()+1);});}
         });
         if(request.isCancelled()){loading=false;failed=true;setRefreshing(false);adapter.notifyItemChanged(rows.size()+1);}

@@ -70,7 +70,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
     static long nextCheck(long due){long now=System.currentTimeMillis();return due>now?Math.min(due,now+6L*60*60*1000):now+PERIOD;}
     void add(Anime anime,double episode,String voice,int quality,long due){add(anime,episode,voice,quality,due,"");}
     void add(Anime anime, double episode, String voice, int quality, long due,String date) {
-        if (!Anime.valid(anime) || !Double.isFinite(episode) || episode <= 0) throw new IllegalArgumentException();
+        if (!Anime.valid(anime) || !EpisodeRules.allowsNumber(anime,episode) || episode <= 0) throw new IllegalArgumentException();
         String identity = SourceEngine.identity(anime) + "|" + Double.toString(episode);
         String id = UUID.nameUUIDFromBytes(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
         if (exists(id)) throw new IllegalStateException("already planned");
@@ -78,7 +78,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         v.put("id", id);
         v.put("anime", anime.json().toString());
         v.put("episode", episode);
-        v.put("voice", voice);
+        v.put("voice", voice==null?"":voice.trim());
         v.put("quality", quality);
         v.put("due", Math.max(0, due));
         v.put("next_check", due>System.currentTimeMillis()?nextCheck(due):System.currentTimeMillis());
@@ -138,7 +138,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         Ui.space(col,12);
         col.addView(Ui.text(activity, "Озвучка", 12, Ui.MUTED, false));
         Spinner voice = new Spinner(activity);
-        VoiceOptions options = new VoiceOptions(YoruApp.app().store.voicePreference());
+        VoiceOptions options = new VoiceOptions(YoruApp.app().store.voicePreference(anime));
         String[] voices = options.names();
         voices[0] = "Любая доступная";
         voice.setAdapter(new ArrayAdapter<>(activity, android.R.layout.simple_spinner_dropdown_item, voices));
@@ -147,7 +147,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         col.addView(Ui.text(activity, "Разрешение", 12, Ui.MUTED, false));
         Spinner quality = new Spinner(activity);
         quality.setAdapter(new ArrayAdapter<>(activity,android.R.layout.simple_spinner_dropdown_item,QualityPlus.LABELS_WITH_BEST));
-        quality.setSelection(QualityPlus.index(YoruApp.app().store.downloadResolution()));
+        quality.setSelection(QualityPlus.indexWithBest(YoruApp.app().store.downloadResolution()));
         col.addView(quality,Ui.lp(activity,-1,48));
         Ui.space(col,10);
         col.addView(Ui.text(activity,"Будем ждать именно выбранную озвучку и разрешение, без подмены. Доступность будущей озвучки не гарантирована. Проверки идут в фоне при наличии сети; Android может их задерживать. Учитывается настройка «Загрузки только по Wi-Fi». После принудительной остановки приложения откройте YORU снова.",11,Ui.MUTED,false));
@@ -161,6 +161,8 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
                     String message;
                     try (ScheduledDownloads store = new ScheduledDownloads(activity)) {
                         store.add(anime,episode,selectedVoice,selectedQuality,due,date);
+                        YoruApp.app().store.voicePreference(anime,selectedVoice);
+                        YoruApp.app().store.downloadResolution(selectedQuality);
                         boolean scheduled=schedule(activity);
                         message=scheduled?"Запланировано. Карточка задания — в разделе «Загрузки».":"План сохранён, но Android не разрешил фоновую проверку. Откройте YORU позже.";
                     } catch (IllegalStateException e) { message="Эта серия уже запланирована. Отмените задание на его карточке в «Загрузках»."; }

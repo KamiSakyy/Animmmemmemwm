@@ -10,6 +10,7 @@ final class QualityPlus {
     private QualityPlus(){}
     static int clamp(int value){if(value>=BEST)return 2160;if(value<=360)return 360;if(value<=480)return 480;if(value<=720)return 720;if(value<=1080)return 1080;if(value<=1440)return 1440;return 2160;}
     static int index(int value){int q=clamp(value);for(int i=0;i<VALUES.length;i++)if(VALUES[i]==q)return i;return 2;}
+    static int indexWithBest(int value){return value==BEST?VALUES.length:index(value);}
     static int[] values(){return Arrays.copyOf(VALUES,VALUES.length);}
     static int[] valuesWithBest(){int[] out=Arrays.copyOf(VALUES,VALUES.length+1);out[out.length-1]=BEST;return out;}
     static String name(int value){return value>=BEST?"Лучшее доступное":streamLabel(value);}

@@ -64,6 +64,7 @@ public final class ScheduledDownloadJob extends JobService {
                 try {
                     Anime fresh=app.api.details(Anime.from(p.anime.json()),false);
                     TaskQueue.check();
+                    if(EpisodeRules.conflicts(p.anime,fresh)||!EpisodeRules.allowsNumber(fresh,p.episode)){store.update(p.id,"waiting","Уточняем состав серий — план сохранён",ScheduledDownloads.nextCheck(0));continue;}
                     List<ApiRepository.DownloadOption> options=app.api.downloadOptions(fresh,null,p.episode,p.voice,p.quality,!p.voice.isEmpty());
                     ApiRepository.DownloadOption best=null;
                     for(ApiRepository.DownloadOption option:options) {
@@ -108,15 +109,14 @@ public final class ScheduledDownloadJob extends JobService {
         app.main.post(()->{
             if(stop.get()||finished.get()){prepared.countDown();return;}
             try {
-                TrackSelectionParameters.Builder selectionBuilder=new TrackSelectionParameters.Builder(this).setPreferredAudioLanguage("ru");
-                if(option.quality>0)selectionBuilder.setMaxVideoSize(Integer.MAX_VALUE,option.quality);
-                TrackSelectionParameters selection=selectionBuilder.build();
+                TrackSelectionParameters selection=DownloadTracks.parameters(this,option.quality);
                 DownloadHelper h=DownloadHelper.forMediaItem(DownloadHub.item(option.episode.streams.get(option.quality)),selection,new DefaultRenderersFactory(this),app.mediaCache.http());
                 helper.set(h);
                 h.prepare(new DownloadHelper.Callback() {
                     @Override public void onPrepared(DownloadHelper ready) {
                         try {
                             if(stop.get()||finished.get())return;
+                            DownloadTracks.requireSelectedQuality(ready,option.quality);
                             DownloadRequest request=ready.getDownloadRequest(plan.downloadId(),meta.toString().getBytes(StandardCharsets.UTF_8));
                             app.io.execute(()->{
                                 boolean exists;
