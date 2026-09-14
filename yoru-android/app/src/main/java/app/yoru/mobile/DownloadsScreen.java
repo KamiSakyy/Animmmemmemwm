@@ -81,9 +81,9 @@ public final class DownloadsScreen extends LinearLayout {
                 String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
                 if(!"all".equals(listFilter)){ArrayList<Entry> kept=new ArrayList<>();for(Entry e:fresh){
                     if(e.plan!=null){if("planned".equals(listFilter))kept.add(e);continue;}
-                    if(e.download==null)continue;int st=e.download.state;boolean done=st==Download.STATE_COMPLETED;
-                    boolean active=st==Download.STATE_DOWNLOADING||st==Download.STATE_QUEUED||st==Download.STATE_RESTARTING||st==Download.STATE_STOPPED;
-                    if("done".equals(listFilter)&&done)kept.add(e);else if("active".equals(listFilter)&&active)kept.add(e);
+                    if(e.download==null)continue;int st=e.download.state;boolean finished=st==Download.STATE_COMPLETED;
+                    boolean running=st==Download.STATE_DOWNLOADING||st==Download.STATE_QUEUED||st==Download.STATE_RESTARTING||st==Download.STATE_STOPPED;
+                    if("done".equals(listFilter)&&finished)kept.add(e);else if("active".equals(listFilter)&&running)kept.add(e);
                 }fresh=kept;}
                 signature.append("#").append(listFilter);
                 String next=signature.toString();
