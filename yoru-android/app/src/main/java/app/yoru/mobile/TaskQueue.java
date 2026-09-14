@@ -17,7 +17,7 @@ final class TaskQueue {
             super(()->{attach(flag);try{check();return work.call();}finally{detach();}});
             cancelled=flag;
         }
-        @Override public boolean cancel(boolean interrupt){cancelled.set(true);Network.cancel(cancelled);return super.cancel(interrupt);}
+        @Override public boolean cancel(boolean interrupt){cancelled.set(true);HttpTransport.cancel(cancelled);return super.cancel(interrupt);}
     }
 
     static final class Executor extends ThreadPoolExecutor {

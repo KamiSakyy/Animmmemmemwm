@@ -7,10 +7,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-final class Network {
+final class HttpTransport {
     private static final OkHttpClient client=new OkHttpClient.Builder().cache(null).connectTimeout(6500,TimeUnit.MILLISECONDS).readTimeout(12000,TimeUnit.MILLISECONDS).callTimeout(30,TimeUnit.SECONDS).followSslRedirects(false).addNetworkInterceptor(chain->{Request request=chain.request();if(!sameOrigin(chain.call().request().url().url(),request.url().url()))request=request.newBuilder().removeHeader("Cookie").removeHeader("Authorization").removeHeader("Proxy-Authorization").build();return chain.proceed(request);}).build();
     private static final ConcurrentHashMap<AtomicBoolean,Set<Call>> calls=new ConcurrentHashMap<>();
-    private Network(){}
+    private HttpTransport(){}
     static OkHttpClient media(){return client.newBuilder().callTimeout(0,TimeUnit.MILLISECONDS).followSslRedirects(true).build();}
     static boolean sameOrigin(URL a,URL b){return a.getProtocol().equalsIgnoreCase(b.getProtocol())&&a.getHost().equalsIgnoreCase(b.getHost())&&(a.getPort()<0?a.getDefaultPort():a.getPort())==(b.getPort()<0?b.getDefaultPort():b.getPort());}
     static boolean sensitive(String name){return "Cookie".equalsIgnoreCase(name)||"Authorization".equalsIgnoreCase(name)||"Proxy-Authorization".equalsIgnoreCase(name);}
