@@ -118,3 +118,37 @@ jobs:
           name: yoru-4.20.0-dev.1-tests
           path: yoru-android/app/build/test-results/testDebugUnitTest/
           if-no-files-found: ignore
+
+  compatibility-verification:
+    name: Java and unit verification on SDK36 (not release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install verification SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Compile Java and run unit tests without publishing APK
+        working-directory: yoru-android
+        run: |
+          chmod +x gradlew
+          set +e
+          ./gradlew --no-daemon -PverifyOnSdk36 :app:testDebugUnitTest :app:assembleDebug > verification.log 2>&1
+          code=$?
+          tail -100 verification.log >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -ne 0 ]; then
+            message=$(grep -E 'error:|Could not|FAILED|not found|failed' verification.log | tail -12 | tr '\n' ' ')
+            echo "::error title=SDK36 compatibility verification::$message"
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yoru-4.20.0-dev.1-sdk36-verification
+          path: |
+            yoru-android/verification.log
+            yoru-android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore

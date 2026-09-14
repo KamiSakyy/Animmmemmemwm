@@ -1,17 +1,19 @@
 plugins { id 'com.android.application' }
+def verificationBuild = project.hasProperty('verifyOnSdk36')
+if (verificationBuild && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) throw new GradleException('SDK36 verification cannot produce a release build')
 def owner = new Properties()
 def ownerFile = rootProject.file('owner-signing/signing.properties')
 if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
 def certHash = rootProject.file('owner-signing/certificate-sha256.txt').exists() ? rootProject.file('owner-signing/certificate-sha256.txt').text.trim() : ''
 android {
  namespace 'app.yoru.mobile'
- compileSdk 37
+ compileSdk verificationBuild ? 36 : 37
  defaultConfig {
   applicationId 'app.yoru.mobile'
   minSdk 26
-  targetSdk 37
+  targetSdk verificationBuild ? 36 : 37
   versionCode 71
-  versionName '4.20.0-dev.1'
+  versionName verificationBuild ? '4.20.0-dev.1-verification-sdk36' : '4.20.0-dev.1'
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
   ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
  }
