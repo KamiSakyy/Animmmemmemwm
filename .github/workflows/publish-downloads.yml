@@ -1,0 +1,31 @@
+name: Publish YORU downloads
+on:
+  push:
+    branches:
+      - arena/01a0828d-animmmemmemwm
+    paths:
+      - handoff/YORU-4.20.0-dev.3-source.zip
+permissions:
+  contents: write
+concurrency:
+  group: yoru-downloads-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify matching APK and sources
+        run: python3 tools/verify-yoru-delivery.py
+      - name: Publish direct download assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=yoru-4.20.0-dev.3
+          cp apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
+          cp handoff/YORU-4.20.0-dev.3-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — тестовое обновление" --notes "Оптимизированная тестовая копия YORU. Добавлено подтверждение массового скачивания с проверкой размера и доступности серий. Исходники соответствуют APK. Это ещё не завершённый основной релиз. Основную YORU удалять не нужно. Перед переустановкой прежней тестовой копии сохраните её данные."
+          fi
+          gh release upload "$tag" "$RUNNER_TEMP/YORU-4.20.0-test.apk" "$RUNNER_TEMP/YORU-4.20.0-source.zip" --clobber
+          gh release edit "$tag" --draft=false --prerelease

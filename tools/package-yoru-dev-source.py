@@ -9,6 +9,8 @@ version = "4.20.0-dev.3"
 files = subprocess.check_output(["git", "ls-files", "yoru-android"], cwd=root, text=True).splitlines()
 files += [
     ".github/workflows/build-apk.yml",
+    ".github/workflows/publish-downloads.yml",
+    "tools/verify-yoru-delivery.py",
     "AGENTS.md",
     "handoff/YORU-PRODUCTION-36-STATUS-2026-09-14.ru.md",
     f"handoff/YORU-{version}-BUILD.ru.md",
