@@ -157,7 +157,11 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk || { echo "::error title=APK publication::Signature verification failed"; exit 1; }
           cp handoff/YORU-4.20.0-dev.3-verification-tests.json "$RUNNER_TEMP/yoru-verification-tests.json"
-          git restore -- handoff/YORU-4.20.0-dev.3-verification-tests.json
+          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.3-verification-tests.json >/dev/null 2>&1; then
+            git restore -- handoff/YORU-4.20.0-dev.3-verification-tests.json
+          else
+            rm handoff/YORU-4.20.0-dev.3-verification-tests.json
+          fi
           git pull --rebase origin arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::Branch synchronization failed"; exit 1; }
           cp "$RUNNER_TEMP/yoru-verification-tests.json" handoff/YORU-4.20.0-dev.3-verification-tests.json
           mkdir -p apk-output
