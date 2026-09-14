@@ -19,7 +19,7 @@ result = {key: sum(suite[key] for suite in suites) for key in ("tests", "failure
 result["suites"] = suites
 result["compile_sdk"] = 36
 result["transport"] = "okhttp-jvm:5.5.0" if profile == "jvm" else "okhttp Android:5.4.0"
-path = root / "handoff/YORU-4.20.0-dev.2-verification-tests.json"
+path = root / "handoff/YORU-4.20.0-dev.3-verification-tests.json"
 commit = os.environ.get("GITHUB_SHA", "local")
 previous = json.loads(path.read_text()) if path.exists() else {}
 if previous.get("source_commit") != commit:
