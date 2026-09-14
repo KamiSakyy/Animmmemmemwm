@@ -79,8 +79,8 @@ public final class ApiRepository {
         String current=url;String currentMethod=method,currentBody=body;
         for(int redirect=0;redirect<5;redirect++){
             if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();if(safeUrl(current).isEmpty())throw new IOException("Недопустимый адрес");
-            TaskQueue.check();URL target=new URL(current);HttpURLConnection c=(HttpURLConnection)target.openConnection();c.setConnectTimeout(2200);c.setReadTimeout(3600);c.setInstanceFollowRedirects(false);c.setRequestMethod(currentMethod);c.setRequestProperty("Accept","application/json,text/html;q=0.9,*/*;q=0.6");c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");c.setRequestProperty("User-Agent",CHROME);
-            if(headers!=null)for(Map.Entry<String,String> e:headers.entrySet())if(e.getKey()!=null&&e.getValue()!=null)c.setRequestProperty(e.getKey(),e.getValue());
+            TaskQueue.check();URL target=new URL(current);HttpURLConnection c=Network.open(target);c.setConnectTimeout(2200);c.setReadTimeout(3600);c.setInstanceFollowRedirects(false);c.setRequestMethod(currentMethod);c.setRequestProperty("Accept","application/json,text/html;q=0.9,*/*;q=0.6");c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");c.setRequestProperty("User-Agent",CHROME);
+            if(headers!=null)for(Map.Entry<String,String> e:headers.entrySet())if(e.getKey()!=null&&e.getValue()!=null&&(Network.sameOrigin(new URL(url),target)||!Network.sensitive(e.getKey())))c.setRequestProperty(e.getKey(),e.getValue());
             try{if(currentBody!=null){c.setDoOutput(true);c.setRequestProperty("Content-Type",form?"application/x-www-form-urlencoded; charset=UTF-8":"application/json; charset=UTF-8");try(OutputStream out=c.getOutputStream()){out.write(currentBody.getBytes(StandardCharsets.UTF_8));}}
                 int code=c.getResponseCode();if(code>=300&&code<400){String loc=c.getHeaderField("Location");if(loc==null)throw new IOException("Каталог не ответил");current=new URL(new URL(current),loc).toString();if(code!=307&&code!=308){currentMethod="GET";currentBody=null;}continue;}
                 if(code==429)throw new IOException("Каталог временно занят. Попробуйте позже.");if(code<200||code>=300)throw new IOException("Каталог сейчас недоступен. Попробуйте другой вариант.");return readStream(c.getInputStream(),12*1024*1024);
@@ -108,11 +108,22 @@ public final class ApiRepository {
     private static String shikiSort(Filter f,String q){return q!=null&&!q.trim().isEmpty()&&"RATING_DESC".equals(f.sort)?"aired_on":shikiSort(f);}
     private static String libriaSort(Filter f){String v=f==null?"":f.sort;return v.equals("YEAR_DESC")?"YEAR_DESC":v.equals("NAME")?"NAME_ASC":v.equals("POPULARITY")?"RATING_DESC":"RATING_DESC";}
 
+    public String[][] shikiGenres()throws Exception{
+        JSONArray rows=new JSONArray(shikiRest("/api/genres"));ArrayList<String[]> result=new ArrayList<>();
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null||"Manga".equalsIgnoreCase(row.optString("entry_type")))continue;String id=row.optString("id"),name=row.optString("russian");if(name.isEmpty())name=row.optString("name");if(!id.isEmpty()&&!name.isEmpty())result.add(new String[]{id,name});}
+        java.text.Collator order=java.text.Collator.getInstance(new Locale("ru"));result.sort((a,b)->order.compare(a[1],b[1]));result.add(0,new String[]{"","Все жанры"});return result.toArray(new String[0][]);
+    }
+    public Anime.Page homePage(int page)throws Exception{
+        Anime.Page result=new Anime.Page();result.page=Math.max(1,page);
+        JSONArray rows=shiki("{animes(limit:6,page:"+result.page+",order:ranked){"+SH_FIELDS+"}}").optJSONArray("animes");
+        for(int i=0;rows!=null&&i<rows.length();i++)result.items.add(remember(shikiAnime(rows.getJSONObject(i))));
+        result.more=rows!=null&&rows.length()==6;return result;
+    }
     public Anime.Page catalog(String source,String search,int page,Filter f)throws Exception{
         if(f==null)f=new Filter();if(source==null||source.isEmpty())source="all";if(!source.equals("all")&&!nativeFilters(source)&&filterActive(f)){Anime.Page smart=catalog("shikimori",search,page,f);smart.note="Умная подборка";return smart;}if(source.equals("all"))return allCatalog(search,page,f);if(source.equals("yoru"))return yoruCatalog(search,page,f);if(source.equals("anixsekai"))return anixCatalog(search,page,f);if(source.equals("animedia"))return new NativeSources(this).catalog(source,search,page);if(source.equals("kodik"))return kodikCatalog(search,page,f);if(source.equals("animelib4k"))return animelib4kCatalog(search,page,f);if(source.equals("animetka"))return animetkaCatalog(search,page,f);if(source.equals("anidub"))return anidubCatalog(search,page);
         Anime.Page out=new Anime.Page();out.page=page;JSONArray rows;String q=search==null?"":search.trim();int limit=24;
         if(source.equals("shikimori")){
-            String args="limit:24,page:"+page+",order:"+shikiSort(f,q)+",rating:\"!rx\"";
+            String args="limit:24,page:"+page+",order:"+shikiSort(f,q);
             if(!q.isEmpty())args+=",search:"+JSONObject.quote(q);if(!f.year.isEmpty())args+=",season:"+JSONObject.quote((f.season.isEmpty()?"":f.season+"_")+f.year);if(!f.genre.isEmpty())args+=",genre:"+JSONObject.quote(f.genre);if(!f.type.isEmpty())args+=",kind:"+JSONObject.quote(f.type.toLowerCase(Locale.ROOT));String st=shikiStatus(f);if(!st.isEmpty())args+=",status:"+JSONObject.quote(st);
             rows=shiki("{animes("+args+"){"+SH_FIELDS+"}}").optJSONArray("animes");for(int i=0;rows!=null&&i<rows.length();i++)out.items.add(remember(shikiAnime(rows.getJSONObject(i))));out.more=rows!=null&&rows.length()==limit;
         }else if(source.equals("animevost")){

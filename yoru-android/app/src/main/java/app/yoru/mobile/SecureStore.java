@@ -63,6 +63,7 @@ public final class SecureStore {
     public synchronized boolean customFont(){ensure();return settings.optBoolean("customFont",false);}
     public synchronized String fontName(){ensure();return settings.optString("fontName","Системный");}
     public synchronized void appearance(int scale,boolean custom,String name){ensure();try{settings.put("fontScale",Math.max(85,Math.min(130,scale))).put("customFont",custom).put("fontName",name==null||name.trim().isEmpty()?"Свой шрифт":name.trim());write("settings",settings);}catch(Exception ignored){}}
+    public synchronized boolean localScheduleTime(){ensure();return settings.optBoolean("localScheduleTime",false);}
     public synchronized boolean liteMode(){ensure();return settings.optBoolean("liteMode",false);}
     public synchronized void liteMode(boolean enabled){ensure();try{settings.put("liteMode",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean directOnly(){return true;}

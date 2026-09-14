@@ -7,6 +7,7 @@ final class TaskQueue {
     private TaskQueue() {}
     private static final ThreadLocal<AtomicBoolean> cancellation=new ThreadLocal<>();
     static void attach(AtomicBoolean value){cancellation.set(value);}
+    static AtomicBoolean cancellationFlag(){return cancellation.get();}
     static void detach(){cancellation.remove();}
 
     static final class CancelFuture<V> extends FutureTask<V> {
@@ -16,7 +17,7 @@ final class TaskQueue {
             super(()->{attach(flag);try{check();return work.call();}finally{detach();}});
             cancelled=flag;
         }
-        @Override public boolean cancel(boolean interrupt){cancelled.set(true);return super.cancel(interrupt);}
+        @Override public boolean cancel(boolean interrupt){cancelled.set(true);Network.cancel(cancelled);return super.cancel(interrupt);}
     }
 
     static final class Executor extends ThreadPoolExecutor {

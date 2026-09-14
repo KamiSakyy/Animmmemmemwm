@@ -3,6 +3,7 @@ package app.yoru.mobile;
 import android.content.Context;
 import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.*;
+import androidx.media3.datasource.okhttp.OkHttpDataSource;
 import androidx.media3.datasource.cache.*;
 import java.io.File;
 import java.util.*;
@@ -12,7 +13,7 @@ public final class MediaCache {
     private final Context context;private final StandaloneDatabaseProvider database;private SimpleCache stream,offline;
     public MediaCache(Context c){context=c.getApplicationContext();database=new StandaloneDatabaseProvider(context);}
     public StandaloneDatabaseProvider database(){return database;}
-    public DefaultHttpDataSource.Factory http(){HashMap<String,String> headers=new HashMap<>();headers.put("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");headers.put("Referer","https://yani.tv/");return new DefaultHttpDataSource.Factory().setUserAgent(CHROME).setDefaultRequestProperties(headers).setConnectTimeoutMs(6500).setReadTimeoutMs(12000).setAllowCrossProtocolRedirects(true);}
+    public OkHttpDataSource.Factory http(){HashMap<String,String> headers=new HashMap<>();headers.put("Accept-Language","ru-RU,ru;q=0.9,en;q=0.5");headers.put("Referer","https://yani.tv/");return new OkHttpDataSource.Factory(Network.media()).setUserAgent(CHROME).setDefaultRequestProperties(headers);}
     public synchronized SimpleCache offline(){if(offline==null)offline=new SimpleCache(new File(context.getFilesDir(),"offline-media"),new NoOpCacheEvictor(),database);return offline;}
     public synchronized SimpleCache temporary(){if(stream==null)stream=new SimpleCache(new File(context.getCacheDir(),"video"),new LeastRecentlyUsedCacheEvictor(256L*1024*1024),database);return stream;}
     public CacheDataSource.Factory onlineFactory(){return new CacheDataSource.Factory().setCache(temporary()).setUpstreamDataSourceFactory(new DefaultDataSource.Factory(context,http())).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);}

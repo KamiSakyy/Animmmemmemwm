@@ -126,7 +126,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         String pref = YoruApp.app().store.voicePreference();
         for (int i=0;i<ApiRepository.VOICE_PREF_VALUES.length;i++) if (ApiRepository.VOICE_PREF_VALUES[i].equals(pref)) voice.setSelection(i);
         col.addView(voice, Ui.lp(activity,-1,48));
-        col.addView(Ui.text(activity, "Качество", 12, Ui.MUTED, false));
+        col.addView(Ui.text(activity, "Разрешение", 12, Ui.MUTED, false));
         Spinner quality = new Spinner(activity);
         quality.setAdapter(new ArrayAdapter<>(activity,android.R.layout.simple_spinner_dropdown_item,QualityPlus.LABELS_WITH_BEST));
         quality.setSelection(QualityPlus.index(YoruApp.app().store.downloadResolution()));
