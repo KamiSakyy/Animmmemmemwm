@@ -1,0 +1,9 @@
+{
+  "source_commit": "258b92f4c10357c03e9cb77856cb2ef2cf25dc3c",
+  "run_id": "34831827809",
+  "assembled": true,
+  "apk_bytes": 2992864,
+  "apk_sha256": "9299d96f2128fa2b62385403418de150629c6be4d12312112f8564749922ef3f",
+  "tests_executed": false,
+  "device_checks_executed": false
+}
