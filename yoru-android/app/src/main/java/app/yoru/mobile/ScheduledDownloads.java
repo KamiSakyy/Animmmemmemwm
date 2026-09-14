@@ -120,11 +120,11 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         Ui.space(col,12);
         col.addView(Ui.text(activity, "Озвучка", 12, Ui.MUTED, false));
         Spinner voice = new Spinner(activity);
-        String[] voices = ApiRepository.VOICE_PREF_NAMES.clone();
+        VoiceOptions options = new VoiceOptions(YoruApp.app().store.voicePreference());
+        String[] voices = options.names();
         voices[0] = "Любая доступная";
         voice.setAdapter(new ArrayAdapter<>(activity, android.R.layout.simple_spinner_dropdown_item, voices));
-        String pref = YoruApp.app().store.voicePreference();
-        for (int i=0;i<ApiRepository.VOICE_PREF_VALUES.length;i++) if (ApiRepository.VOICE_PREF_VALUES[i].equals(pref)) voice.setSelection(i);
+        voice.setSelection(options.index());
         col.addView(voice, Ui.lp(activity,-1,48));
         col.addView(Ui.text(activity, "Разрешение", 12, Ui.MUTED, false));
         Spinner quality = new Spinner(activity);
@@ -134,7 +134,7 @@ final class ScheduledDownloads extends SQLiteOpenHelper {
         Ui.space(col,10);
         col.addView(Ui.text(activity,"Будем ждать именно выбранную озвучку и разрешение, без подмены. Доступность будущей озвучки не гарантирована. Проверки идут в фоне при наличии сети; Android может их задерживать. Учитывается настройка «Загрузки только по Wi-Fi». После принудительной остановки приложения откройте YORU снова.",11,Ui.MUTED,false));
         Ui.custom(activity,"Скачать серию " + Ui.number(episode) + " после выхода",col,"Запланировать",()->{
-            String selectedVoice = ApiRepository.VOICE_PREF_VALUES[voice.getSelectedItemPosition()];
+            String selectedVoice = options.value(voice.getSelectedItemPosition());
             int selectedQuality = QualityPlus.valuesWithBest()[quality.getSelectedItemPosition()];
             Runnable save = () -> {
                 if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
