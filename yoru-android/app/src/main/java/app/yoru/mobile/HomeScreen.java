@@ -21,6 +21,7 @@ final class HomeScreen extends SwipeRefreshLayout {
     private int page,generation;
     private boolean loading,more=true,attached,failed;
     private long updated,day=Long.MIN_VALUE;
+    private String order="ranked";
     private Anime recommendation;
     private final Runnable hourly=this::hourlyRefresh;
     private void hourlyRefresh(){if(attached&&getWindowVisibility()==VISIBLE){if(!loading&&list.getScrollState()==RecyclerView.SCROLL_STATE_IDLE&&(System.currentTimeMillis()-updated>=3600000L||day!=LocalDate.now().toEpochDay()))refreshQuietly();schedule();}}
@@ -44,7 +45,7 @@ final class HomeScreen extends SwipeRefreshLayout {
     private void refreshQuietly(){
         if(!attached||loading||getWindowVisibility()!=VISIBLE)return;if(rows.isEmpty()){load(true);return;}if(list.getScrollState()!=RecyclerView.SCROLL_STATE_IDLE)return;
         loading=true;int token=++generation;
-        request=YoruApp.app().ui.submit(()->{try{Anime.Page result=YoruApp.app().api.homePage(1);TaskQueue.check();post(()->{
+        request=YoruApp.app().ui.submit(()->{try{Anime.Page result=YoruApp.app().api.homePage(1,order);TaskQueue.check();post(()->{
             if(!attached||token!=generation)return;loading=false;if(list.getScrollState()!=RecyclerView.SCROLL_STATE_IDLE){schedule();return;}
             GridLayoutManager layout=(GridLayoutManager)list.getLayoutManager();int first=layout==null?0:layout.findFirstVisibleItemPosition();View anchorView=layout==null?null:layout.findViewByPosition(first);int offset=anchorView==null?0:anchorView.getTop()-list.getPaddingTop();String anchor=first>0&&first<=rows.size()?rows.get(first-1).key():"";
             ArrayList<Anime> old=new ArrayList<>(rows);LinkedHashMap<String,Anime> merged=new LinkedHashMap<>();for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime))merged.put(anime.key(),anime);if(result.more)for(Anime anime:old)merged.putIfAbsent(anime.key(),anime);ArrayList<Anime> next=new ArrayList<>(merged.values());
@@ -60,7 +61,7 @@ final class HomeScreen extends SwipeRefreshLayout {
         loading=true;failed=false;int token=++generation;int next=reset?1:page+1;
         if(reset)setRefreshing(true);else adapter.notifyItemChanged(rows.size()+1);
         request=YoruApp.app().ui.submit(()->{
-            try{Anime.Page result=YoruApp.app().api.homePage(next);TaskQueue.check();post(()->{
+            try{Anime.Page result=YoruApp.app().api.homePage(next,order);TaskQueue.check();post(()->{
                 if(!attached||token!=generation)return;
                 int old=rows.size();if(reset){rows.clear();identities.clear();}
                 for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime)&&identities.add(anime.key()))rows.add(anime);
@@ -107,6 +108,11 @@ final class HomeScreen extends SwipeRefreshLayout {
             TextView title=Ui.text(activity,YoruBrain.title(anime),25,Ui.TEXT,true);title.setMaxLines(3);text.addView(title);Ui.space(text,12);text.addView(Ui.text(activity,anime.cardMeta(),11,0xffcdbbdc,false));Ui.space(text,18);
             text.addView(Ui.button(activity,"Подробнее",true,()->Ui.openDetails(activity,anime)),Ui.lp(activity,-1,-2));hero.addView(text,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));box.addView(hero,Ui.lp(activity,-1,340));Ui.space(box,24);
         }
-        extras.accept(box);Ui.space(box,24);box.addView(Ui.text(activity,"Топ аниме",23,Ui.TEXT,true));Ui.space(box,12);
+        extras.accept(box);Ui.space(box,24);LinearLayout topRow=Ui.row(activity);topRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        topRow.addView(Ui.text(activity,"Топ аниме",23,Ui.TEXT,true),new LinearLayout.LayoutParams(0,-2,1));box.addView(topRow);
+        LinearLayout sorts=Ui.row(activity);String[][] orders={{"ranked","Рейтинг"},{"popularity","Популярное"},{"aired_on","Свежие"},{"random","Случайные"}};
+        for(String[] variant:orders){TextView chip=Ui.chip(activity,variant[1],order.equals(variant[0]),()->{if(order.equals(variant[0]))return;order=variant[0];load(true);});
+            LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);sorts.addView(chip,p);}
+        box.addView(sorts);Ui.space(box,12);
     }
 }

@@ -133,9 +133,12 @@ public final class ApiRepository {
         for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null)continue;String id=row.optString("id","");Object raw=row.opt("name");String name=row.optString("russian","");if(name.isEmpty())name=raw instanceof String?(String)raw:raw instanceof JSONObject?((JSONObject)raw).optString("main",""):row.optString("title","");if(name.isEmpty())name=row.optString("title","");name=cleanText(name);if(!id.isEmpty()&&!name.isEmpty())unique.put(id,name);}
         if(unique.isEmpty())throw new IOException();ArrayList<String[]> result=new ArrayList<>();for(Map.Entry<String,String> entry:unique.entrySet())result.add(new String[]{entry.getKey(),entry.getValue()});if(result.isEmpty())throw new IOException();java.text.Collator order=java.text.Collator.getInstance(new Locale("ru"));result.sort((a,b)->order.compare(a[1],b[1]));result.add(0,new String[]{"","Все жанры"});return result.toArray(new String[0][]);
     }
-    public Anime.Page homePage(int page)throws Exception{
+    public Anime.Page homePage(int page)throws Exception{return homePage(page,"ranked");}
+    public Anime.Page homePage(int page,String order)throws Exception{
         Anime.Page result=new Anime.Page();result.page=Math.max(1,page);
-        JSONArray rows=shiki("{animes(limit:6,page:"+result.page+",order:ranked){"+SH_FIELDS+"}}").optJSONArray("animes");
+        String sort=order==null||order.trim().isEmpty()?"ranked":order.trim().toLowerCase(Locale.ROOT);
+        if(!sort.equals("ranked")&&!sort.equals("popularity")&&!sort.equals("aired_on")&&!sort.equals("random"))sort="ranked";
+        JSONArray rows=shiki("{animes(limit:6,page:"+result.page+",order:"+sort+"){"+SH_FIELDS+"}}").optJSONArray("animes");
         for(int i=0;rows!=null&&i<rows.length();i++)result.items.add(remember(shikiAnime(rows.getJSONObject(i))));
         result.more=rows!=null&&rows.length()==6;return result;
     }

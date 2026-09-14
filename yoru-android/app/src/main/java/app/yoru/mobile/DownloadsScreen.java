@@ -14,6 +14,24 @@ public final class DownloadsScreen extends LinearLayout {
     private final Runnable update=new Runnable(){public void run(){refreshSafe();handler.postDelayed(this,5000);}};
     public DownloadsScreen(Activity a){super(a);activity=a;hub=YoruApp.app().downloads();setOrientation(VERTICAL);setPadding(Ui.dp(a,17),Ui.dp(a,15),Ui.dp(a,17),Ui.dp(a,8));addView(Ui.label(a,"ОФЛАЙН-БИБЛИОТЕКА"));Ui.space(this,10);addView(Ui.text(a,"Загрузки",28,Ui.TEXT,true));Ui.space(this,9);addView(Ui.text(a,"Скачанные серии с превью и быстрым запуском в YORU. В выбранную папку сохраняются видео и звук; отдельные дорожки субтитров остаются в YORU.",12,Ui.MUTED,false));Ui.space(this,10);addView(Ui.button(a,"Папка сохранения",false,()->DocumentDownloads.choose(a)),Ui.lp(a,-1,-2));Ui.space(this,16);summary=Ui.text(a,"",12,Ui.PURPLE,true);addView(summary);Ui.space(this,11);
         HorizontalScrollView actionScroll=new HorizontalScrollView(a);actionScroll.setHorizontalScrollBarEnabled(false);LinearLayout actionRow=Ui.row(a);
+        bulkChip(actionRow,"Смотреть подряд",()->YoruApp.app().io.submit(()->{
+            ArrayList<Download> ready=new ArrayList<>();
+            for(Download d:hub.all())if(d!=null&&d.request!=null&&d.state==Download.STATE_COMPLETED)ready.add(d);
+            if(ready.isEmpty()){YoruApp.app().main.post(()->Ui.toast(activity,"Нет скачанных серий"));return;}
+            java.util.LinkedHashMap<String,JSONObject> metas=new java.util.LinkedHashMap<>();
+            for(Download d:ready)metas.put(d.request.id,DownloadHub.metadata(d));
+            ready.sort((x,y)->{
+                JSONObject mx=metas.get(x.request.id),my=metas.get(y.request.id);
+                Anime ax=Anime.from(mx==null?null:mx.optJSONObject("anime")),ay=Anime.from(my==null?null:my.optJSONObject("anime"));
+                int titles=YoruBrain.title(ax).compareToIgnoreCase(YoruBrain.title(ay));
+                if(titles!=0)return titles;
+                return Double.compare(mx==null?1:mx.optDouble("episode",1),my==null?1:my.optDouble("episode",1));
+            });
+            Download first=ready.get(0);JSONObject meta=metas.get(first.request.id);
+            Anime anime=Anime.from(meta==null?null:meta.optJSONObject("anime"));
+            double episode=meta==null?1:meta.optDouble("episode",1);
+            YoruApp.app().main.post(()->{if(attached)Ui.openOffline(activity,first.request.id,anime,episode);});
+        }));
         bulkChip(actionRow,"Пауза всех",()->{hub.pauseAll();Ui.toast(a,"Все загрузки приостановлены");refreshSafe();});
         bulkChip(actionRow,"Продолжить всех",()->{hub.resumeAll();Ui.toast(a,"Загрузки продолжены");refreshSafe();});
         bulkChip(actionRow,"Повторить неудачные",()->{hub.retryFailed();refreshSafe();});
