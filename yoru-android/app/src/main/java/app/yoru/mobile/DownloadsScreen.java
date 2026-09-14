@@ -18,10 +18,19 @@ public final class DownloadsScreen extends LinearLayout {
         bulkChip(actionRow,"Продолжить всех",()->{hub.resumeAll();Ui.toast(a,"Загрузки продолжены");refreshSafe();});
         bulkChip(actionRow,"Повторить неудачные",()->{hub.retryFailed();refreshSafe();});
         bulkChip(actionRow,"Убрать готовые",()->Ui.confirm(a,"Убрать готовые загрузки?","Скачанные файлы будут удалены с устройства. Коллекция и история не изменятся.","Убрать",()->{hub.removeCompleted();refreshSafe();},"Отмена"));
-        actionScroll.addView(actionRow);addView(actionScroll,Ui.lp(a,-1,-2));Ui.space(this,12);list=new ListView(a);list.setDivider(null);list.setClipToPadding(false);list.setVerticalScrollBarEnabled(false);list.setPadding(0,0,0,Ui.dp(a,15));list.setBackgroundColor(Ui.BG);adapter=new Adapter();list.setAdapter(adapter);empty=Ui.text(a,"Здесь появятся скачанные серии.\n\nОткройте аниме и нажмите «Скачать» рядом с нужной серией. Готовые загрузки открываются прямо в YORU.",14,Ui.MUTED,false);empty.setPadding(Ui.dp(a,20),Ui.dp(a,40),Ui.dp(a,20),Ui.dp(a,20));empty.setGravity(Gravity.CENTER);FrameLayout frame=new FrameLayout(a);frame.addView(list,new FrameLayout.LayoutParams(-1,-1));frame.addView(empty,new FrameLayout.LayoutParams(-1,-1));addView(frame,new LinearLayout.LayoutParams(-1,0,1));list.setOnItemClickListener((parent,v,pos,id)->{try{if(pos>=0&&pos<rows.size()){Download d=rows.get(pos).download;if(d!=null&&d.state==Download.STATE_COMPLETED){JSONObject m=DownloadHub.metadata(d);Ui.openOffline(activity,d.request.id,Anime.from(m.optJSONObject("anime")),m.optDouble("episode",1));}}}catch(Throwable ignored){}});}
+        actionScroll.addView(actionRow);addView(actionScroll,Ui.lp(a,-1,-2));Ui.space(this,10);
+        LinearLayout filterRow=Ui.row(a);filterChip(filterRow,"Все","all");filterChip(filterRow,"Скачивается","active");filterChip(filterRow,"Готово","done");filterChip(filterRow,"Запланировано","planned");updateFilterChips();
+        addView(filterRow,Ui.lp(a,-1,-2));Ui.space(this,12);list=new ListView(a);list.setDivider(null);list.setClipToPadding(false);list.setVerticalScrollBarEnabled(false);list.setPadding(0,0,0,Ui.dp(a,15));list.setBackgroundColor(Ui.BG);adapter=new Adapter();list.setAdapter(adapter);empty=Ui.text(a,"Здесь появятся скачанные серии.\n\nОткройте аниме и нажмите «Скачать» рядом с нужной серией. Готовые загрузки открываются прямо в YORU.",14,Ui.MUTED,false);empty.setPadding(Ui.dp(a,20),Ui.dp(a,40),Ui.dp(a,20),Ui.dp(a,20));empty.setGravity(Gravity.CENTER);FrameLayout frame=new FrameLayout(a);frame.addView(list,new FrameLayout.LayoutParams(-1,-1));frame.addView(empty,new FrameLayout.LayoutParams(-1,-1));addView(frame,new LinearLayout.LayoutParams(-1,0,1));list.setOnItemClickListener((parent,v,pos,id)->{try{if(pos>=0&&pos<rows.size()){Download d=rows.get(pos).download;if(d!=null&&d.state==Download.STATE_COMPLETED){JSONObject m=DownloadHub.metadata(d);Ui.openOffline(activity,d.request.id,Anime.from(m.optJSONObject("anime")),m.optDouble("episode",1));}}}catch(Throwable ignored){}});}
+    private void filterChip(LinearLayout row,String title,String value){
+        TextView chip=Ui.chip(activity,title,false,()->{if(listFilter.equals(value))return;listFilter=value;updateFilterChips();refreshSafe();});
+        chip.setTag(value);filterChips.add(chip);LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);row.addView(chip,p);
+    }
+    private void updateFilterChips(){for(TextView chip:filterChips){boolean on=listFilter.equals(chip.getTag());
+        chip.setTextColor(on?0xff21152f:Ui.MUTED);chip.setBackground(on?Ui.gradient(0xffe2ccff,Ui.PURPLE,13,activity):Ui.stroke(Ui.SURFACE,13,activity));}}
     private void bulkChip(LinearLayout row,String title,Runnable action){
         TextView chip=Ui.chip(activity,title,false,action);LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);row.addView(chip,p);
     }
+    private String listFilter="all";private final ArrayList<TextView> filterChips=new ArrayList<>();
     private static final class Entry {
         final Download download;
         final ScheduledDownloads.Plan plan;
@@ -70,6 +79,13 @@ public final class DownloadsScreen extends LinearLayout {
                 for(Download d:downloads){if(d==null||d.request==null)continue;ids.add(d.request.id);fresh.add(new Entry(d));if(d.state==Download.STATE_COMPLETED)complete++;if(d.state==Download.STATE_DOWNLOADING)active++;signature.append(d.request.id).append(':').append(d.state).append(':').append((int)d.getPercentDownloaded()/8).append('|');}
                 for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.dateLabel).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
                 String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
+                if(!"all".equals(listFilter)){ArrayList<Entry> kept=new ArrayList<>();for(Entry e:fresh){
+                    if(e.plan!=null){if("planned".equals(listFilter))kept.add(e);continue;}
+                    if(e.download==null)continue;int st=e.download.state;boolean done=st==Download.STATE_COMPLETED;
+                    boolean active=st==Download.STATE_DOWNLOADING||st==Download.STATE_QUEUED||st==Download.STATE_RESTARTING||st==Download.STATE_STOPPED;
+                    if("done".equals(listFilter)&&done)kept.add(e);else if("active".equals(listFilter)&&active)kept.add(e);
+                }fresh=kept;}
+                signature.append("#").append(listFilter);
                 String next=signature.toString();
                 YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);boolean changed=!next.equals(lastSignature);lastSignature=next;rows.clear();rows.addAll(fresh);if(changed)adapter.notifyDataSetChanged();else refreshVisibleRows();});
             } catch(Exception e){YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText("Не удалось обновить загрузки. Повторим проверку.");});}
