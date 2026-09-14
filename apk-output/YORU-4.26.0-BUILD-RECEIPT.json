@@ -1,0 +1,21 @@
+{
+  "version": "4.26.0",
+  "version_code": 88,
+  "source_commit": "a5f1e325c3a46dc327b7efcd3ce4a93ff149aa4e",
+  "run_id": "34899539610",
+  "assembled": true,
+  "apk_bytes": 16515508,
+  "apk_sha256": "4cf7006171269dd8f7beca1fb8161a2774d52e87e824d3ec21a4adb7c7aa8e99",
+  "build_profile": "existing verifyOnSdk36 ownerSignedApk assembleStoredDebug",
+  "sdk_profile_changed": false,
+  "compile_sdk": 36,
+  "target_sdk": 36,
+  "package": "app.yoru.mobile.debug",
+  "okhttp_android": "5.4.0",
+  "minification_enabled": false,
+  "resource_shrinking_enabled": false,
+  "all_apk_entries_stored": true,
+  "tests_executed": false,
+  "device_checks_executed": false,
+  "provider_checks_executed": false
+}
