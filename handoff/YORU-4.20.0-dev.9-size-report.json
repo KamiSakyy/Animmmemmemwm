@@ -1,0 +1,10 @@
+{
+  "source_commit": "119c3ca1731333598b7764f2538269138d8beed1",
+  "apk_bytes": 15821470,
+  "apk_sha256": "4af20eab078786842200e33bb0e1b8547b56c7efab5aa7187500a386c7c2f7c0",
+  "minification_enabled": false,
+  "resource_shrinking_enabled": false,
+  "all_apk_entries_stored": true,
+  "previous_bytes": 2985528,
+  "comparison_note": "Previous APK used minification and ZIP compression; current APK deliberately uses neither."
+}
