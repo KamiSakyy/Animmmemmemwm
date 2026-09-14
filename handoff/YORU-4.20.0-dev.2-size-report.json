@@ -1,0 +1,55 @@
+{
+  "source_commit": "8189eec40906ffd4d10a9fb6e4c8be3ce7851bf1",
+  "run_id": "34823707568",
+  "old_release": {
+    "bytes": 2664056,
+    "sha256": "3ea95b34dbd7a3f455e9f423e2d148f2294b63e3e14bad0f90302e3c849940b4",
+    "compressed_entries_bytes": {
+      "META-INF": 5435,
+      "assets": 1215594,
+      "dex": 1029899,
+      "other": 282864,
+      "kotlin": 10463,
+      "res": 79819
+    }
+  },
+  "old_debug": {
+    "bytes": 7577250,
+    "sha256": "ac067650303be92c6451c348c13b21d31d3432019a13dc80852a6baf546c6dea",
+    "compressed_entries_bytes": {
+      "META-INF": 5456,
+      "dex": 5814006,
+      "assets": 1217775,
+      "other": 352304,
+      "res": 115026,
+      "kotlin": 10463
+    }
+  },
+  "previous_unoptimized": {
+    "bytes": 8868325,
+    "sha256": "583556f2d4d3b944138677510b704fabd1f549bc5191c283940a49dde3e4b275",
+    "compressed_entries_bytes": {
+      "META-INF": 5687,
+      "dex": 7050123,
+      "assets": 1266844,
+      "other": 354171,
+      "res": 115070,
+      "kotlin": 12053
+    }
+  },
+  "current": {
+    "bytes": 2985728,
+    "sha256": "8d713cbb3a88b72c199f5dae826a64bc11a41f54f9c868b790c2e7f501e2388d",
+    "compressed_entries_bytes": {
+      "META-INF": 5690,
+      "assets": 1258550,
+      "dex": 1330792,
+      "other": 274551,
+      "kotlin": 12053,
+      "res": 65445
+    }
+  },
+  "debuggable": false,
+  "owner_certificate_matches": true,
+  "worker_class_preserved": true
+}

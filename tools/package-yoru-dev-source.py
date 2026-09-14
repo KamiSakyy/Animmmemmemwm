@@ -16,6 +16,7 @@ files += [
     "tools/package-yoru-dev-source.py",
     "tools/collect-yoru-tests.py",
     f"handoff/YORU-{version}-verification-tests.json",
+    f"handoff/YORU-{version}-size-report.json",
 ]
 for name in files:
     path = Path(name)
