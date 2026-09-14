@@ -92,13 +92,20 @@ final class MediaSize {
             if(measure.isEmpty())return sum>0?sum:-1;
             if(measure.size()>MAX_SEGMENTS)return -1;
             TaskQueue.check();
-            CountDownLatch latch=new CountDownLatch(measure.size());
-            AtomicLong total=new AtomicLong(sum);
+            long measured=measureSegments(measure,base,sum);
+            if(measured<0)measured=measureSegments(measure,"https://yani.tv/",sum);
+            return measured;
+        }catch(InterruptedIOException error){return -1;}catch(Exception error){return -1;}
+    }
+    private static long measureSegments(ArrayList<String> segments,String referer,long initial)throws InterruptedIOException{
+        try{
+            CountDownLatch latch=new CountDownLatch(segments.size());
+            AtomicLong total=new AtomicLong(initial);
             AtomicBoolean failed=new AtomicBoolean();
             ArrayList<Call> pendingCalls=new ArrayList<>();
-            for(String segment:measure){
+            for(String segment:segments){
                 if(failed.get())break;
-                Request request=new Request.Builder().url(segment).head().header("Accept-Encoding","identity").header("Referer","https://yani.tv/").build();
+                Request request=new Request.Builder().url(segment).head().header("Accept-Encoding","identity").header("Referer",referer).build();
                 pendingCalls.add(HttpTransport.enqueueSized(request,new Callback(){
                     @Override public void onFailure(Call target,java.io.IOException error){failed.set(true);latch.countDown();}
                     @Override public void onResponse(Call target,Response response){
@@ -115,9 +122,9 @@ final class MediaSize {
                 long deadline=System.currentTimeMillis()+20000L;
                 while(!latch.await(250,TimeUnit.MILLISECONDS)){TaskQueue.check();if(System.currentTimeMillis()>deadline)return -1;}
                 TaskQueue.check();
-            }finally{for(Call call:pendingCalls)call.cancel();}
-            if(failed.get())return -1;
-            return total.get()>0?total.get():-1;
+            }catch(InterruptedException error){Thread.currentThread().interrupt();return -1;}
+            finally{for(Call call:pendingCalls)call.cancel();}
+            return failed.get()?-1:(total.get()>0?total.get():-1);
         }catch(InterruptedIOException error){return -1;}catch(Exception error){return -1;}
     }
     private static String attribute(String line,String name){int at=line.indexOf(name+"=\"");if(at<0)return "";int start=at+name.length()+2;int end=line.indexOf('"',start);return end<0?"":line.substring(start,end);}

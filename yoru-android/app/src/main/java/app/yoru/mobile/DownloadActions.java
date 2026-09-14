@@ -51,18 +51,38 @@ public final class DownloadActions {
         ArrayList<Anime.Episode> rows=EpisodeRules.downloadable(anime,episodes);if(rows.isEmpty()){Ui.toast(activity,"Нет вышедших серий для скачивания");return;}
         TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,"Готовим серии: 0 / "+rows.size(),true,()->cancelled.set(true));
         TaskQueue.run(YoruApp.app().io,cancelled,()->{
-            ArrayList<ApiRepository.DownloadOption> prepared=new ArrayList<>();ArrayList<Long> sizes=new ArrayList<>();ArrayList<String> formats=new ArrayList<>();int failed=0;
-            for(int i=0;i<rows.size()&&!cancelled.get();i++){
-                if(dead(activity)){cancelled.set(true);return;}Anime.Episode ep=rows.get(i);int done=i+1;
-                YoruApp.app().main.post(()->{if(!dead(activity)&&!cancelled.get())wait.setMessage("Готовим серии: "+done+" / "+rows.size());});
+            final ApiRepository.DownloadOption[] chosenRows=new ApiRepository.DownloadOption[rows.size()];
+            final long[] sizeRows=new long[rows.size()];
+            final String[] formatRows=new String[rows.size()];
+            final java.util.concurrent.atomic.AtomicInteger failedCount=new java.util.concurrent.atomic.AtomicInteger();
+            final java.util.concurrent.atomic.AtomicInteger doneCount=new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.ExecutorService pool=TaskQueue.pool(Math.max(1,Math.min(6,rows.size())));
+            ArrayList<java.util.concurrent.Future<?>> tasks=new ArrayList<>();
+            for(int i=0;i<rows.size();i++){
+                final int index=i;final Anime.Episode ep=rows.get(i);
                 try{
-                    int limit=preferred<0?YoruApp.app().store.downloadResolution():preferred;
-                    ApiRepository.DownloadOption chosen=choose(YoruApp.app().api.downloadOptions(anime,ready,ep.number,voice,limit,strict),limit);
-                    if(chosen==null||chosen.episode==null||chosen.episode.future||Double.compare(chosen.episode.number,ep.number)!=0||EpisodeRules.conflicts(anime,chosen.source)||(strict&&!ApiRepository.voiceMatches(voice,chosen.voice+" "+chosen.episode.name))){failed++;continue;}
-                    MediaSize.Info info=MediaSize.probeInfo(chosen.episode.streams.get(chosen.quality),true);TaskQueue.check();prepared.add(chosen);sizes.add(info.bytes);formats.add(info.mime);
-                }catch(Exception error){if(cancelled.get())return;failed++;}
+                    tasks.add(pool.submit(()->{
+                        try{
+                            if(cancelled.get()||dead(activity))return;
+                            int limit=preferred<0?YoruApp.app().store.downloadResolution():preferred;
+                            ApiRepository.DownloadOption chosen=choose(YoruApp.app().api.downloadOptions(anime,ready,ep.number,voice,limit,strict),limit);
+                            if(chosen==null||chosen.episode==null||chosen.episode.future||Double.compare(chosen.episode.number,ep.number)!=0||EpisodeRules.conflicts(anime,chosen.source)||(strict&&!ApiRepository.voiceMatches(voice,chosen.voice+" "+chosen.episode.name))){failedCount.incrementAndGet();return;}
+                            MediaSize.Info info=MediaSize.probeInfo(chosen.episode.streams.get(chosen.quality),true);TaskQueue.check();
+                            chosenRows[index]=chosen;sizeRows[index]=info.bytes;formatRows[index]=info.mime;
+                        }catch(Exception error){if(!cancelled.get()&&!dead(activity))failedCount.incrementAndGet();}
+                        finally{
+                            int done=doneCount.incrementAndGet();
+                            YoruApp.app().main.post(()->{if(!dead(activity)&&!cancelled.get())wait.setMessage("Готовим серии: "+done+" / "+rows.size());});
+                        }
+                    }));
+                }catch(java.util.concurrent.RejectedExecutionException error){failedCount.incrementAndGet();}
             }
-            int missing=failed;YoruApp.app().main.post(()->{
+            for(java.util.concurrent.Future<?> task:tasks){try{task.get();}catch(Exception ignored){}}
+            pool.shutdownNow();
+            if(dead(activity)||cancelled.get())return;
+            ArrayList<ApiRepository.DownloadOption> prepared=new ArrayList<>();ArrayList<Long> sizes=new ArrayList<>();ArrayList<String> formats=new ArrayList<>();
+            for(int i=0;i<rows.size();i++)if(chosenRows[i]!=null){prepared.add(chosenRows[i]);sizes.add(sizeRows[i]);formats.add(formatRows[i]);}
+            int missing=failedCount.get();YoruApp.app().main.post(()->{
                 if(dead(activity)||cancelled.get())return;wait.dismiss();
                 if(prepared.isEmpty()){Ui.toast(activity,"Доступных серий с выбранными условиями не найдено");return;}
                 long total=MediaSize.total(sizes);StringBuilder text=new StringBuilder("Готово к скачиванию: ").append(prepared.size()).append("\n");
