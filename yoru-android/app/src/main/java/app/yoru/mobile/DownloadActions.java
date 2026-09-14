@@ -103,9 +103,57 @@ public final class DownloadActions {
     private static ApiRepository.DownloadOption choose(List<ApiRepository.DownloadOption> options,int preferred){if(options==null||options.isEmpty())return null;ApiRepository.DownloadOption best=null;if(preferred==9999){for(ApiRepository.DownloadOption o:options)if(best==null||o.quality>best.quality)best=o;return best==null?options.get(0):best;}int limit=preferred<0?(YoruApp.app().savingMobile()?360:YoruApp.app().store.quality()):preferred;for(ApiRepository.DownloadOption o:options)if(o.quality>0&&o.quality<=limit&&(best==null||o.quality>best.quality))best=o;return best;}
     private static void loadAndShow(Activity activity,Anime anime,double episode,String message,String empty,Loader loader){loadAndShow(activity,anime,episode,message,empty,-1,loader);}
     private static void loadAndShow(Activity activity,Anime anime,double episode,String message,String empty,int preferredQuality,Loader loader){TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,message,true,()->cancelled.set(true));TaskQueue.run(YoruApp.app().io,cancelled,()->{try{List<ApiRepository.DownloadOption> options=merge(loader.load());YoruApp.app().main.post(()->{if(dead(activity)||cancelled.get())return;wait.dismiss();if(options.isEmpty()){Ui.message(activity,"Нет доступного варианта",empty);return;}showOptions(activity,anime,episode,options,preferredQuality);});}catch(Exception e){YoruApp.app().main.post(()->{if(!dead(activity)&&!cancelled.get()){wait.dismiss();Ui.toast(activity,"Не удалось подготовить загрузку. Попробуйте другой вариант.");}});}},()->{wait.dismiss();Ui.toast(activity,"Очередь занята. Повторите действие позже.");});}
-    private static void showOptions(Activity activity,Anime anime,double episode,List<ApiRepository.DownloadOption> options,int preferredQuality){String[] labels=new String[options.size()];int preferred=preferredQuality>0?preferredQuality:(YoruApp.app().savingMobile()?480:YoruApp.app().store.quality()),index=0,best=-1;for(int i=0;i<options.size();i++){labels[i]=privateLabel(options.get(i));int q=options.get(i).quality;if(preferred==9999){if(q>best){best=q;index=i;}}else if(q>0&&q<=preferred&&q>best){best=q;index=i;}}Ui.singleChoice(activity,"Серия "+Ui.number(episode)+" · озвучка и разрешение",labels,index,"Скачать",i->confirm(activity,anime,options.get(i)));}
+    private static void showOptions(Activity activity,Anime anime,double episode,List<ApiRepository.DownloadOption> options,int preferredQuality){
+        ArrayList<ApiRepository.DownloadOption> rows=new ArrayList<>(options);if(rows.isEmpty())return;
+        ArrayList<String> labels=new ArrayList<>();int preferred=preferredQuality>0?preferredQuality:(YoruApp.app().savingMobile()?480:YoruApp.app().store.quality()),index=0,best=-1;
+        for(int i=0;i<rows.size();i++){labels.add(privateLabel(rows.get(i)));int q=rows.get(i).quality;if(preferred==9999){if(q>best){best=q;index=i;}}else if(q>0&&q<=preferred&&q>best){best=q;index=i;}}
+        final int[] current={index};
+        BaseAdapter adapter=new BaseAdapter(){
+            public int getCount(){return labels.size();}
+            public Object getItem(int p){return labels.get(p);}
+            public long getItemId(int p){return p;}
+            public View getView(int p,View old,android.view.ViewGroup parent){
+                LinearLayout row=Ui.row(activity);row.setPadding(Ui.dp(activity,12),Ui.dp(activity,8),Ui.dp(activity,12),Ui.dp(activity,8));
+                boolean on=current[0]==p;row.setBackground(on?Ui.shape(0x332f2144,14,activity):Ui.stroke(Ui.CARD,14,activity));
+                TextView mark=Ui.text(activity,on?"✓":"",16,Ui.PURPLE,true);mark.setGravity(android.view.Gravity.CENTER);row.addView(mark,Ui.lp(activity,28,38));
+                TextView label=Ui.text(activity,labels.get(p),13,on?Ui.TEXT:Ui.MUTED,true);label.setMaxLines(3);label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                row.addView(label,new LinearLayout.LayoutParams(0,-2,1));return row;
+            }
+        };
+        ListView list=new ListView(activity);list.setDivider(null);list.setCacheColorHint(android.graphics.Color.TRANSPARENT);list.setVerticalScrollBarEnabled(false);
+        list.setBackgroundColor(android.graphics.Color.TRANSPARENT);list.setAdapter(adapter);
+        list.setOnItemClickListener((parent,view,pos,id)->{current[0]=pos;adapter.notifyDataSetChanged();});
+        list.setLayoutParams(new LinearLayout.LayoutParams(-1,Math.min(Ui.dp(activity,430),Ui.dp(activity,54*Math.max(1,Math.min(rows.size(),8))))));
+        android.app.Dialog dialog=Ui.custom(activity,"Серия "+Ui.number(episode)+" · озвучка и разрешение",list,"Скачать",()->{int pick=Math.max(0,Math.min(rows.size()-1,current[0]));confirm(activity,anime,rows.get(pick));},null,null,"@close");
+        TaskQueue.Signal cancelled=new TaskQueue.Signal();
+        dialog.setOnDismissListener(ignored->cancelled.set(true));
+        TaskQueue.run(YoruApp.app().io,cancelled,()->{
+            int limit=Math.min(rows.size(),8);
+            java.util.concurrent.ExecutorService pool=TaskQueue.pool(Math.max(1,Math.min(4,limit)));
+            ArrayList<java.util.concurrent.Future<?>> tasks=new ArrayList<>();
+            for(int i=0;i<limit;i++){
+                final int slot=i;final ApiRepository.DownloadOption option=rows.get(slot);
+                String url=option.episode==null?null:option.episode.streams.get(option.quality);
+                if(url==null||url.isEmpty())continue;
+                final String stream=url;
+                try{
+                    tasks.add(pool.submit(()->{
+                        try{
+                            if(cancelled.get())return;
+                            long bytes=MediaSize.probeInfo(stream,true).bytes;
+                            if(bytes<=0)return;
+                            final String updated=option.label()+" · "+MediaSize.label(bytes);
+                            YoruApp.app().main.post(()->{if(cancelled.get()||slot>=labels.size())return;labels.set(slot,updated);adapter.notifyDataSetChanged();});
+                        }catch(Exception ignored){}
+                    }));
+                }catch(java.util.concurrent.RejectedExecutionException ignored){}
+            }
+            for(java.util.concurrent.Future<?> task:tasks){try{task.get();}catch(Exception ignored){}}
+            pool.shutdownNow();
+        },null);
+    }
     private static List<ApiRepository.DownloadOption> nativeOptions(Anime anime,double number,Anime.Episode current,String voice,String player){ArrayList<ApiRepository.DownloadOption> out=new ArrayList<>();if(current==null||current.future||Math.abs(current.number-number)>.001||current.streams.isEmpty())return out;int n=0;for(Map.Entry<Integer,String> stream:current.streams.entrySet()){String safe=ApiRepository.safeUrl(stream.getValue());if(safe.isEmpty())continue;Anime source=Anime.from(anime.json());Anime.Episode ep=new Anime.Episode();ep.id="native-"+Integer.toUnsignedString((anime.key()+"|"+safe).hashCode())+"-"+Ui.number(number)+"-"+(++n);ep.number=number;ep.name=(voice==null||voice.isEmpty())?"Плеер YORU":voice;ep.streams.put(stream.getKey(),safe);out.add(new ApiRepository.DownloadOption(source,ep,stream.getKey(),ep.name,(player==null||player.isEmpty())?"Плеер YORU":"Плеер YORU · "+player));}return out;}
-    private static String privateLabel(ApiRepository.DownloadOption option){String size=Ui.videoSizeHint(option.quality,option.episode==null?0:option.episode.duration);return option.label()+" · "+size;}
+    private static String privateLabel(ApiRepository.DownloadOption option){return option.label();}
 
     private static ArrayList<ApiRepository.DownloadOption> merge(List<ApiRepository.DownloadOption> options){LinkedHashMap<String,ApiRepository.DownloadOption> map=new LinkedHashMap<>();if(options!=null)for(ApiRepository.DownloadOption option:options){if(option==null||option.source==null||option.episode==null)continue;String url=option.episode.streams.get(option.quality);String safe=ApiRepository.safeUrl(url);if(safe.isEmpty())continue;String voice=ApiRepository.voiceKey(option.voice+" "+option.episode.name);String key=Ui.number(option.episode.number)+"|"+option.quality+"|"+(voice.isEmpty()?"unknown:"+Integer.toHexString(safe.hashCode()):voice);if(!map.containsKey(key))map.put(key,option);}return new ArrayList<>(map.values());}
     private static void confirm(Activity activity,Anime anime,ApiRepository.DownloadOption option){
