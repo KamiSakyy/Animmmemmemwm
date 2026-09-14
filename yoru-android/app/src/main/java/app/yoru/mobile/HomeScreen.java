@@ -90,7 +90,7 @@ final class HomeScreen extends SwipeRefreshLayout {
         }
     }
     private void header(LinearLayout box){
-        box.addView(Ui.label(activity,"ВАШЕ СЛЕДУЮЩЕЕ ЛЮБИМОЕ АНИМЕ"));Ui.space(box,14);
+        box.addView(Ui.label(activity,"РЕКОМЕНДАЦИИ"));Ui.space(box,14);
         Anime anime=recommendation;
         if(anime!=null){
             FrameLayout hero=new FrameLayout(activity);hero.setBackground(Ui.shape(Ui.CARD,20,activity));hero.setClipToOutline(true);
