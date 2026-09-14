@@ -1,5 +1,7 @@
 plugins { id 'com.android.application' }
 def verificationBuild = project.hasProperty('verifyOnSdk36')
+def jvmVerification = project.hasProperty('verifyJvmTransport')
+def transportDependency = verificationBuild ? (jvmVerification ? 'com.squareup.okhttp3:okhttp-jvm:5.5.0' : 'com.squareup.okhttp3:okhttp:5.4.0') : 'com.squareup.okhttp3:okhttp:5.5.0'
 if (verificationBuild && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) throw new GradleException('SDK36 verification cannot produce a release build')
 def owner = new Properties()
 def ownerFile = rootProject.file('owner-signing/signing.properties')
@@ -13,7 +15,8 @@ android {
   minSdk 26
   targetSdk verificationBuild ? 36 : 37
   versionCode 72
-  versionName verificationBuild ? '4.20.0-dev.2-verification-sdk36' : '4.20.0-dev.2'
+  versionName verificationBuild ? (jvmVerification ? '4.20.0-dev.2-jvm-verification' : '4.20.0-dev.2-compat-sdk36-okhttp5.4') : '4.20.0-dev.2'
+  resValue 'string', 'application_title', (verificationBuild ? 'YORU · проверка' : 'YORU')
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'
   ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
  }
@@ -39,7 +42,7 @@ android {
 
 dependencies {
  testImplementation 'junit:junit:4.13.2'
- implementation verificationBuild ? 'com.squareup.okhttp3:okhttp-jvm:5.5.0' : 'com.squareup.okhttp3:okhttp:5.5.0'
+ implementation transportDependency
  implementation('androidx.media3:media3-datasource-okhttp:1.5.1') { exclude group: 'com.squareup.okhttp3', module: 'okhttp' }
  implementation 'androidx.media3:media3-exoplayer:1.5.1'
  implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
