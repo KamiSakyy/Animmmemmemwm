@@ -112,7 +112,7 @@ public final class DownloadActions {
             public int getCount(){return labels.size();}
             public Object getItem(int p){return labels.get(p);}
             public long getItemId(int p){return p;}
-            public View getView(int p,View old,android.view.ViewGroup parent){
+            public android.view.View getView(int p,android.view.View old,android.view.ViewGroup parent){
                 LinearLayout row=Ui.row(activity);row.setPadding(Ui.dp(activity,12),Ui.dp(activity,8),Ui.dp(activity,12),Ui.dp(activity,8));
                 boolean on=current[0]==p;row.setBackground(on?Ui.shape(0x332f2144,14,activity):Ui.stroke(Ui.CARD,14,activity));
                 TextView mark=Ui.text(activity,on?"✓":"",16,Ui.PURPLE,true);mark.setGravity(android.view.Gravity.CENTER);row.addView(mark,Ui.lp(activity,28,38));
