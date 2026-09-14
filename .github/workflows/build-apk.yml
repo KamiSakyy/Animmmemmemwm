@@ -54,7 +54,13 @@ jobs:
       - name: Install missing Android SDK components
         run: |
           if [ ! -d "$ANDROID_HOME/platforms/android-37" ] || [ ! -d "$ANDROID_HOME/build-tools/37.0.0" ]; then
-            sdkmanager "platforms;android-37" "build-tools;37.0.0" "platform-tools"
+            sdkmanager --list | grep -E 'android-(37|Cinnamon)|build-tools;37' >> "$GITHUB_STEP_SUMMARY" || true
+            if ! sdkmanager "platforms;android-37" "build-tools;37.0.0" "platform-tools" > sdk-install.log 2>&1; then
+              cat sdk-install.log >> "$GITHUB_STEP_SUMMARY"
+              message=$(tail -8 sdk-install.log | tr '\n' ' ')
+              echo "::error title=SDK 37 installation::$message"
+              exit 1
+            fi
           else
             echo "Android SDK 37 already restored"
           fi
