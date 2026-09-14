@@ -48,14 +48,14 @@ jobs:
         with:
           path: |
             ${{ env.ANDROID_HOME }}/platforms/android-37
-            ${{ env.ANDROID_HOME }}/build-tools/37.0.0
+            ${{ env.ANDROID_HOME }}/build-tools/36.0.0
             ${{ env.ANDROID_HOME }}/platform-tools
-          key: yoru-android-sdk-37-37.0.0-${{ runner.os }}
+          key: yoru-android-sdk-37-36.0.0-${{ runner.os }}
       - name: Install missing Android SDK components
         run: |
-          if [ ! -d "$ANDROID_HOME/platforms/android-37" ] || [ ! -d "$ANDROID_HOME/build-tools/37.0.0" ]; then
-            sdkmanager --list | grep -E 'android-(37|Cinnamon)|build-tools;37' >> "$GITHUB_STEP_SUMMARY" || true
-            if ! sdkmanager "platforms;android-37" "build-tools;37.0.0" "platform-tools" > sdk-install.log 2>&1; then
+          if [ ! -d "$ANDROID_HOME/platforms/android-37" ] || [ ! -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
+            sdkmanager --list --channel=3 | grep -E 'android-(37|Cinnamon)|build-tools;37' >> "$GITHUB_STEP_SUMMARY" || true
+            if ! sdkmanager --channel=3 "platforms;android-37" "build-tools;36.0.0" "platform-tools" > sdk-install.log 2>&1; then
               cat sdk-install.log >> "$GITHUB_STEP_SUMMARY"
               message=$(tr '\r' '\n' < sdk-install.log | grep -E 'Warning:|Error:|Failed|not found' | tail -5 | tr '\n' ' ')
               echo "::error title=SDK 37 installation::$message"
@@ -86,8 +86,8 @@ jobs:
           fi
       - name: Verify APK signatures
         run: |
-          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify app/build/outputs/apk/release/app-release.apk
-          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/debug/app-debug.apk
       - name: Save APK into branch
         working-directory: .
         run: |

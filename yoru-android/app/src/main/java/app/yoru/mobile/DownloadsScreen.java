@@ -96,7 +96,7 @@ public final class DownloadsScreen extends LinearLayout {
             primary=Ui.button(activity,"",false,this::primaryAction);controls.addView(primary,new LinearLayout.LayoutParams(0,-2,1));
             save=Ui.button(activity,"Сохранить",false,()->{if(download!=null)OfflineExporter.saveWithPicker(activity,download);});
             controls.addView(save,new LinearLayout.LayoutParams(0,-2,1));
-            controls.addView(Ui.iconButton(activity,"trash","Удалить загрузку",()->{if(plan!=null)cancelPlan(plan);else if(download!=null)confirmDelete(download);}),Ui.lp(activity,44,44));
+            controls.addView(Ui.iconButton(activity,"trash","Удалить загрузку",()->{if(plan!=null)cancelPlan(plan);else if(download!=null)confirmDelete(download);}),Ui.lp(activity,48,48));
             card.addView(controls);
             preview.setOnClickListener(v->{if(download!=null&&download.state==Download.STATE_COMPLETED)Ui.openOffline(activity,download.request.id,anime,metadata.optDouble("episode",1));});
             card.setOnLongClickListener(v->{if(plan!=null)cancelPlan(plan);else if(download!=null)actions(download);return true;});
