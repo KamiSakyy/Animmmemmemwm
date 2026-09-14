@@ -1,0 +1,166 @@
+{
+  "source_commit": "51a29384c0cf27b175908de01a03a96224d2c000",
+  "run_id": "34825107152",
+  "profiles": {
+    "jvm": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": [
+        {
+          "name": "app.yoru.mobile.CalendarFeedTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.CropGeometryTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.DownloadListRulesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.EpisodeRulesTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.MediaSizeTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.NetworkTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.QualityLabelTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.ScheduleClockTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.ScheduledDownloadRulesTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.TaskQueueTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "compile_sdk": 36,
+      "transport": "okhttp-jvm:5.5.0"
+    },
+    "android": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": [
+        {
+          "name": "app.yoru.mobile.CalendarFeedTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.CropGeometryTest",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.DownloadListRulesTest",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.EpisodeRulesTest",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.MediaSizeTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.NetworkTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.QualityLabelTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.ScheduleClockTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.ScheduledDownloadRulesTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        {
+          "name": "app.yoru.mobile.TaskQueueTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      ],
+      "compile_sdk": 36,
+      "transport": "okhttp Android:5.4.0"
+    }
+  }
+}
