@@ -5,6 +5,10 @@ import android.graphics.*;
 import android.os.*;
 import android.view.*;
 import android.widget.*;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 
 public final class ImageViewerActivity extends Activity {
     private ZoomImage image;
