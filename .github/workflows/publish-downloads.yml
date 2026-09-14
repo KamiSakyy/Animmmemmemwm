@@ -1,10 +1,12 @@
 name: Publish YORU downloads
 on:
-  push:
-    branches:
-      - arena/01a0828d-animmmemmemwm
-    paths:
-      - handoff/YORU-4.20.0-dev.11-source.zip
+  workflow_dispatch:
+    inputs:
+      final_delivery:
+        description: 'Publish the completed major update with matching APK and sources'
+        type: boolean
+        default: false
+        required: true
 permissions:
   contents: write
 concurrency:
@@ -12,6 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   downloads:
+    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm' && inputs.final_delivery
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

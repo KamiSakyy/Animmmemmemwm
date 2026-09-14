@@ -5,18 +5,19 @@ permissions:
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - arena/01a0828d-animmmemmemwm
-    paths:
-      - 'yoru-android/app/**'
-      - 'yoru-android/settings.gradle'
-      - 'yoru-android/build.gradle'
-      - 'yoru-android/gradle.properties'
-      - 'yoru-android/gradle/**'
-      - 'yoru-android/gradlew'
-      - 'yoru-android/gradlew.bat'
-      - '.github/workflows/build-apk.yml'
+    inputs:
+      target:
+        description: 'Final delivery target'
+        type: choice
+        options:
+          - compatibility
+          - sdk37
+        default: compatibility
+      final_delivery:
+        description: 'Major implementation block is complete and ready for APK assembly'
+        type: boolean
+        default: false
+        required: true
 
 concurrency:
   group: yoru-apk-${{ github.ref }}
@@ -24,7 +25,7 @@ concurrency:
 
 jobs:
   android-apk:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm' && inputs.final_delivery && inputs.target == 'sdk37'
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -113,6 +114,7 @@ jobs:
             apk-output/YORU-4.20.0-dev.11-*.apk.sha256
 
   compatibility-verification:
+    if: github.ref == 'refs/heads/arena/01a0828d-animmmemmemwm' && inputs.final_delivery && inputs.target == 'compatibility'
     name: Assemble unminified uncompressed APK
     runs-on: ubuntu-latest
     steps:
