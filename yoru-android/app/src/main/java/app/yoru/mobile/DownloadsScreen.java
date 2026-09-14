@@ -19,12 +19,16 @@ public final class DownloadsScreen extends LinearLayout {
         Entry(Download value){download=value;plan=null;}
         Entry(ScheduledDownloads.Plan value){download=null;plan=value;}
     }
+    private final HashSet<String> exporting=new HashSet<>();
+    private androidx.lifecycle.LiveData<List<androidx.work.WorkInfo>> exportJobs;
+    private final androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> exportObserver=this::exportsChanged;
     private boolean attached,refreshing;
     private int generation;
     private java.util.concurrent.Future<?> refreshFuture;
 
-    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;handler.post(update);}
-    @Override protected void onDetachedFromWindow(){attached=false;generation++;refreshing=false;if(refreshFuture!=null)refreshFuture.cancel(true);handler.removeCallbacksAndMessages(null);super.onDetachedFromWindow();}
+    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;exportJobs=androidx.work.WorkManager.getInstance(activity).getWorkInfosByTagLiveData(DocumentDownloads.EXPORT_TAG);exportJobs.observeForever(exportObserver);handler.post(update);}
+    @Override protected void onDetachedFromWindow(){attached=false;if(exportJobs!=null)exportJobs.removeObserver(exportObserver);exportJobs=null;exporting.clear();generation++;refreshing=false;if(refreshFuture!=null)refreshFuture.cancel(true);handler.removeCallbacksAndMessages(null);super.onDetachedFromWindow();}
+    private void exportsChanged(List<androidx.work.WorkInfo> jobs){if(!attached)return;HashSet<String> active=new HashSet<>();if(jobs!=null)for(androidx.work.WorkInfo job:jobs)if(!job.getState().isFinished())for(String tag:job.getTags())if(tag.startsWith(DocumentDownloads.EXPORT_ITEM_TAG))active.add(tag.substring(DocumentDownloads.EXPORT_ITEM_TAG.length()));if(exporting.equals(active))return;exporting.clear();exporting.addAll(active);adapter.notifyDataSetChanged();}
     private void refreshSafe(){if(!attached||refreshing)return;refreshing=true;int gen=generation;
         refreshFuture=YoruApp.app().io.submit(()->{
             try {
@@ -34,7 +38,7 @@ public final class DownloadsScreen extends LinearLayout {
                 ArrayList<Entry> fresh=new ArrayList<>();HashSet<String> ids=new HashSet<>();
                 StringBuilder signature=new StringBuilder();int complete=0,active=0,pending=0;
                 for(Download d:downloads){if(d==null||d.request==null)continue;ids.add(d.request.id);fresh.add(new Entry(d));if(d.state==Download.STATE_COMPLETED)complete++;if(d.state==Download.STATE_DOWNLOADING)active++;signature.append(d.request.id).append(':').append(d.state).append(':').append((int)d.getPercentDownloaded()/8).append('|');}
-                for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
+                for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.dateLabel).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
                 String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
                 String next=signature.toString();
                 YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);if(!next.equals(lastSignature)){lastSignature=next;rows.clear();rows.addAll(fresh);adapter.notifyDataSetChanged();}});
@@ -49,9 +53,9 @@ public final class DownloadsScreen extends LinearLayout {
             YoruApp.app().main.post(()->{if(attached){lastSignature="";refreshSafe();}});
         }),"Назад");
     }
-    private void actions(Download d){if(d==null||d.request==null){Ui.toast(activity,"Эта запись загрузки повреждена");return;}JSONObject meta=DownloadHub.metadata(d);Anime a=Anime.from(meta.optJSONObject("anime"));String voice=meta.optString("voice","");String title=(a.title==null||a.title.isEmpty()?"Загрузка":a.title)+" · серия "+Ui.number(meta.optDouble("episode",1))+(voice.isEmpty()?"":" · "+voice);ArrayList<String> choices=new ArrayList<>();if(d.state==Download.STATE_COMPLETED){choices.add("Смотреть в YORU");if(DocumentDownloads.canExport(d))choices.add("В выбранную папку");if(OfflineExporter.canExport(d)){choices.add("Сохранить через проводник");choices.add("Сохранить в Видео / YORU");choices.add("Поделиться файлом");}choices.add("Информация");}else if(d.state==Download.STATE_STOPPED)choices.add("Продолжить");else if(d.state==Download.STATE_FAILED)choices.add("Обновить и повторить");else if(d.state!=Download.STATE_REMOVING)choices.add("Пауза");choices.add("Удалить загрузку");Ui.choices(activity,title,choices.toArray(new String[0]),which->handle(d,a,meta,choices.get(which)));}
-    private void handle(Download d,Anime a,JSONObject meta,String choice){try{if(choice.equals("Смотреть в YORU"))Ui.openOffline(activity,d.request.id,a,meta.optDouble("episode",1));else if(choice.equals("В выбранную папку"))DocumentDownloads.save(activity,d,true);else if(choice.equals("Сохранить через проводник"))OfflineExporter.saveWithPicker(activity,d);else if(choice.equals("Сохранить в Видео / YORU"))OfflineExporter.saveToMovies(activity,d);else if(choice.equals("Поделиться файлом"))OfflineExporter.share(activity,d);else if(choice.equals("Информация"))Ui.message(activity,"Информация",OfflineExporter.details(d));else if(choice.equals("Продолжить"))hub.resume(d.request.id);else if(choice.equals("Пауза"))hub.pause(d.request.id);else if(choice.equals("Обновить и повторить"))hub.retry(d.request.id);else confirmDelete(d);}catch(Throwable e){Ui.toast(activity,"Действие загрузки не выполнено");}}
-    private void confirmDelete(Download d){Ui.confirm(activity,"Удалить загрузку?","Удалить скачанные файлы этой серии?", "Удалить",()->{hub.remove(d.request.id);refreshSafe();},"Отмена");}
+    private void actions(Download d){if(d==null||d.request==null){Ui.toast(activity,"Эта запись загрузки повреждена");return;}JSONObject meta=DownloadHub.metadata(d);Anime a=Anime.from(meta.optJSONObject("anime"));String voice=meta.optString("voice","");String title=(a.title==null||a.title.isEmpty()?"Загрузка":a.title)+" · серия "+Ui.number(meta.optDouble("episode",1))+(voice.isEmpty()?"":" · "+voice);ArrayList<String> choices=new ArrayList<>();if(d.state==Download.STATE_COMPLETED){choices.add("Смотреть в YORU");if(exporting.contains(d.request.id))choices.add("Остановить сохранение");else if(DocumentDownloads.canExport(d))choices.add("В выбранную папку");if(OfflineExporter.canExport(d)){choices.add("Сохранить через проводник");choices.add("Сохранить в Видео / YORU");choices.add("Поделиться файлом");}choices.add("Информация");}else if(d.state==Download.STATE_STOPPED)choices.add("Продолжить");else if(d.state==Download.STATE_FAILED)choices.add("Обновить и повторить");else if(d.state!=Download.STATE_REMOVING)choices.add("Пауза");choices.add("Удалить загрузку");Ui.choices(activity,title,choices.toArray(new String[0]),which->handle(d,a,meta,choices.get(which)));}
+    private void handle(Download d,Anime a,JSONObject meta,String choice){try{if(choice.equals("Смотреть в YORU"))Ui.openOffline(activity,d.request.id,a,meta.optDouble("episode",1));else if(choice.equals("Остановить сохранение"))DocumentDownloads.cancel(activity,d.request.id);else if(choice.equals("В выбранную папку"))DocumentDownloads.save(activity,d,true);else if(choice.equals("Сохранить через проводник"))OfflineExporter.saveWithPicker(activity,d);else if(choice.equals("Сохранить в Видео / YORU"))OfflineExporter.saveToMovies(activity,d);else if(choice.equals("Поделиться файлом"))OfflineExporter.share(activity,d);else if(choice.equals("Информация"))Ui.message(activity,"Информация",OfflineExporter.details(d));else if(choice.equals("Продолжить"))hub.resume(d.request.id);else if(choice.equals("Пауза"))hub.pause(d.request.id);else if(choice.equals("Обновить и повторить"))hub.retry(d.request.id);else confirmDelete(d);}catch(Throwable e){Ui.toast(activity,"Действие загрузки не выполнено");}}
+    private void confirmDelete(Download d){Ui.confirm(activity,"Удалить загрузку?","Удалить скачанные файлы этой серии?", "Удалить",()->{DocumentDownloads.cancel(activity,d.request.id);hub.remove(d.request.id);refreshSafe();},"Отмена");}
     private final class Adapter extends BaseAdapter {
         public int getCount(){return rows.size();}
         public Object getItem(int position){return rows.get(position);}
@@ -94,7 +98,7 @@ public final class DownloadsScreen extends LinearLayout {
             size=Ui.text(activity,"",10,Ui.MUTED,false);card.addView(size);Ui.space(card,11);
             LinearLayout controls=Ui.row(activity);
             primary=Ui.button(activity,"",false,this::primaryAction);controls.addView(primary,new LinearLayout.LayoutParams(0,-2,1));
-            save=Ui.button(activity,"Сохранить",false,()->{if(download!=null)DocumentDownloads.save(activity,download,true);});
+            save=Ui.button(activity,"Сохранить",false,()->{if(download!=null){if(exporting.contains(download.request.id))DocumentDownloads.cancel(activity,download.request.id);else DocumentDownloads.save(activity,download,true);}});
             controls.addView(save,new LinearLayout.LayoutParams(0,-2,1));
             controls.addView(Ui.iconButton(activity,"trash","Удалить загрузку",()->{if(plan!=null)cancelPlan(plan);else if(download!=null)confirmDelete(download);}),Ui.lp(activity,48,48));
             card.addView(controls);
@@ -114,7 +118,7 @@ public final class DownloadsScreen extends LinearLayout {
             title.setText(YoruBrain.title(anime));
             description.setText("Серия "+Ui.number(value.episode)+" · "+(value.quality==QualityPlus.BEST?"Лучшее доступное":value.quality+"p")+" · "+(value.voice.isEmpty()?"Любая доступная озвучка":value.voice));
             caption.setText("Будущее скачивание");type.setText("Скачать после выхода серии");
-            String date=value.due>0?new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm",new Locale("ru")).format(new Date(value.due)):"Дата выхода уточняется";
+            java.time.ZoneId zone=ScheduleClock.zone(YoruApp.app().store.localScheduleTime());String date=value.due>0?ScheduleClock.format(value.due,"dd.MM.yyyy",zone)+" · "+ScheduleClock.time(value.due,zone):value.dateLabel==null||value.dateLabel.isEmpty()?"Дата выхода уточняется":value.dateLabel;
             state.setText(date+"\n"+value.message);state.setTextColor(Ui.MUTED);
             progress.setVisibility(View.GONE);size.setVisibility(View.GONE);primary.setVisibility(View.GONE);save.setVisibility(View.GONE);
             String url=ApiRepository.safeUrl(anime.poster),key="plan:"+value.id+"|"+url;
@@ -133,15 +137,15 @@ public final class DownloadsScreen extends LinearLayout {
             poster.setVisibility(url.isEmpty()?View.GONE:View.VISIBLE);placeholder.setVisibility(url.isEmpty()?View.VISIBLE:View.GONE);placeholder.setText("Серия\n"+Ui.number(episode));
             if(!key.equals(imageKey)){imageKey=key;poster.setTag(null);poster.setImageDrawable(null);if(!url.isEmpty())YoruApp.app().images.load(poster,url,key);}
             type.setText("Тип: "+OfflineExporter.format(d));
-            String status=DownloadHub.status(d);
+            String status=exporting.contains(d.request.id)?"Сохранение в выбранную папку":DownloadHub.status(d);
             if(d.state==Download.STATE_QUEUED&&YoruApp.app().store.wifiDownloads()&&YoruApp.app().traffic.metered())status="Ожидает Wi-Fi";
             state.setText(status);state.setTextColor(d.state==Download.STATE_FAILED?0xffe0a791:Ui.MUTED);
-            boolean active=d.state==Download.STATE_DOWNLOADING||d.state==Download.STATE_QUEUED||d.state==Download.STATE_RESTARTING;
-            progress.setVisibility(active?View.VISIBLE:View.GONE);float pct=d.getPercentDownloaded();progress.setIndeterminate(pct<0);progress.setProgress(pct<0?0:(int)pct);
+            boolean saving=exporting.contains(d.request.id);boolean active=saving||d.state==Download.STATE_DOWNLOADING||d.state==Download.STATE_QUEUED||d.state==Download.STATE_RESTARTING;
+            progress.setVisibility(active?View.VISIBLE:View.GONE);float pct=saving?-1:d.getPercentDownloaded();progress.setIndeterminate(pct<0);progress.setProgress(pct<0?0:(int)pct);
             size.setText(Ui.bytes(d.getBytesDownloaded())+(d.contentLength>0?" / "+Ui.bytes(d.contentLength):""));
             primary.setText(d.state==Download.STATE_COMPLETED?"Смотреть":d.state==Download.STATE_STOPPED?"Продолжить":d.state==Download.STATE_FAILED?"Повторить":"Пауза");
             primary.setEnabled(d.state!=Download.STATE_REMOVING);
-            save.setVisibility(d.state==Download.STATE_COMPLETED&&DocumentDownloads.canExport(d)?View.VISIBLE:View.GONE);
+            save.setText(saving?"Остановить":"Сохранить");save.setVisibility(d.state==Download.STATE_COMPLETED&&DocumentDownloads.canExport(d)?View.VISIBLE:View.GONE);
         }
     }
 }

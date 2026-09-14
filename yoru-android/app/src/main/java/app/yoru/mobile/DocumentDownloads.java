@@ -14,7 +14,9 @@ import java.util.function.BooleanSupplier;
 
 final class DocumentDownloads {
     static final int REQUEST_FOLDER=4304;
+    static final String EXPORT_TAG="yoru-export",EXPORT_ITEM_TAG="yoru-export-download:";
     private DocumentDownloads(){}
+    static void cancel(Context context,String download){WorkManager.getInstance(context).cancelAllWorkByTag(EXPORT_ITEM_TAG+download);String folder=YoruApp.app().store.downloadFolder();if(!folder.isEmpty())WorkManager.getInstance(context).cancelUniqueWork("yoru-document:"+download+"|"+folder);}
     static boolean canExport(Download download){return OfflineExporter.canExport(download)||AdaptiveVideoExport.supports(download);}
     static boolean finished(Context context,Download download,String folder,boolean manual,String operation){String identity=download.request.id+"|"+folder;SharedPreferences state=journal(context);return operation.equals(state.getString("operation:"+identity,""))||(!manual&&!state.getString("done:"+identity,"").isEmpty());}
     static void choose(Activity activity){choose(activity,"");}
@@ -24,7 +26,7 @@ final class DocumentDownloads {
         try{activity.startActivityForResult(intent,REQUEST_FOLDER);}catch(Exception error){journal(activity).edit().remove("folder-request").apply();Ui.toast(activity,"Системный выбор папки недоступен");}
     }
     static void receive(Activity activity,int code,Intent data){
-        String pending=journal(activity).getString("folder-request","");journal(activity).edit().remove("folder-request").apply();if(code!=Activity.RESULT_OK||data==null||data.getData()==null)return;
+        String pending=journal(activity).getString("folder-request","");if(!journal(activity).edit().remove("folder-request").commit()){Ui.toast(activity,"Не удалось завершить выбор папки");return;}if(code!=Activity.RESULT_OK||data==null||data.getData()==null)return;
         try{int grants=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);if((grants&Intent.FLAG_GRANT_WRITE_URI_PERMISSION)==0||data.getData().toString().length()>4096)throw new SecurityException();activity.getContentResolver().takePersistableUriPermission(data.getData(),grants);YoruApp.app().store.downloadFolder(data.getData().toString());Ui.toast(activity,"Папка выбрана. Готовые видео и звук будут сохраняться сюда.");if(!pending.isEmpty()){Download download=YoruApp.app().downloads().get(pending);if(download!=null)save(activity,download,true);}}catch(Exception error){Ui.toast(activity,"Не удалось получить постоянный доступ к папке");}
     }
     static void requireFolder(Context context,String folder){Uri uri=Uri.parse(folder);if(!"content".equals(uri.getScheme())||!DocumentsContract.isTreeUri(uri))throw new SecurityException();for(UriPermission permission:context.getContentResolver().getPersistedUriPermissions())if(permission.getUri().equals(uri)&&permission.isWritePermission())return;throw new SecurityException();}
@@ -33,7 +35,7 @@ final class DocumentDownloads {
         String folder=YoruApp.app().store.downloadFolder();if(folder.isEmpty()){if(manual&&context instanceof Activity)choose((Activity)context,download.request.id);else if(manual)Ui.toast(context,"Сначала выберите папку сохранения");return;}
         String identity=download.request.id+"|"+folder;SharedPreferences journal=journal(context);if(!manual&&!journal.getString("done:"+identity,"").isEmpty())return;
         Data data=new Data.Builder().putString("download",download.request.id).putString("folder",folder).putBoolean("manual",manual).build();
-        OneTimeWorkRequest task=new OneTimeWorkRequest.Builder(DocumentExportWorker.class).setInputData(data).setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS).build();
+        OneTimeWorkRequest task=new OneTimeWorkRequest.Builder(DocumentExportWorker.class).addTag(EXPORT_TAG).addTag(EXPORT_ITEM_TAG+download.request.id).setInputData(data).setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS).build();
         WorkManager.getInstance(context).enqueueUniqueWork("yoru-document:"+identity,ExistingWorkPolicy.KEEP,task);
         if(manual)Ui.toast(context,"Сохранение в папку поставлено в очередь");
     }
