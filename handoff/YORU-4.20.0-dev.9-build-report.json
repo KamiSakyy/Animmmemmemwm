@@ -1,0 +1,12 @@
+{
+  "minification_enabled": false,
+  "resource_shrinking_enabled": false,
+  "all_apk_entries_stored": true,
+  "source_commit": "44aa86c8fb304b30e20a5d77cedd63a6af7deb20",
+  "run_id": "34854666998",
+  "assembled": true,
+  "apk_bytes": 15821470,
+  "apk_sha256": "4af20eab078786842200e33bb0e1b8547b56c7efab5aa7187500a386c7c2f7c0",
+  "tests_executed": false,
+  "device_checks_executed": false
+}
