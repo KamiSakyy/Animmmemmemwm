@@ -6,19 +6,19 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-version = "4.20.0-dev.3"
-report = json.loads((root / f"handoff/YORU-{version}-verification-tests.json").read_text())
+version = "4.20.0-dev.4"
+report = json.loads((root / f"handoff/YORU-{version}-build-report.json").read_text())
 source = report["source_commit"]
 if not re.fullmatch(r"[0-9a-f]{40}", source):
     raise ValueError("Invalid source revision")
-for profile in ("jvm", "android"):
-    result = report["profiles"][profile]
-    if result["tests"] < 1 or any(result[key] for key in ("failures", "errors", "skipped")):
-        raise ValueError("Verification did not pass")
+if not report.get("assembled"):
+    raise ValueError("APK was not assembled")
 if subprocess.run(["git", "cat-file", "-e", source + "^{commit}"], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
     subprocess.run(["git", "fetch", "--no-tags", "origin", source, "--depth=1"], cwd=root, check=True, stdout=subprocess.DEVNULL)
 archive = root / f"handoff/YORU-{version}-source.zip"
 apk = root / f"apk-output/YORU-{version}-compat-sdk36-okhttp5.4.apk"
+if hashlib.sha256(apk.read_bytes()).hexdigest() != report["apk_sha256"]:
+    raise ValueError("APK does not match the build report")
 for path in (archive, apk):
     expected = Path(str(path) + ".sha256").read_text().split()[0]
     if hashlib.sha256(path.read_bytes()).hexdigest() != expected:

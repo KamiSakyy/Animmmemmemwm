@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   android-apk:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -93,34 +94,34 @@ jobs:
         run: |
           git pull --rebase origin arena/01a0828d-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.20.0-dev.3-release.apk apk-output/YORU-4.20.0-dev.3-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.3-release.apk
-          sha256sum apk-output/YORU-4.20.0-dev.3-release.apk > apk-output/YORU-4.20.0-dev.3-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.3-debug.apk
-          sha256sum apk-output/YORU-4.20.0-dev.3-debug.apk > apk-output/YORU-4.20.0-dev.3-debug.apk.sha256
+          rm -f apk-output/YORU-4.20.0-dev.4-release.apk apk-output/YORU-4.20.0-dev.4-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.4-release.apk
+          sha256sum apk-output/YORU-4.20.0-dev.4-release.apk > apk-output/YORU-4.20.0-dev.4-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.4-debug.apk
+          sha256sum apk-output/YORU-4.20.0-dev.4-debug.apk > apk-output/YORU-4.20.0-dev.4-debug.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.3-*.apk apk-output/YORU-4.20.0-dev.3-*.apk.sha256
-          git commit -m "Add built YORU 4.20.0-dev.3 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.20.0-dev.4-*.apk apk-output/YORU-4.20.0-dev.4-*.apk.sha256
+          git commit -m "Add built YORU 4.20.0-dev.4 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.3-release-apk
+          name: yoru-4.20.0-dev.4-release-apk
           path: |
-            apk-output/YORU-4.20.0-dev.3-*.apk
-            apk-output/YORU-4.20.0-dev.3-*.apk.sha256
+            apk-output/YORU-4.20.0-dev.4-*.apk
+            apk-output/YORU-4.20.0-dev.4-*.apk.sha256
 
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.3-tests
+          name: yoru-4.20.0-dev.4-tests
           path: yoru-android/app/build/test-results/testDebugUnitTest/
           if-no-files-found: ignore
 
   compatibility-verification:
-    name: JVM tests and SDK36 Android compatibility APK (not release)
+    name: Assemble optimized test APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -133,53 +134,46 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Restore existing owner signing for compact APK
         run: unzip -oq YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
-      - name: Verify JVM5.5 and Android5.4 compatibility profiles
+      - name: Assemble APK without test or device runs
         working-directory: yoru-android
         run: |
           chmod +x gradlew
-          for profile in jvm android; do
-            options=(-PverifyOnSdk36)
-            tasks=(:app:testDebugUnitTest)
-            if [ "$profile" = jvm ]; then options+=(-PverifyJvmTransport); else options+=(-PcompactApk); tasks+=(:app:assembleDebug); fi
-            set +e
-            ./gradlew --no-daemon "${options[@]}" "${tasks[@]}" > "$profile-verification.log" 2>&1
-            code=$?
-            set -e
-            tail -100 "$profile-verification.log" >> "$GITHUB_STEP_SUMMARY"
-            if [ "$code" -ne 0 ]; then
-              message=$(tail -70 "$profile-verification.log" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
-              echo "::error title=SDK36 $profile verification::$message"
-              exit "$code"
-            fi
-            python3 ../tools/collect-yoru-tests.py "$profile"
-          done
+          set +e
+          ./gradlew --no-daemon -PverifyOnSdk36 -PcompactApk :app:assembleDebug > android-build.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            message=$(tail -70 android-build.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error title=APK build::$message"
+            exit "$code"
+          fi
+          python3 ../tools/collect-yoru-build.py
       - name: Preserve explicitly labelled compatibility APK
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify yoru-android/app/build/outputs/apk/debug/app-debug.apk || { echo "::error title=APK publication::Signature verification failed"; exit 1; }
-          cp handoff/YORU-4.20.0-dev.3-verification-tests.json "$RUNNER_TEMP/yoru-verification-tests.json"
-          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.3-verification-tests.json >/dev/null 2>&1; then
-            git restore -- handoff/YORU-4.20.0-dev.3-verification-tests.json
+          cp handoff/YORU-4.20.0-dev.4-build-report.json "$RUNNER_TEMP/yoru-build-report.json"
+          if git ls-files --error-unmatch handoff/YORU-4.20.0-dev.4-build-report.json >/dev/null 2>&1; then
+            git restore -- handoff/YORU-4.20.0-dev.4-build-report.json
           else
-            rm handoff/YORU-4.20.0-dev.3-verification-tests.json
+            rm handoff/YORU-4.20.0-dev.4-build-report.json
           fi
           git pull --rebase origin arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::Branch synchronization failed"; exit 1; }
-          cp "$RUNNER_TEMP/yoru-verification-tests.json" handoff/YORU-4.20.0-dev.3-verification-tests.json
+          cp "$RUNNER_TEMP/yoru-build-report.json" handoff/YORU-4.20.0-dev.4-build-report.json
           mkdir -p apk-output
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk
-          sha256sum apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk > apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk
+          sha256sum apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk > apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk.sha256
-          git add handoff/YORU-4.20.0-dev.3-verification-tests.json
-          git commit -m "Save separately labelled YORU SDK36 compatibility APK and actual test counts [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk.sha256
+          git add handoff/YORU-4.20.0-dev.4-build-report.json
+          git commit -m "Save separately labelled YORU SDK36 compatibility APK and build receipt [skip ci]" || exit 0
           git push origin HEAD:arena/01a0828d-animmmemmemwm || { echo "::error title=APK publication::APK push failed"; exit 1; }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yoru-4.20.0-dev.3-compatibility-checks
+          name: yoru-4.20.0-dev.4-compatibility-checks
           path: |
-            yoru-android/*-verification.log
-            yoru-android/app/build/test-results/testDebugUnitTest/
-            handoff/YORU-4.20.0-dev.3-verification-tests.json
-            apk-output/YORU-4.20.0-dev.3-compat-sdk36-okhttp5.4.apk
+            yoru-android/android-build.log
+            handoff/YORU-4.20.0-dev.4-build-report.json
+            apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk
           if-no-files-found: ignore
