@@ -1,0 +1,12 @@
+{
+  "source_commit": "51a29384c0cf27b175908de01a03a96224d2c000",
+  "run_id": "34825107152",
+  "apk_bytes": 2986140,
+  "apk_sha256": "de96ecce6835179b9c3c7149df7c7194be9d456de3ae4e5827206c519ececde5",
+  "previous_optimized_bytes": 2985728,
+  "previous_unoptimized_bytes": 8868325,
+  "old_release_bytes": 2664056,
+  "debuggable": false,
+  "owner_certificate_matches": true,
+  "worker_class_preserved": true
+}
