@@ -23,7 +23,7 @@ final class HttpTransport {
         if(stopped){call.cancel();try{callback.onFailure(call,new java.io.InterruptedIOException("Cancelled"));}catch(Exception ignored){}return call;}
         call.enqueue(new Callback(){
             @Override public void onFailure(Call target,java.io.IOException error){unbind(target);callback.onFailure(target,error);}
-            @Override public void onResponse(Call target,Response response){try{callback.onResponse(target,response);}finally{try{response.close();}catch(Exception ignored){}unbind(target);}}
+            @Override public void onResponse(Call target,Response response){try{callback.onResponse(target,response);}catch(Exception ignored){}finally{try{response.close();}catch(Exception ignored){}unbind(target);}}
         });
         return call;
     }
