@@ -1,9 +1,9 @@
 {
-  "source_commit": "a450468924b21177d0e7760650361a0e1b46881f",
-  "run_id": "34832040478",
+  "source_commit": "92b259dd10e04e31426e84e3e7e7151dbfbf8d1b",
+  "run_id": "34832419171",
   "assembled": true,
-  "apk_bytes": 2992952,
-  "apk_sha256": "8ff5308db8a2a3c8c90d80f95c50ea0055ef990acd9459fbb5546100597cf4ca",
+  "apk_bytes": 2995052,
+  "apk_sha256": "501ab99b1a32b3c3776473025a3871d176fe2ddb779e77731b2ebc5d9243baf4",
   "tests_executed": false,
   "device_checks_executed": false
 }
