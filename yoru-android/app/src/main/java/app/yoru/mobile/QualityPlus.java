@@ -15,5 +15,5 @@ final class QualityPlus {
     static String name(int value){return value>=BEST?"Лучшее доступное":streamLabel(value);}
 
     static String streamLabel(int value){if(value<=0)return "Оригинал";if(value==1440)return "1440p · 2K";if(value==2160)return "2160p · 4K";return value+"p";}
-    static int bestAtOrBelow(Collection<Integer> rows,int cap){if(rows==null||rows.isEmpty())return 0;int limit=cap>=BEST?Integer.MAX_VALUE:clamp(cap),best=0;for(Integer q:rows){if(q==null)continue;int v=q; if(v<=0){if(best==0)best=v;continue;} if(v<=limit&&v>best)best=v;}if(best==0)for(Integer q:rows)if(q!=null){best=q;break;}return best;}
+    static int bestAtOrBelow(Collection<Integer> rows,int cap){if(rows==null||rows.isEmpty())return 0;int limit=cap>=BEST?Integer.MAX_VALUE:Math.max(0,cap),best=0;for(Integer q:rows){if(q==null)continue;int v=q; if(v<=0){if(best==0)best=v;continue;} if(v<=limit&&v>best)best=v;}if(best==0)for(Integer q:rows)if(q!=null){best=q;break;}return best;}
 }
