@@ -27,6 +27,7 @@ public final class DetailsActivity extends Activity {
     }
     private Anime snapshot(Anime value){Anime copy=Anime.from(value.json());copy.episodeList.addAll(value.episodeList);copy.related.addAll(value.related);copy.blocked=value.blocked;return copy;}
     private boolean currentLoad(int token){return token==generation&&!dead();}
+    private final java.util.concurrent.ExecutorService cardPool=TaskQueue.pool(3);
     private void updateMetadata(Anime value,int token){
         if(!currentLoad(token)||EpisodeRules.conflicts(anime,value))return;
         Anime next=snapshot(value);ArrayList<Anime.Episode> merged=new ArrayList<>(next.episodeList);merged.addAll(anime.episodeList);next.episodeList.clear();next.episodeList.addAll(EpisodeRules.visible(next,merged));
@@ -35,7 +36,7 @@ public final class DetailsActivity extends Activity {
     private void loadFull(){
         int token=++generation;if(detailFuture!=null)detailFuture.cancel(true);if(earlyPlayback!=null)earlyPlayback.cancel(true);
         Anime seed=snapshot(anime);episodesLoaded=false;render();
-        earlyPlayback=YoruApp.app().io.submit(()->{
+        earlyPlayback=cardPool.submit(()->{
             try{Anime.Playback result=YoruApp.app().api.playback(seed,"yoru");TaskQueue.check();
                 YoruApp.app().main.post(()->{
                     if(!currentLoad(token))return;episodesLoaded=true;
@@ -48,7 +49,7 @@ public final class DetailsActivity extends Activity {
                 });return result;
             }catch(Exception error){YoruApp.app().main.post(()->{if(currentLoad(token)){episodesLoaded=true;render();}});return null;}
         });
-        detailFuture=YoruApp.app().ui.submit(()->{
+        detailFuture=cardPool.submit(()->{
             Anime meta=seed;
             try{meta=YoruApp.app().api.quickDetails(seed);TaskQueue.check();Anime quick=snapshot(meta);YoruApp.app().main.post(()->updateMetadata(quick,token));}catch(Exception ignored){}
             if(Thread.currentThread().isInterrupted())return;
@@ -250,5 +251,5 @@ public final class DetailsActivity extends Activity {
         super.onSaveInstanceState(out);
     }
     @Override protected void onPause(){cancelWatchPreparation();if(inlinePlayer!=null)inlinePlayer.suspend();super.onPause();}
-    @Override protected void onDestroy(){cancelWatchPreparation();if(inlinePlayer!=null)inlinePlayer.close();generation++;downloadsGeneration++;if(detailFuture!=null)detailFuture.cancel(true);if(earlyPlayback!=null)earlyPlayback.cancel(true);if(downloadFuture!=null)downloadFuture.cancel(true);super.onDestroy();}
+    @Override protected void onDestroy(){cancelWatchPreparation();if(inlinePlayer!=null)inlinePlayer.close();generation++;downloadsGeneration++;if(detailFuture!=null)detailFuture.cancel(true);if(earlyPlayback!=null)earlyPlayback.cancel(true);if(downloadFuture!=null)downloadFuture.cancel(true);cardPool.shutdownNow();super.onDestroy();}
 }
