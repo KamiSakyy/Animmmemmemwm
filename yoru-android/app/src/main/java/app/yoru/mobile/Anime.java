@@ -20,7 +20,7 @@ public final class Anime {
     public double ratingScore(){double value=shikimoriScore>0?shikimoriScore:("shikimori".equals(source)?score:0);return Double.isFinite(value)&&value>0&&value<=10?value:0;}
     public int totalEpisodes(){return shikimoriEpisodes>0?shikimoriEpisodes:Math.max(0,episodes);}
     public int aired(){int n=episodesAired>0?episodesAired:EpisodeRules.available(episodeList),total=totalEpisodes();return Math.max(0,total>0?Math.min(total,n):n);}
-    private String releaseStatus(){return status==null?"":status.trim().toLowerCase(Locale.ROOT);}
+    private String releaseStatus(){return status==null?"":status.trim().toLowerCase(Locale.ROOT).replaceAll("[\\s-]+","_");}
     public boolean announced(){String s=releaseStatus();return s.equals("anons")||s.equals("announcement")||s.equals("announced")||s.equals("not_yet_released")||s.equals("not_yet_aired")||s.equals("upcoming")||s.equals("анонс");}
     public boolean ongoing(){String s=releaseStatus();return announced()||s.equals("ongoing")||s.equals("releasing")||s.equals("airing")||s.equals("currently_airing")||s.equals("выходит")||s.equals("онгоинг");}
     public String statusLabel(){String s=releaseStatus();if(announced())return "Анонс";if(ongoing())return "Онгоинг";if(s.equals("released")||s.equals("finished")||s.equals("complete")||s.equals("completed")||s.equals("закончен")||s.equals("закончено")||s.equals("завершен")||s.equals("завершён")||s.equals("завершено"))return "Закончен";return "Статус уточняется";}
