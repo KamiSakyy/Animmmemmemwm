@@ -70,12 +70,13 @@ dependencies {
 }
 
 
-tasks.register('assembleStoredDebug') {
- dependsOn 'assembleDebug'
+['debug', 'release'].each { variant ->
+tasks.register('assembleStored' + variant.capitalize()) {
+ dependsOn 'assemble' + variant.capitalize()
  doLast {
   if (!ownerSignedApk || !ownerFile.exists()) throw new GradleException('Distribution signing is required')
-  def original = layout.buildDirectory.file('outputs/apk/debug/app-debug.apk').get().asFile
-  def work = layout.buildDirectory.dir('stored-apk').get().asFile
+  def original = layout.buildDirectory.file('outputs/apk/' + variant + '/app-' + variant + '.apk').get().asFile
+  def work = layout.buildDirectory.dir('stored-apk/' + variant).get().asFile
   work.mkdirs()
   def unsigned = new File(work, 'unsigned.apk')
   def aligned = new File(work, 'aligned.apk')
@@ -108,4 +109,5 @@ tasks.register('assembleStoredDebug') {
   unsigned.delete()
   aligned.delete()
  }
+}
 }
