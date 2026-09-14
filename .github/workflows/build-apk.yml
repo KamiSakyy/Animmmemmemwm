@@ -131,6 +131,8 @@ jobs:
       - uses: android-actions/setup-android@v3
       - name: Install verification SDK
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Restore existing owner signing for compact APK
+        run: unzip -oq YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
       - name: Verify JVM5.5 and Android5.4 compatibility profiles
         working-directory: yoru-android
         run: |

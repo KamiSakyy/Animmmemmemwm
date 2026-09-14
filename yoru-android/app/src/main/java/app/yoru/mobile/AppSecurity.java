@@ -14,7 +14,7 @@ public final class AppSecurity {
         if(BuildConfig.DEBUG)return true;
         try{
             String expected=BuildConfig.EXPECTED_SIGNER_SHA256.toLowerCase(Locale.ROOT);
-            if(expected.length()!=64||!"app.yoru.mobile".equals(context.getPackageName()))return false;
+            if(expected.length()!=64||!BuildConfig.APPLICATION_ID.equals(context.getPackageName()))return false;
             Signature[] sig;
             if(Build.VERSION.SDK_INT>=28){PackageInfo p=context.getPackageManager().getPackageInfo(context.getPackageName(),PackageManager.GET_SIGNING_CERTIFICATES);sig=p.signingInfo.getApkContentsSigners();}
             else{PackageInfo p=context.getPackageManager().getPackageInfo(context.getPackageName(),PackageManager.GET_SIGNATURES);sig=p.signatures;}

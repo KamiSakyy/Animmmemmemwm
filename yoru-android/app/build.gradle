@@ -6,6 +6,7 @@ def transportDependency = verificationBuild ? (jvmVerification ? 'com.squareup.o
 if (verificationBuild && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) throw new GradleException('SDK36 verification cannot produce a release build')
 def owner = new Properties()
 def ownerFile = rootProject.file('owner-signing/signing.properties')
+if (compactApk && !ownerFile.exists()) throw new GradleException('Owner signing configuration is required for compact APK')
 if (ownerFile.exists()) ownerFile.withInputStream { owner.load(it) }
 def certHash = rootProject.file('owner-signing/certificate-sha256.txt').exists() ? rootProject.file('owner-signing/certificate-sha256.txt').text.trim() : ''
 android {
@@ -37,6 +38,8 @@ android {
   release { minifyEnabled true; shrinkResources true; debuggable false; signingConfig signingConfigs.release; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' }
   debug {
    applicationIdSuffix '.debug'
+   debuggable !compactApk
+   if (compactApk) signingConfig signingConfigs.release
    minifyEnabled compactApk
    shrinkResources compactApk
    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
