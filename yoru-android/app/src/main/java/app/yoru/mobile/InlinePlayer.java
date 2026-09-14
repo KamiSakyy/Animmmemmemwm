@@ -26,7 +26,7 @@ final class InlinePlayer extends LinearLayout {
     private int generation,quality,requestedQuality;private long resumePosition;private boolean playRequested;
     private boolean busy,closed,locked,foreground,restorePending;
     private double restoredEpisode=Double.NaN;
-    private long initialPosition=-1;
+    private long initialPosition=-1,progressAtPause=Long.MIN_VALUE;
     private TextView lockButton;
     private final Runnable checkpoint=new Runnable(){public void run(){if(player!=null){save();postDelayed(this,5000);}}};
 
@@ -42,7 +42,7 @@ final class InlinePlayer extends LinearLayout {
         qualityButton=Ui.button(activity,"Разрешение",false,this::chooseQuality);addView(qualityButton,Ui.lp(activity,-1,-2));
         LinearLayout tools=Ui.row(activity);
         tools.addView(Ui.iconButton(activity,"camera","Снимок видеокадра",()->{if(!locked)NativeFrame.capture(activity,video);}),Ui.lp(activity,48,48));
-        tools.addView(Ui.iconButton(activity,"expand","На весь экран",()->{if(anime==null||locked)return;double number=episode==null?1:episode.number;suspend();activity.startActivity(new android.content.Intent(activity,PlayerActivity.class).putExtra("anime",anime.json().toString()).putExtra("mode","yoru").putExtra("episode",number).putExtra("voice",YoruApp.app().store.voicePreference().isEmpty()?voice:YoruApp.app().store.voicePreference()).putExtra("quality",requestedQuality).putExtra("position",resumePosition).putExtra("playRequested",playRequested).putExtra("fullscreen",true));}),Ui.lp(activity,48,48));
+        tools.addView(Ui.iconButton(activity,"expand","На весь экран",()->{if(anime==null||locked)return;double number=episode==null?(restorePending?restoredEpisode:YoruApp.app().store.progress(anime).optDouble("episode",1)):episode.number;restorePending=false;suspend();activity.startActivity(new android.content.Intent(activity,PlayerActivity.class).putExtra("anime",anime.json().toString()).putExtra("mode","yoru").putExtra("episode",number).putExtra("voice",YoruApp.app().store.voicePreference().isEmpty()?voice:YoruApp.app().store.voicePreference()).putExtra("quality",requestedQuality).putExtra("position",resumePosition).putExtra("playRequested",playRequested).putExtra("fullscreen",true));}),Ui.lp(activity,48,48));
         TextView lock=Ui.button(activity,"Блокировка",false,()->{});lockButton=lock;lock.setOnClickListener(v->{locked=!locked;video.setUseController(!locked);start.setEnabled(!locked&&!busy);seasonButton.setEnabled(!locked&&!busy);episodeButton.setEnabled(!locked&&!busy);voiceButton.setEnabled(!locked&&!busy);qualityButton.setEnabled(!locked&&!busy);lock.setText(locked?"Разблокировать":"Блокировка");});tools.addView(lock,new LayoutParams(0,-2,1));addView(tools);
     }
     android.os.Bundle saveState(){
@@ -67,7 +67,17 @@ final class InlinePlayer extends LinearLayout {
         if(restorePending)episodeButton.setText("Серия "+Ui.number(restoredEpisode));
         state(false,restorePending?"Восстанавливаем выбранную серию…":"Выберите серию и начните просмотр");
     }
-    void resumeLifecycle(){foreground=true;restoreIfReady();}
+    void resumeLifecycle(){
+        foreground=true;
+        if(!restorePending&&player==null&&episode!=null&&anime!=null&&progressAtPause!=Long.MIN_VALUE){
+            JSONObject history=YoruApp.app().store.progress(anime);double number=history.optDouble("episode",Double.NaN);
+            if(history.optLong("updated",Long.MIN_VALUE)!=progressAtPause&&Double.isFinite(number)&&number>=0){
+                restoredEpisode=number;resumePosition=Math.max(0,history.optLong("time",0))*1000L;
+                episode=null;streams.clear();restorePending=true;playRequested=false;episodeButton.setText("Серия "+Ui.number(number));
+            }
+        }
+        restoreIfReady();
+    }
     private void restoreIfReady(){
         if(!restorePending||!foreground||busy||closed||playback==null||playback.video==null)return;
         for(Anime.Episode row:EpisodeRules.visible(anime,playback.video.episodeList)){
@@ -117,6 +127,6 @@ final class InlinePlayer extends LinearLayout {
     private void chooseSeason(){if(anime==null||busy)return;int token=generation;state(true,"Загружаем части истории…");Anime selected=Anime.from(anime.json());tasks.submit(YoruApp.app().ui,()->{try{List<Anime> rows=YoruApp.app().api.franchise(selected);post(()->{if(!alive(token))return;state(false,"Выберите сезон или часть истории");seasons.clear();seasons.addAll(rows);String[] labels=new String[seasons.size()];for(int i=0;i<labels.length;i++){Anime row=seasons.get(i);labels[i]=row.title+(row.year>0?" · "+row.year:"");}Ui.choices(activity,"Сезон / часть",labels,index->{suspend();anime=seasons.get(index);playback=null;episode=null;streams.clear();seasonButton.setText(anime.title);episodeButton.setText("Список серий");resumePosition=0;initialPosition=-1;restoredEpisode=Double.NaN;restorePending=false;playRequested=false;if(seasonListener!=null)seasonListener.accept(anime);else prepare(true);});});}catch(Exception e){post(()->{if(alive(token))state(false,"Список частей сейчас недоступен");});}},()->state(false,"Очередь занята. Повторите позже."));}
     private void save(){if(player==null||anime==null||episode==null||player.getPlaybackState()==Player.STATE_IDLE)return;long duration=player.getDuration();YoruApp.app().store.progress(anime,episode.number,(int)(player.getCurrentPosition()/1000),duration==C.TIME_UNSET?0:(int)Math.max(0,duration/1000),"yoru",voice,EpisodeRules.completed(anime,episode.number,(int)(player.getCurrentPosition()/1000),duration==C.TIME_UNSET?0:(int)(duration/1000)));}
     private void release(){removeCallbacks(checkpoint);if(player!=null){save();video.setPlayer(null);player.release();player=null;YoruApp.app().activePlayers=Math.max(0,YoruApp.app().activePlayers-1);}}
-    void suspend(){foreground=false;generation++;tasks.cancel();if(player!=null){resumePosition=Math.max(0,player.getCurrentPosition());playRequested=player.getPlayWhenReady();}release();busy=false;if(!closed)state(false,"Просмотр приостановлен");}
+    void suspend(){foreground=false;generation++;tasks.cancel();if(player!=null){resumePosition=Math.max(0,player.getCurrentPosition());playRequested=player.getPlayWhenReady();}release();if(anime!=null)progressAtPause=YoruApp.app().store.progress(anime).optLong("updated",Long.MIN_VALUE);busy=false;if(!closed)state(false,"Просмотр приостановлен");}
     void close(){suspend();closed=true;}
 }
