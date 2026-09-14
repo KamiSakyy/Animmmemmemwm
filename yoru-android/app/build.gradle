@@ -17,8 +17,8 @@ android {
   applicationId 'app.yoru.mobile'
   minSdk 26
   targetSdk verificationBuild ? 36 : 37
-  versionCode 79
-  versionName verificationBuild ? (jvmVerification ? '4.20.0-dev.9-jvm-verification' : '4.20.0-restart.9') : '4.20.0-dev.9'
+  versionCode 80
+  versionName verificationBuild ? (jvmVerification ? '4.20.0-dev.10-jvm-verification' : '4.20.0-test.10') : '4.20.0-dev.10'
   resValue 'string', 'application_title', (verificationBuild ? 'YORU · проверка' : 'YORU')
   buildConfigField 'String', 'DISPLAY_VERSION', '"4.20.0' + (verificationBuild ? ' · тестовая' : '') + '"'
   buildConfigField 'String', 'EXPECTED_SIGNER_SHA256', '"' + certHash + '"'

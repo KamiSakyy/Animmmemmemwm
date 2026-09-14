@@ -12,4 +12,4 @@ with zipfile.ZipFile(apk) as package:
 if not stored:
     raise RuntimeError("APK contains compressed entries")
 report = {"minification_enabled": False, "resource_shrinking_enabled": False, "all_apk_entries_stored": stored, "source_commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"], "assembled": True, "apk_bytes": len(data), "apk_sha256": hashlib.sha256(data).hexdigest(), "tests_executed": False, "device_checks_executed": False}
-(root / "handoff/YORU-4.20.0-dev.9-build-report.json").write_text(json.dumps(report, indent=2) + "\n")
+(root / "handoff/YORU-4.20.0-dev.10-build-report.json").write_text(json.dumps(report, indent=2) + "\n")
