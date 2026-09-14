@@ -90,7 +90,13 @@ final class HomeScreen extends SwipeRefreshLayout {
         }
     }
     private void header(LinearLayout box){
-        box.addView(Ui.label(activity,"РЕКОМЕНДАЦИИ"));Ui.space(box,14);
+        LinearLayout top=Ui.row(activity);top.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        top.addView(Ui.label(activity,"РЕКОМЕНДАЦИИ"),new LinearLayout.LayoutParams(0,-2,1));
+        TextView lucky=Ui.text(activity,"Случайное",10,Ui.PURPLE,true);lucky.setPadding(Ui.dp(activity,12),Ui.dp(activity,8),Ui.dp(activity,12),Ui.dp(activity,8));
+        lucky.setBackground(Ui.stroke(Ui.SURFACE,13,activity));Ui.press(lucky);lucky.setContentDescription("Открыть случайное аниме");
+        lucky.setOnClickListener(v->{if(rows.isEmpty()){Ui.toast(activity,"Список ещё загружается");return;}
+            Anime pick=rows.get(new java.util.Random().nextInt(rows.size()));Ui.openDetails(activity,pick);});
+        top.addView(lucky);box.addView(top);Ui.space(box,14);
         Anime anime=recommendation;
         if(anime!=null){
             FrameLayout hero=new FrameLayout(activity);hero.setBackground(Ui.shape(Ui.CARD,20,activity));hero.setClipToOutline(true);
