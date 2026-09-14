@@ -5,7 +5,7 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-version = "4.20.0-dev.6"
+version = "4.20.0-dev.7"
 files = subprocess.check_output(["git", "ls-files", "yoru-android"], cwd=root, text=True).splitlines()
 files += [
     ".github/workflows/build-apk.yml",
