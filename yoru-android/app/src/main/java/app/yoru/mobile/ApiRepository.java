@@ -47,7 +47,7 @@ public final class ApiRepository {
     private static final class Cache {String text;long at;Cache(String t){text=t;at=System.currentTimeMillis();}}
     private static final class StreamCache {TreeMap<Integer,String> streams;long at;StreamCache(TreeMap<Integer,String> s){streams=new TreeMap<>(s);at=System.currentTimeMillis();}}
     private static final class YoruChoice {Anime.Variant variant;int quality;TreeMap<Integer,String> streams;YoruChoice(Anime.Variant v,int q,TreeMap<Integer,String> s){variant=v;quality=q;streams=new TreeMap<>(s);}}
-    public static final class Filter {public String year="",genre="",genreName="",type="",status="",sort="RATING_DESC",season="";}
+    public static final class Filter {public String year="",genre="",genreName="",genreSource="",type="",status="",sort="RATING_DESC",season="";}
     public static final class AiringItem {public Anime anime;public long time;public int episode;public String kind="",precision="",source="";}
     public static JSONArray airingJson(List<AiringItem> rows){JSONArray arr=new JSONArray();try{if(rows!=null)for(AiringItem item:rows){if(item==null||item.anime==null)continue;arr.put(new JSONObject().put("anime",item.anime.json()).put("time",item.time).put("episode",item.episode).put("kind",item.kind).put("precision",item.precision).put("source",item.source));}}catch(Exception ignored){}return arr;}
     public static ArrayList<AiringItem> airingFromJson(JSONArray arr){ArrayList<AiringItem> out=new ArrayList<>();try{for(int i=0;arr!=null&&i<arr.length()&&i<800;i++){JSONObject j=arr.optJSONObject(i);if(j==null)continue;AiringItem item=new AiringItem();item.anime=Anime.from(j.optJSONObject("anime"));item.time=j.optLong("time");item.episode=j.optInt("episode");item.kind=j.optString("kind");item.precision=j.optString("precision");item.source=j.optString("source");if(Anime.valid(item.anime)&&item.time>0)out.add(item);}}catch(Exception ignored){}return out;}
@@ -139,8 +139,24 @@ public final class ApiRepository {
         for(int i=0;rows!=null&&i<rows.length();i++)result.items.add(remember(shikiAnime(rows.getJSONObject(i))));
         result.more=rows!=null&&rows.length()==6;return result;
     }
+    static String genreNamespace(String source){return "anilibria".equals(source)||"yummy".equals(source)?source:"shikimori";}
+    private Filter filterForSource(Filter original,String source)throws Exception{
+        Filter copy=new Filter();if(original==null)return copy;
+        copy.year=original.year;copy.genre=original.genre;copy.genreName=original.genreName;copy.genreSource=original.genreSource;
+        copy.type=original.type;copy.status=original.status;copy.sort=original.sort;copy.season=original.season;
+        String target=genreNamespace(source),origin=copy.genreSource.isEmpty()?target:genreNamespace(copy.genreSource);
+        if(!copy.genre.isEmpty()&&!origin.equals(target)){
+            TaskQueue.check();String[] selected=null;
+            for(String[] row:genres(origin))if(row[0].equals(copy.genre)){selected=row;break;}
+            if(selected==null)throw new IOException("Выбранный жанр сейчас недоступен");
+            String[] match=GenreIdentity.match(selected,genres(target));TaskQueue.check();
+            if(match==null)throw new IOException("Не удалось сохранить выбранный жанр при смене каталога");
+            copy.genre=match[0];copy.genreName=match[1];
+        }
+        copy.genreSource=target;return copy;
+    }
     public Anime.Page catalog(String source,String search,int page,Filter f)throws Exception{
-        if(f==null)f=new Filter();if(source==null||source.isEmpty())source="all";if(!source.equals("all")&&!nativeFilters(source)&&filterActive(f)){Anime.Page smart=catalog("shikimori",search,page,f);smart.note="Умная подборка";return smart;}if(source.equals("all"))return allCatalog(search,page,f);if(source.equals("yoru"))return yoruCatalog(search,page,f);if(source.equals("anixsekai"))return anixCatalog(search,page,f);if(source.equals("animedia"))return new NativeSources(this).catalog(source,search,page);if(source.equals("kodik"))return kodikCatalog(search,page,f);if(source.equals("animelib4k"))return animelib4kCatalog(search,page,f);if(source.equals("animetka"))return animetkaCatalog(search,page,f);if(source.equals("anidub"))return anidubCatalog(search,page);
+        if(source==null||source.isEmpty())source="all";f=filterForSource(f,source);if(!source.equals("all")&&!nativeFilters(source)&&filterActive(f)){Anime.Page smart=catalog("shikimori",search,page,f);smart.note="Умная подборка";return smart;}if(source.equals("all"))return allCatalog(search,page,f);if(source.equals("yoru"))return yoruCatalog(search,page,f);if(source.equals("anixsekai"))return anixCatalog(search,page,f);if(source.equals("animedia"))return new NativeSources(this).catalog(source,search,page);if(source.equals("kodik"))return kodikCatalog(search,page,f);if(source.equals("animelib4k"))return animelib4kCatalog(search,page,f);if(source.equals("animetka"))return animetkaCatalog(search,page,f);if(source.equals("anidub"))return anidubCatalog(search,page);
         Anime.Page out=new Anime.Page();out.page=page;JSONArray rows;String q=search==null?"":search.trim();int limit=24;
         if(source.equals("shikimori")){
             String args="limit:24,page:"+page+",order:"+shikiSort(f,q);
@@ -253,7 +269,7 @@ public final class ApiRepository {
         return uniqueOptions(rows);
     }
 
-    private Anime.Page yoruCatalog(String search,int page,Filter f)throws Exception{String q=search==null?"":search.trim();Anime.Page base;try{base=catalog("shikimori",q,page,f);}catch(Exception first){base=catalog("yummy",q,page,f);}Anime.Page out=new Anime.Page();out.page=base.page;out.total=base.total;out.more=base.more;out.note="YORU";for(Anime item:base.items)out.items.add(remember(yoruShell(item)));return out;}
+    private Anime.Page yoruCatalog(String search,int page,Filter f)throws Exception{String q=search==null?"":search.trim();Anime.Page base;try{base=catalog("shikimori",q,page,f);}catch(Exception first){TaskQueue.check();base=catalog("yummy",q,page,f);}Anime.Page out=new Anime.Page();out.page=base.page;out.total=base.total;out.more=base.more;out.note="YORU";for(Anime item:base.items)out.items.add(remember(yoruShell(item)));return out;}
     private Anime yoruShell(Anime base){Anime a=Anime.from(base==null?new JSONObject():base.json());String originalSource=base==null?"":base.source;a.source="yoru";int id=a.malId>0?a.malId:("shikimori".equals(originalSource)?parseInt(base.id):0);if(id>0&&a.malId==0)a.malId=id;if(id<=0)id=(int)(1L+Integer.toUnsignedLong((base==null?"yoru":base.key()).hashCode())%999999999L);a.id=String.valueOf(id);a.blocked=false;return a;}
     private Anime yoruDetails(Anime base,boolean episodes)throws Exception{Anime a=yoruShell(base);Anime y=null;try{y=findYummy(base);if(y!=null)fillYoruMeta(a,y);}catch(Exception ignored){}try{int mal=a.malId>0?a.malId:(y==null?0:y.malId);if(mal>0){Anime sh=new Anime();sh.source="shikimori";sh.id=String.valueOf(mal);Anime meta=details(sh,false);fillYoruMeta(a,meta);for(Anime r:meta.related)a.related.add(r);}}catch(Exception ignored){}if(episodes){ArrayList<Anime> found=yoruFoundSources(base,a,y);LinkedHashMap<String,Anime.Episode> map=new LinkedHashMap<>();for(Anime source:found)mergeYoruEpisodes(map,source);a.episodeList.clear();a.episodeList.addAll(map.values());a.episodeList.sort(Comparator.comparingDouble(e->e.number));if(a.episodes<=0)a.episodes=EpisodeRules.available(a.episodeList);appendFutureEpisodes(a);applyEpisodeVisuals(a);}return remember(a);}
 
