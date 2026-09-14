@@ -33,10 +33,18 @@ public final class SecureStore {
     private static void indexRows(JSONObject rows,HashMap<String,String> out){Iterator<String> keys=rows.keys();while(keys.hasNext()){String k=keys.next();JSONObject row=rows.optJSONObject(k);Anime a=row==null?null:Anime.from(row.optJSONObject("release"));out.put(k,k);for(String id:identityKeys(a))if(!out.containsKey(id))out.put(id,k);}}
     private static ArrayList<String> identityKeys(Anime a){ArrayList<String> out=new ArrayList<>();if(!Anime.valid(a))return out;out.add(a.key());if(a.malId>0)out.add("mal:"+a.malId);if(a.anilistId>0)out.add("ani:"+a.anilistId);if(a.kpId>0)out.add("kp:"+a.kpId);if("shikimori".equals(a.source)&&parsePositive(a.id)>0)out.add("mal:"+parsePositive(a.id));String[] names={a.title,a.original};for(String name:names){String n=ApiRepository.plainName(name);if(n.length()<3)continue;if(a.year>0)out.add("name:"+n+":"+a.year);if(n.length()>7)out.add("name:"+n); }return out;}
     private static int parsePositive(String s){try{int n=Integer.parseInt(s==null?"":s);return n>0?n:0;}catch(Exception e){return 0;}}
-    private String indexedKey(Anime a,HashMap<String,String> index){if(!Anime.valid(a))return "";for(String id:identityKeys(a)){String k=index.get(id);if(k!=null&&!k.isEmpty())return k;}return "";}
+    private String indexedKey(Anime anime,HashMap<String,String> index){
+        if(!Anime.valid(anime))return "";JSONObject records=index==favoriteIndex?favorites:history;
+        for(String identity:identityKeys(anime)){
+            String key=index.get(identity);if(key==null||key.isEmpty())continue;
+            JSONObject row=records.optJSONObject(key),release=row==null?null:row.optJSONObject("release");
+            if(release!=null&&!EpisodeRules.conflictsWithStored(anime,release))return key;
+        }
+        return "";
+    }
     private String favoriteKey(Anime a){String k=indexedKey(a,favoriteIndex);if(!k.isEmpty())return k;if(!Anime.valid(a))return "";Iterator<String> keys=favorites.keys();while(keys.hasNext()){String rowKey=keys.next();JSONObject row=favorites.optJSONObject(rowKey);Anime old=row==null?null:Anime.from(row.optJSONObject("release"));if(sameAnime(a,old)){for(String id:identityKeys(a))favoriteIndex.put(id,rowKey);return rowKey;}}return "";}
     private String historyKey(Anime a){String k=indexedKey(a,historyIndex);if(!k.isEmpty())return k;if(!Anime.valid(a))return "";Iterator<String> keys=history.keys();while(keys.hasNext()){String rowKey=keys.next();JSONObject row=history.optJSONObject(rowKey);Anime old=row==null?null:Anime.from(row.optJSONObject("release"));if(sameAnime(a,old)){for(String id:identityKeys(a))historyIndex.put(id,rowKey);return rowKey;}}return "";}
-    private static boolean sameAnime(Anime a,Anime b){if(!Anime.valid(a)||!Anime.valid(b))return false;if(a.key().equals(b.key()))return true;if(a.malId>0&&b.malId>0&&a.malId==b.malId)return true;if(a.anilistId>0&&b.anilistId>0&&a.anilistId==b.anilistId)return true;if(a.kpId>0&&b.kpId>0&&a.kpId==b.kpId)return true;String at=ApiRepository.plainName(a.title),ao=ApiRepository.plainName(a.original),bt=ApiRepository.plainName(b.title),bo=ApiRepository.plainName(b.original);boolean name=(!at.isEmpty()&&(at.equals(bt)||at.equals(bo)))||(!ao.isEmpty()&&(ao.equals(bt)||ao.equals(bo)));boolean year=a.year==0||b.year==0||Math.abs(a.year-b.year)<=1;return name&&year;}
+    private static boolean sameAnime(Anime a,Anime b){if(!Anime.valid(a)||!Anime.valid(b)||EpisodeRules.conflicts(a,b))return false;if(a.key().equals(b.key()))return true;if(a.malId>0&&b.malId>0&&a.malId==b.malId)return true;if(a.anilistId>0&&b.anilistId>0&&a.anilistId==b.anilistId)return true;if(a.kpId>0&&b.kpId>0&&a.kpId==b.kpId)return true;String at=ApiRepository.plainName(a.title),ao=ApiRepository.plainName(a.original),bt=ApiRepository.plainName(b.title),bo=ApiRepository.plainName(b.original);boolean name=(!at.isEmpty()&&(at.equals(bt)||at.equals(bo)))||(!ao.isEmpty()&&(ao.equals(bt)||ao.equals(bo)));boolean year=a.year==0||b.year==0||Math.abs(a.year-b.year)<=1;return name&&year;}
     public synchronized List<Anime> favorites(){ensure();return favorites("","");}
     public synchronized List<Anime> favorites(String bucket,String query){ensure();ArrayList<Anime> result=new ArrayList<>();Iterator<String> keys=favorites.keys();String q=query==null?"":query.toLowerCase(Locale.ROOT),folder="";if(bucket!=null&&bucket.startsWith("folder:"))folder=bucket.substring(7);while(keys.hasNext()){JSONObject j=favorites.optJSONObject(keys.next());if(j==null)continue;Anime a=Anime.from(j.optJSONObject("release"));if(!Anime.valid(a))continue;if(!folder.isEmpty()){if(!hasFolder(j,folder))continue;}else if(bucket!=null&&!bucket.isEmpty()&&!bucket.equals(j.optString("bucket","planned")))continue;if(!(a.title+" "+a.original).toLowerCase(Locale.ROOT).contains(q))continue;result.add(a);}result.sort((a,b)->{int p=Boolean.compare(pinned(b),pinned(a));return p!=0?p:a.title.compareToIgnoreCase(b.title);});return result;}
     public synchronized long libraryVersion(){ensure();return favorites.length()*31L+settings.optLong("libraryVersion",0);}
@@ -109,7 +117,7 @@ public final class SecureStore {
         int mal=anime.malId>0?anime.malId:("shikimori".equals(anime.source)?parsePositive(anime.id):0);
         if(mal>0)keys.add("mal:"+mal);
         if(anime.anilistId>0)keys.add("ani:"+anime.anilistId);
-        keys.add(anime.key());return keys;
+        keys.add(anime.source+":"+anime.id);if(!keys.contains(anime.key()))keys.add(anime.key());return keys;
     }
     public synchronized boolean onlyPreferredVoice(){ensure();return settings.optBoolean("onlyPreferredVoice",false)&&!ApiRepository.voiceKey(voicePreference()).isEmpty();}
     public synchronized void onlyPreferredVoice(boolean value){ensure();try{settings.put("onlyPreferredVoice",value&&!ApiRepository.voiceKey(voicePreference()).isEmpty());write("settings",settings);}catch(Exception ignored){}}

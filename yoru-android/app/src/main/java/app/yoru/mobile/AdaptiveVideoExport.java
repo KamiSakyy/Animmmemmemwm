@@ -47,6 +47,8 @@ final class AdaptiveVideoExport {
         for(File file:files){if(SystemClock.elapsedRealtime()>=deadline||Thread.currentThread().isInterrupted())return;try{String name=file.getName();java.util.UUID id=java.util.UUID.fromString(name.substring(13,name.length()-4));androidx.work.WorkInfo work=androidx.work.WorkManager.getInstance(context).getWorkInfoById(id).get(5,TimeUnit.SECONDS);if(work==null||work.getState().isFinished())file.delete();}catch(Exception ignored){}}
     }
 
+    static final class NoSpace extends IOException {}
+
     static final class Unsupported extends IOException {
         Unsupported(){super("Этот формат нельзя сохранить без изменения видео");}
     }
@@ -66,7 +68,7 @@ final class AdaptiveVideoExport {
         HandlerThread thread=null;Handler handler=null;File output=new File(context.getFilesDir(),"video-export-"+operation+".mp4");
         AtomicReference<Transformer> transformer=new AtomicReference<>();AtomicReference<Exception> failure=new AtomicReference<>();AtomicBoolean disposed=new AtomicBoolean();CountDownLatch completed=new CountDownLatch(1);boolean success=false;
         try{
-            if(cancelled.getAsBoolean())throw new InterruptedIOException();long expected=Math.max(0,download.getBytesDownloaded());if(expected>Math.max(0,context.getFilesDir().getUsableSpace()-32L*1024*1024))throw new IOException("Недостаточно места для подготовки видео");
+            if(cancelled.getAsBoolean())throw new InterruptedIOException();long expected=Math.max(0,download.getBytesDownloaded());if(expected>Math.max(0,context.getFilesDir().getUsableSpace()-32L*1024*1024))throw new NoSpace();
             if(output.exists()&&!output.delete())throw new IOException();
             thread=new HandlerThread("yoru-video-export");thread.start();handler=new Handler(thread.getLooper());Handler owner=handler;
             Runnable report=new Runnable(){@Override public void run(){if(disposed.get()||completed.getCount()==0||cancelled.getAsBoolean())return;Transformer active=transformer.get();if(active!=null){ProgressHolder holder=new ProgressHolder();int state=active.getProgress(holder);progress.accept(state==Transformer.PROGRESS_STATE_AVAILABLE?holder.progress:-1);}owner.postDelayed(this,1000);}};
@@ -84,7 +86,7 @@ final class AdaptiveVideoExport {
             });
             while(!completed.await(1,TimeUnit.SECONDS)){
                 if(cancelled.getAsBoolean()||SystemClock.elapsedRealtime()>=deadline)throw new InterruptedIOException();
-                if(context.getFilesDir().getUsableSpace()<16L*1024*1024)throw new IOException("Недостаточно места для подготовки видео");
+                if(context.getFilesDir().getUsableSpace()<16L*1024*1024)throw new NoSpace();
             }
             if(cancelled.getAsBoolean())throw new InterruptedIOException();Exception error=failure.get();if(error!=null)throw error;if(!output.isFile()||output.length()<=0)throw new IOException();success=true;return output;
         }finally{

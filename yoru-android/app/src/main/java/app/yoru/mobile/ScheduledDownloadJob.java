@@ -83,12 +83,12 @@ public final class ScheduledDownloadJob extends JobService {
                     }
                     if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p.id,"waiting","Ожидает подходящий выпуск",ScheduledDownloads.nextCheck(p.due));continue;}
                     if(SystemClock.elapsedRealtime()+10_000>=deadline)return;
-                    long bytes=MediaSize.probe(best.episode.streams.get(best.quality));TaskQueue.check();
+                    MediaSize.Info info=MediaSize.probeInfo(best.episode.streams.get(best.quality));long bytes=info.bytes;TaskQueue.check();
                     if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p.id,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(0));continue;}
                     if(stop.get()||!store.exists(p.id))continue;
                     store.update(p.id,"waiting","Подготавливаем скачивание · "+MediaSize.label(bytes),ScheduledDownloads.nextCheck(p.due));
                     if(SystemClock.elapsedRealtime()+5_000>=deadline)return;
-                    boolean accepted=enqueue(p,best,stop,Math.min(30_000,deadline-SystemClock.elapsedRealtime()));
+                    boolean accepted=enqueue(p,best,info.mime,stop,Math.min(30_000,deadline-SystemClock.elapsedRealtime()));
                     if(accepted)store.update(p.id,"queued","Передано в загрузки · "+MediaSize.label(bytes),0);
                     else if(!stop.get())store.update(p.id,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",ScheduledDownloads.nextCheck(0));
                 } catch(java.io.InterruptedIOException|InterruptedException e) { Thread.currentThread().interrupt();return; }
@@ -97,7 +97,7 @@ public final class ScheduledDownloadJob extends JobService {
         }
     }
 
-    private boolean enqueue(ScheduledDownloads.Plan plan,ApiRepository.DownloadOption option,AtomicBoolean stop,long timeout) throws Exception {
+    private boolean enqueue(ScheduledDownloads.Plan plan,ApiRepository.DownloadOption option,String mime,AtomicBoolean stop,long timeout) throws Exception {
         YoruApp app=YoruApp.app();
         CountDownLatch prepared=new CountDownLatch(1);
         AtomicBoolean finished=new AtomicBoolean(false),sent=new AtomicBoolean(false);
@@ -110,7 +110,7 @@ public final class ScheduledDownloadJob extends JobService {
             if(stop.get()||finished.get()){prepared.countDown();return;}
             try {
                 TrackSelectionParameters selection=DownloadTracks.parameters(this,option.quality);
-                DownloadHelper h=DownloadHelper.forMediaItem(DownloadHub.item(option.episode.streams.get(option.quality)),selection,new DefaultRenderersFactory(this),app.mediaCache.http());
+                DownloadHelper h=DownloadHelper.forMediaItem(DownloadHub.item(option.episode.streams.get(option.quality),mime),selection,new DefaultRenderersFactory(this),app.mediaCache.http());
                 helper.set(h);
                 h.prepare(new DownloadHelper.Callback() {
                     @Override public void onPrepared(DownloadHelper ready) {

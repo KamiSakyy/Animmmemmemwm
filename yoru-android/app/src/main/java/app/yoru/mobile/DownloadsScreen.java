@@ -20,16 +20,39 @@ public final class DownloadsScreen extends LinearLayout {
         Entry(ScheduledDownloads.Plan value){download=null;plan=value;}
     }
     private final HashSet<String> exporting=new HashSet<>();
+    private List<androidx.work.WorkInfo> exportStates=Collections.emptyList();
     private androidx.lifecycle.LiveData<List<androidx.work.WorkInfo>> exportJobs;
     private final androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> exportObserver=this::exportsChanged;
     private boolean attached,refreshing;
     private int generation;
     private java.util.concurrent.Future<?> refreshFuture;
 
-    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;YoruApp.app().io.submit(()->AdaptiveVideoExport.removeFinishedDrafts(activity));exportJobs=androidx.work.WorkManager.getInstance(activity).getWorkInfosByTagLiveData(DocumentDownloads.EXPORT_TAG);exportJobs.observeForever(exportObserver);handler.post(update);}
-    @Override protected void onDetachedFromWindow(){attached=false;if(exportJobs!=null)exportJobs.removeObserver(exportObserver);exportJobs=null;exporting.clear();generation++;refreshing=false;if(refreshFuture!=null)refreshFuture.cancel(true);handler.removeCallbacksAndMessages(null);super.onDetachedFromWindow();}
-    private void exportsChanged(List<androidx.work.WorkInfo> jobs){if(!attached)return;HashSet<String> active=new HashSet<>();if(jobs!=null)for(androidx.work.WorkInfo job:jobs)if(!job.getState().isFinished())for(String tag:job.getTags())if(tag.startsWith(DocumentDownloads.EXPORT_ITEM_TAG))active.add(tag.substring(DocumentDownloads.EXPORT_ITEM_TAG.length()));if(exporting.equals(active))return;exporting.clear();exporting.addAll(active);adapter.notifyDataSetChanged();}
-    private void refreshSafe(){if(!attached||refreshing)return;refreshing=true;int gen=generation;
+    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;YoruApp.app().io.submit(()->{AdaptiveVideoExport.removeFinishedDrafts(activity);DocumentDownloads.removeFinishedDocuments(activity);});startObserving();}
+    @Override protected void onDetachedFromWindow(){attached=false;stopObserving();exporting.clear();exportStates=Collections.emptyList();super.onDetachedFromWindow();}
+    @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(list==null)return;if(visibility==VISIBLE)startObserving();else stopObserving();}
+    private void startObserving(){
+        if(!attached||getWindowVisibility()!=VISIBLE)return;
+        if(exportJobs==null){exportJobs=androidx.work.WorkManager.getInstance(activity).getWorkInfosByTagLiveData(DocumentDownloads.EXPORT_TAG);exportJobs.observeForever(exportObserver);}
+        handler.removeCallbacks(update);handler.post(update);
+    }
+    private void stopObserving(){
+        if(exportJobs!=null)exportJobs.removeObserver(exportObserver);exportJobs=null;generation++;refreshing=false;
+        if(refreshFuture!=null)refreshFuture.cancel(true);handler.removeCallbacksAndMessages(null);
+    }
+    private void exportsChanged(List<androidx.work.WorkInfo> jobs){
+        if(!attached||getWindowVisibility()!=VISIBLE)return;exportStates=jobs==null?Collections.emptyList():jobs;
+        exporting.clear();for(androidx.work.WorkInfo job:exportStates)if(!job.getState().isFinished())for(String tag:job.getTags())if(tag.startsWith(DocumentDownloads.EXPORT_ITEM_TAG))exporting.add(tag.substring(DocumentDownloads.EXPORT_ITEM_TAG.length()));
+        refreshVisibleRows();
+    }
+    private void refreshVisibleRows(){
+        for(int i=0;i<list.getChildCount();i++){
+            View view=list.getChildAt(i);int position=list.getFirstVisiblePosition()+i;
+            if(!(view.getTag() instanceof DownloadRow)||position<0||position>=rows.size())continue;
+            DownloadRow holder=(DownloadRow)view.getTag();Entry entry=rows.get(position);
+            if(entry.plan!=null)holder.bindPlan(entry.plan);else holder.bind(entry.download);
+        }
+    }
+    private void refreshSafe(){if(!attached||getWindowVisibility()!=VISIBLE||refreshing)return;refreshing=true;int gen=generation;
         refreshFuture=YoruApp.app().io.submit(()->{
             try {
                 ArrayList<Download> downloads=new ArrayList<>(hub.all());
@@ -41,7 +64,7 @@ public final class DownloadsScreen extends LinearLayout {
                 for(ScheduledDownloads.Plan plan:plans){if(!DownloadListRules.showPlan("queued".equals(plan.state),ids.contains(plan.downloadId())))continue;fresh.add(new Entry(plan));pending++;signature.append(plan.id).append(':').append(plan.state).append(':').append(plan.message).append(':').append(plan.due).append(':').append(plan.dateLabel).append(':').append(plan.voice).append(':').append(plan.quality).append('|');}
                 String text="Готово: "+complete+" · скачивается: "+active+" · запланировано: "+pending+" · "+Ui.bytes(YoruApp.app().mediaCache.offlineBytes());
                 String next=signature.toString();
-                YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);if(!next.equals(lastSignature)){lastSignature=next;rows.clear();rows.addAll(fresh);adapter.notifyDataSetChanged();}});
+                YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);boolean changed=!next.equals(lastSignature);lastSignature=next;rows.clear();rows.addAll(fresh);if(changed)adapter.notifyDataSetChanged();else refreshVisibleRows();});
             } catch(Exception e){YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText("Не удалось обновить загрузки. Повторим проверку.");});}
         });
         if(refreshFuture.isCancelled()){refreshing=false;summary.setText("Очередь занята. Повторим обновление.");}
@@ -137,15 +160,18 @@ public final class DownloadsScreen extends LinearLayout {
             poster.setVisibility(url.isEmpty()?View.GONE:View.VISIBLE);placeholder.setVisibility(url.isEmpty()?View.VISIBLE:View.GONE);placeholder.setText("Серия\n"+Ui.number(episode));
             if(!key.equals(imageKey)){imageKey=key;poster.setTag(null);poster.setImageDrawable(null);if(!url.isEmpty())YoruApp.app().images.load(poster,url,key);}
             type.setText("Тип: "+OfflineExporter.format(d));
-            String status=exporting.contains(d.request.id)?"Сохранение в выбранную папку":DownloadHub.status(d);
+            androidx.work.WorkInfo export=ExportPresentation.latest(exportStates,d.request.id);
+            String exportStatus=ExportPresentation.status(export);
+            String status=d.state==Download.STATE_COMPLETED&&!exportStatus.isEmpty()?exportStatus:DownloadHub.status(d);
             if(d.state==Download.STATE_QUEUED&&YoruApp.app().store.wifiDownloads()&&YoruApp.app().traffic.metered())status="Ожидает Wi-Fi";
-            state.setText(status);state.setTextColor(d.state==Download.STATE_FAILED?0xffe0a791:Ui.MUTED);
+            state.setText(status);state.setTextColor(d.state==Download.STATE_FAILED||(export!=null&&export.getState()==androidx.work.WorkInfo.State.FAILED)?0xffe0a791:Ui.MUTED);
             boolean saving=exporting.contains(d.request.id);boolean active=saving||d.state==Download.STATE_DOWNLOADING||d.state==Download.STATE_QUEUED||d.state==Download.STATE_RESTARTING;
-            progress.setVisibility(active?View.VISIBLE:View.GONE);float pct=saving?-1:d.getPercentDownloaded();progress.setIndeterminate(pct<0);progress.setProgress(pct<0?0:(int)pct);
-            size.setText(Ui.bytes(d.getBytesDownloaded())+(d.contentLength>0?" / "+Ui.bytes(d.contentLength):""));
+            progress.setVisibility(active?View.VISIBLE:View.GONE);float pct=saving?ExportPresentation.percent(export):d.getPercentDownloaded();progress.setIndeterminate(pct<0);progress.setProgress(pct<0?0:(int)pct);
+            String exportSize=ExportPresentation.size(export);
+            size.setText(exportSize.isEmpty()?(d.getBytesDownloaded()==0?"0 байт":MediaSize.label(d.getBytesDownloaded()))+(d.contentLength>0?" / "+MediaSize.label(d.contentLength):""):exportSize);
             primary.setText(d.state==Download.STATE_COMPLETED?"Смотреть":d.state==Download.STATE_STOPPED?"Продолжить":d.state==Download.STATE_FAILED?"Повторить":"Пауза");
             primary.setEnabled(d.state!=Download.STATE_REMOVING);
-            save.setText(saving?"Остановить":"Сохранить");save.setVisibility(d.state==Download.STATE_COMPLETED&&DocumentDownloads.canExport(d)?View.VISIBLE:View.GONE);
+            save.setText(saving?"Остановить":export!=null&&export.getState()==androidx.work.WorkInfo.State.FAILED?"Повторить сохранение":"Сохранить");save.setVisibility(d.state==Download.STATE_COMPLETED&&DocumentDownloads.canExport(d)?View.VISIBLE:View.GONE);
         }
     }
 }

@@ -7,6 +7,11 @@ final class EpisodeRules {
     static boolean completed(Anime anime,double episode,int seconds,int duration){return anime!=null&&anime.totalEpisodes()>0&&"Закончен".equals(anime.statusLabel())&&Double.isFinite(episode)&&Math.abs(episode-anime.totalEpisodes())<.001&&duration>0&&seconds>=Math.max(0,duration-1);}
     static boolean conflicts(Anime a,Anime b){return a!=null&&b!=null&&((shikimoriId(a)>0&&shikimoriId(b)>0&&shikimoriId(a)!=shikimoriId(b))||(a.anilistId>0&&b.anilistId>0&&a.anilistId!=b.anilistId));}
     private static int shikimoriId(Anime anime){if(anime.malId>0)return anime.malId;if(!"shikimori".equals(anime.source))return 0;try{return Math.max(0,Integer.parseInt(anime.id));}catch(NumberFormatException ignored){return 0;}}
+    static boolean conflictsWithStored(Anime anime,org.json.JSONObject release){
+        if(anime==null||release==null)return false;int mal=release.optInt("malId",0),anilist=release.optInt("anilistId",0);
+        if(mal<=0&&"shikimori".equals(release.optString("provider")))try{mal=Integer.parseInt(release.optString("nativeId"));}catch(NumberFormatException ignored){}
+        return (shikimoriId(anime)>0&&mal>0&&shikimoriId(anime)!=mal)||(anime.anilistId>0&&anilist>0&&anime.anilistId!=anilist);
+    }
     static boolean allowsNumber(Anime anime,double number){
         if(!Double.isFinite(number)||number<0)return false;
         int total=anime==null?0:anime.shikimoriEpisodes>0?anime.shikimoriEpisodes:"shikimori".equals(anime.source)?anime.episodes:0;

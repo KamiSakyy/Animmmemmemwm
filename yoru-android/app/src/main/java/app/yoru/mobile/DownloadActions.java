@@ -46,7 +46,7 @@ public final class DownloadActions {
         ArrayList<Anime.Episode> rows=EpisodeRules.downloadable(anime,episodes);if(rows.isEmpty()){Ui.toast(activity,"Нет вышедших серий для скачивания");return;}
         TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,"Готовим серии: 0 / "+rows.size(),true,()->cancelled.set(true));
         TaskQueue.run(YoruApp.app().io,cancelled,()->{
-            ArrayList<ApiRepository.DownloadOption> prepared=new ArrayList<>();ArrayList<Long> sizes=new ArrayList<>();int failed=0;
+            ArrayList<ApiRepository.DownloadOption> prepared=new ArrayList<>();ArrayList<Long> sizes=new ArrayList<>();ArrayList<String> formats=new ArrayList<>();int failed=0;
             for(int i=0;i<rows.size()&&!cancelled.get();i++){
                 if(dead(activity)){cancelled.set(true);return;}Anime.Episode ep=rows.get(i);int done=i+1;
                 YoruApp.app().main.post(()->{if(!dead(activity)&&!cancelled.get())wait.setMessage("Готовим серии: "+done+" / "+rows.size());});
@@ -54,7 +54,7 @@ public final class DownloadActions {
                     int limit=preferred<0?YoruApp.app().store.downloadResolution():preferred;
                     ApiRepository.DownloadOption chosen=choose(YoruApp.app().api.downloadOptions(anime,ready,ep.number,voice,limit,strict),limit);
                     if(chosen==null||chosen.episode==null||chosen.episode.future||Double.compare(chosen.episode.number,ep.number)!=0||EpisodeRules.conflicts(anime,chosen.source)||(strict&&!ApiRepository.voiceMatches(voice,chosen.voice+" "+chosen.episode.name))){failed++;continue;}
-                    long size=MediaSize.probe(chosen.episode.streams.get(chosen.quality));TaskQueue.check();prepared.add(chosen);sizes.add(size);
+                    MediaSize.Info info=MediaSize.probeInfo(chosen.episode.streams.get(chosen.quality));TaskQueue.check();prepared.add(chosen);sizes.add(info.bytes);formats.add(info.mime);
                 }catch(Exception error){if(cancelled.get())return;failed++;}
             }
             int missing=failed;YoruApp.app().main.post(()->{
@@ -70,7 +70,7 @@ public final class DownloadActions {
                 Ui.custom(activity,"Скачать выбранные серии?",scroll,"Скачать",()->{
                     if(dead(activity))return;
                     if(Build.VERSION.SDK_INT>=33&&activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},4101);
-                    for(ApiRepository.DownloadOption option:prepared)YoruApp.app().downloads().enqueue(anime,option.source,option.episode,option.quality,option.voice);
+                    for(int i=0;i<prepared.size();i++){ApiRepository.DownloadOption option=prepared.get(i);YoruApp.app().downloads().enqueue(anime,option.source,option.episode,option.quality,option.voice,formats.get(i));}
                 },null,null,"@close");
             });
         },()->{wait.dismiss();if(!dead(activity))Ui.toast(activity,"Не удалось подготовить скачивание. Попробуйте ещё раз.");});
@@ -79,16 +79,16 @@ public final class DownloadActions {
     private static void loadAndShow(Activity activity,Anime anime,double episode,String message,String empty,Loader loader){loadAndShow(activity,anime,episode,message,empty,-1,loader);}
     private static void loadAndShow(Activity activity,Anime anime,double episode,String message,String empty,int preferredQuality,Loader loader){TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,message,true,()->cancelled.set(true));TaskQueue.run(YoruApp.app().io,cancelled,()->{try{List<ApiRepository.DownloadOption> options=merge(loader.load());YoruApp.app().main.post(()->{if(dead(activity)||cancelled.get())return;wait.dismiss();if(options.isEmpty()){Ui.message(activity,"Нет доступного варианта",empty);return;}showOptions(activity,anime,episode,options,preferredQuality);});}catch(Exception e){YoruApp.app().main.post(()->{if(!dead(activity)&&!cancelled.get()){wait.dismiss();Ui.toast(activity,"Не удалось подготовить загрузку. Попробуйте другой вариант.");}});}},()->{wait.dismiss();Ui.toast(activity,"Очередь занята. Повторите действие позже.");});}
     private static void showOptions(Activity activity,Anime anime,double episode,List<ApiRepository.DownloadOption> options,int preferredQuality){String[] labels=new String[options.size()];int preferred=preferredQuality>0?preferredQuality:(YoruApp.app().savingMobile()?480:YoruApp.app().store.quality()),index=0,best=-1;for(int i=0;i<options.size();i++){labels[i]=privateLabel(options.get(i));int q=options.get(i).quality;if(preferred==9999){if(q>best){best=q;index=i;}}else if(q>0&&q<=preferred&&q>best){best=q;index=i;}}Ui.singleChoice(activity,"Серия "+Ui.number(episode)+" · озвучка и разрешение",labels,index,"Скачать",i->confirm(activity,anime,options.get(i)));}
-    private static List<ApiRepository.DownloadOption> nativeOptions(Anime anime,double number,Anime.Episode current,String voice,String player){ArrayList<ApiRepository.DownloadOption> out=new ArrayList<>();if(current==null||current.future||Math.abs(current.number-number)>.001||current.streams.isEmpty())return out;int n=0;for(Map.Entry<Integer,String> stream:current.streams.entrySet()){String safe=ApiRepository.safeUrl(stream.getValue());if(safe.isEmpty())continue;Anime source=copyAnime(anime,"yummy","native-"+Integer.toHexString((anime.key()+"|"+safe).hashCode()));Anime.Episode ep=new Anime.Episode();ep.id=source.id+"-"+Ui.number(number)+"-"+(++n);ep.number=number;ep.name=(voice==null||voice.isEmpty())?"Плеер YORU":voice;ep.streams.put(stream.getKey(),safe);out.add(new ApiRepository.DownloadOption(source,ep,stream.getKey(),ep.name,(player==null||player.isEmpty())?"Плеер YORU":"Плеер YORU · "+player));}return out;}
+    private static List<ApiRepository.DownloadOption> nativeOptions(Anime anime,double number,Anime.Episode current,String voice,String player){ArrayList<ApiRepository.DownloadOption> out=new ArrayList<>();if(current==null||current.future||Math.abs(current.number-number)>.001||current.streams.isEmpty())return out;int n=0;for(Map.Entry<Integer,String> stream:current.streams.entrySet()){String safe=ApiRepository.safeUrl(stream.getValue());if(safe.isEmpty())continue;Anime source=Anime.from(anime.json());Anime.Episode ep=new Anime.Episode();ep.id="native-"+Integer.toUnsignedString((anime.key()+"|"+safe).hashCode())+"-"+Ui.number(number)+"-"+(++n);ep.number=number;ep.name=(voice==null||voice.isEmpty())?"Плеер YORU":voice;ep.streams.put(stream.getKey(),safe);out.add(new ApiRepository.DownloadOption(source,ep,stream.getKey(),ep.name,(player==null||player.isEmpty())?"Плеер YORU":"Плеер YORU · "+player));}return out;}
     private static String privateLabel(ApiRepository.DownloadOption option){String size=Ui.videoSizeHint(option.quality,option.episode==null?0:option.episode.duration);return option.label()+" · "+size;}
-    private static Anime copyAnime(Anime anime,String sourceId,String id){Anime source=new Anime();source.source=sourceId;source.id=id;source.title=anime.title;source.original=anime.original;source.poster=anime.poster;source.description=anime.description;source.year=anime.year;source.type=anime.type;source.status=anime.status;source.episodes=anime.totalEpisodes();source.episodesAired=anime.aired();source.shikimoriEpisodes=anime.shikimoriEpisodes;source.shikimoriScore=anime.ratingScore();source.nextEpisodeAt=anime.nextEpisodeAt;source.malId=anime.malId;source.anilistId=anime.anilistId;source.kpId=anime.kpId;return source;}
+
     private static ArrayList<ApiRepository.DownloadOption> merge(List<ApiRepository.DownloadOption> options){LinkedHashMap<String,ApiRepository.DownloadOption> map=new LinkedHashMap<>();if(options!=null)for(ApiRepository.DownloadOption option:options){if(option==null||option.source==null||option.episode==null)continue;String url=option.episode.streams.get(option.quality);String safe=ApiRepository.safeUrl(url);if(safe.isEmpty())continue;String voice=ApiRepository.voiceKey(option.voice+" "+option.episode.name);String key=Ui.number(option.episode.number)+"|"+option.quality+"|"+(voice.isEmpty()?"unknown:"+Integer.toHexString(safe.hashCode()):voice);if(!map.containsKey(key))map.put(key,option);}return new ArrayList<>(map.values());}
     private static void confirm(Activity activity,Anime anime,ApiRepository.DownloadOption option){
         if(option==null||option.episode==null||dead(activity))return;
         String url=option.episode.streams.get(option.quality);
         TaskQueue.Signal cancelled=new TaskQueue.Signal();Ui.Progress wait=Ui.progress(activity,"Уточняем размер…",true,()->cancelled.set(true));
         TaskQueue.run(YoruApp.app().ui,cancelled,()->{
-            long bytes=MediaSize.probe(url);
+            MediaSize.Info info=MediaSize.probeInfo(url);long bytes=info.bytes;
             YoruApp.app().main.post(()->{
                 if(dead(activity)||cancelled.get())return;wait.dismiss();
                 boolean mobile=YoruApp.app().traffic.metered()&&!YoruApp.app().store.wifiDownloads();
@@ -97,7 +97,7 @@ public final class DownloadActions {
                 Ui.confirm(activity,"Скачать серию "+Ui.number(option.episode.number)+"?",message,"Скачать",()->{
                     if(dead(activity))return;
                     if(Build.VERSION.SDK_INT>=33&&activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},4101);
-                    YoruApp.app().downloads().enqueue(anime,option.source,option.episode,option.quality,option.voice);
+                    YoruApp.app().downloads().enqueue(anime,option.source,option.episode,option.quality,option.voice,info.mime);
                 },"Не сейчас");
             });
         },()->{wait.dismiss();if(!dead(activity))Ui.toast(activity,"Не удалось подготовить скачивание. Попробуйте ещё раз.");});
