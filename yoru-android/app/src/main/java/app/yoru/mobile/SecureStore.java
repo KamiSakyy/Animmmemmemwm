@@ -63,6 +63,11 @@ public final class SecureStore {
     public synchronized boolean customFont(){ensure();return settings.optBoolean("customFont",false);}
     public synchronized String fontName(){ensure();return settings.optString("fontName","Системный");}
     public synchronized void appearance(int scale,boolean custom,String name){ensure();try{settings.put("fontScale",Math.max(85,Math.min(130,scale))).put("customFont",custom).put("fontName",name==null||name.trim().isEmpty()?"Свой шрифт":name.trim());write("settings",settings);}catch(Exception ignored){}}
+    public synchronized boolean wallpaperEnabled(){ensure();return settings.optBoolean("wallpaperEnabled",false);}
+    public synchronized boolean wallpaperTransparent(){ensure();return settings.optBoolean("wallpaperTransparent",false);}
+    public synchronized int wallpaperTransparency(){ensure();return Math.max(0,Math.min(90,settings.optInt("wallpaperTransparency",45)));}
+    public synchronized long wallpaperVersion(){ensure();return settings.optLong("wallpaperVersion",0);}
+    public synchronized void wallpaper(boolean enabled,boolean transparent,int opacity){ensure();try{settings.put("wallpaperEnabled",enabled).put("wallpaperTransparent",transparent).put("wallpaperTransparency",Math.max(0,Math.min(90,opacity))).put("wallpaperVersion",System.currentTimeMillis());write("settings",settings);}catch(Exception ignored){}}
     public synchronized String downloadFolder(){ensure();return settings.optString("downloadFolder","");}
     public synchronized void downloadFolder(String uri){ensure();try{settings.put("downloadFolder",uri==null?"":uri);write("settings",settings);}catch(Exception ignored){}}
     public synchronized String exportedDocument(String id){ensure();JSONObject exports=settings.optJSONObject("documentExports");return exports==null?"":exports.optString(id,"");}

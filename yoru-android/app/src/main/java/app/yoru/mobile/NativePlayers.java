@@ -1,0 +1,15 @@
+package app.yoru.mobile;
+
+import android.content.Context;
+import androidx.media3.common.AudioAttributes;
+import androidx.media3.common.C;
+import androidx.media3.exoplayer.DefaultLoadControl;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.source.MediaSource;
+
+final class NativePlayers {
+    private NativePlayers(){}
+    static ExoPlayer create(Context context){DefaultLoadControl control=new DefaultLoadControl.Builder().setBufferDurationsMs(6500,32000,450,950).setBackBuffer(12000,false).build();ExoPlayer player=new ExoPlayer.Builder(context).setLoadControl(control).build();player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);player.setHandleAudioBecomingNoisy(true);return player;}
+    static MediaSource source(String url){return new DefaultMediaSourceFactory(YoruApp.app().mediaCache.onlineFactory()).createMediaSource(DownloadHub.item(url));}
+}
