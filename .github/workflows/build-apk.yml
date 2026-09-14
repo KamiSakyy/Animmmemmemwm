@@ -57,7 +57,7 @@ jobs:
             sdkmanager --list | grep -E 'android-(37|Cinnamon)|build-tools;37' >> "$GITHUB_STEP_SUMMARY" || true
             if ! sdkmanager "platforms;android-37" "build-tools;37.0.0" "platform-tools" > sdk-install.log 2>&1; then
               cat sdk-install.log >> "$GITHUB_STEP_SUMMARY"
-              message=$(tail -8 sdk-install.log | tr '\n' ' ')
+              message=$(tr '\r' '\n' < sdk-install.log | grep -E 'Warning:|Error:|Failed|not found' | tail -5 | tr '\n' ' ')
               echo "::error title=SDK 37 installation::$message"
               exit 1
             fi
@@ -140,7 +140,7 @@ jobs:
           code=$?
           tail -100 verification.log >> "$GITHUB_STEP_SUMMARY"
           if [ "$code" -ne 0 ]; then
-            message=$(grep -E 'error:|Could not|FAILED|not found|failed' verification.log | tail -12 | tr '\n' ' ')
+            message=$(tail -70 verification.log | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
             echo "::error title=SDK36 compatibility verification::$message"
           fi
           exit "$code"
