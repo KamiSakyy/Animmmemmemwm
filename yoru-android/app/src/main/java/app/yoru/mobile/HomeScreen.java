@@ -22,8 +22,7 @@ final class HomeScreen extends SwipeRefreshLayout {
     private boolean loading,more=true,attached,failed;
     private long updated,day=Long.MIN_VALUE;
     private Anime recommendation;
-    private final Runnable hourly=this::hourlyRefresh;
-    private void hourlyRefresh(){if(attached&&getWindowVisibility()==VISIBLE){if(!loading&&list.getScrollState()==RecyclerView.SCROLL_STATE_IDLE&&(System.currentTimeMillis()-updated>=3600000L||day!=LocalDate.now().toEpochDay()))refreshQuietly();schedule();}}
+    private final Runnable hourly=()->{if(attached){if(!loading)load(true);schedule();}};
 
     HomeScreen(Activity activity,java.util.function.Consumer<LinearLayout> extras){
         super(activity);this.activity=activity;this.extras=extras;
@@ -37,25 +36,11 @@ final class HomeScreen extends SwipeRefreshLayout {
         list.addOnScrollListener(new RecyclerView.OnScrollListener(){@Override public void onScrolled(RecyclerView view,int dx,int dy){if(dy>0&&layout.findLastVisibleItemPosition()>=rows.size()-2)load(false);}});
         addView(list,new LayoutParams(-1,-1));setOnRefreshListener(()->load(true));
     }
-    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;if(rows.isEmpty())load(true);else if(System.currentTimeMillis()-updated>=3600000L||day!=LocalDate.now().toEpochDay())refreshQuietly();schedule();}
+    @Override protected void onAttachedToWindow(){super.onAttachedToWindow();attached=true;if(rows.isEmpty()||System.currentTimeMillis()-updated>=3600000L||day!=LocalDate.now().toEpochDay())load(true);schedule();}
     @Override protected void onDetachedFromWindow(){attached=false;generation++;if(request!=null)request.cancel(true);loading=false;setRefreshing(false);removeCallbacks(hourly);super.onDetachedFromWindow();}
-    @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(list==null)return;if(visibility!=VISIBLE){generation++;if(request!=null)request.cancel(true);loading=false;setRefreshing(false);removeCallbacks(hourly);}else if(attached){if(rows.isEmpty())load(true);else if(System.currentTimeMillis()-updated>=3600000L||day!=LocalDate.now().toEpochDay())refreshQuietly();schedule();}}
-    private void schedule(){removeCallbacks(hourly);if(!attached||getWindowVisibility()!=VISIBLE)return;long now=System.currentTimeMillis(),midnight=LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();long due=Math.min(updated+3600000L,midnight);postDelayed(hourly,due<=now?60000L:Math.max(1000L,due-now));}
-    private void refreshQuietly(){
-        if(!attached||loading||getWindowVisibility()!=VISIBLE)return;if(rows.isEmpty()){load(true);return;}if(list.getScrollState()!=RecyclerView.SCROLL_STATE_IDLE)return;
-        loading=true;int token=++generation;
-        request=YoruApp.app().ui.submit(()->{try{Anime.Page result=YoruApp.app().api.homePage(1);TaskQueue.check();post(()->{
-            if(!attached||token!=generation)return;loading=false;if(list.getScrollState()!=RecyclerView.SCROLL_STATE_IDLE){schedule();return;}
-            GridLayoutManager layout=(GridLayoutManager)list.getLayoutManager();int first=layout==null?0:layout.findFirstVisibleItemPosition();View anchorView=layout==null?null:layout.findViewByPosition(first);int offset=anchorView==null?0:anchorView.getTop()-list.getPaddingTop();String anchor=first>0&&first<=rows.size()?rows.get(first-1).key():"";
-            ArrayList<Anime> old=new ArrayList<>(rows);LinkedHashMap<String,Anime> merged=new LinkedHashMap<>();for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime))merged.put(anime.key(),anime);for(Anime anime:old)merged.putIfAbsent(anime.key(),anime);ArrayList<Anime> next=new ArrayList<>(merged.values());
-            DiffUtil.DiffResult changes=DiffUtil.calculateDiff(new DiffUtil.Callback(){public int getOldListSize(){return old.size()+2;}public int getNewListSize(){return next.size()+2;}public boolean areItemsTheSame(int a,int b){if(a==0||b==0)return a==b;if(a==old.size()+1||b==next.size()+1)return a==old.size()+1&&b==next.size()+1;return old.get(a-1).key().equals(next.get(b-1).key());}public boolean areContentsTheSame(int a,int b){if(a==0||a==old.size()+1)return false;Anime before=old.get(a-1),after=next.get(b-1);return before==after||before.json().toString().equals(after.json().toString());}});
-            rows.clear();rows.addAll(next);identities.clear();identities.addAll(merged.keySet());updated=System.currentTimeMillis();day=LocalDate.now().toEpochDay();int candidates=Math.min(6,rows.size());recommendation=candidates==0?null:rows.get((int)Math.floorMod(day,(long)candidates));changes.dispatchUpdatesTo(adapter);
-            if(layout!=null){if(first==0)layout.scrollToPositionWithOffset(0,offset);else if(!anchor.isEmpty())for(int i=0;i<rows.size();i++)if(anchor.equals(rows.get(i).key())){layout.scrollToPositionWithOffset(i+1,offset);break;}}schedule();
-        });}catch(Exception error){post(()->{if(attached&&token==generation){loading=false;schedule();}});}});
-        if(request.isCancelled()){loading=false;schedule();}
-    }
+    private void schedule(){removeCallbacks(hourly);long midnight=LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();postDelayed(hourly,Math.max(1000L,Math.min(3600000L,midnight-System.currentTimeMillis())));}
     private void load(boolean reset){
-        if(!attached||getWindowVisibility()!=VISIBLE||loading||(!reset&&!more))return;
+        if(!attached||loading||(!reset&&!more))return;
         loading=true;failed=false;int token=++generation;int next=reset?1:page+1;
         if(reset)setRefreshing(true);else adapter.notifyItemChanged(rows.size()+1);
         request=YoruApp.app().ui.submit(()->{
@@ -63,7 +48,7 @@ final class HomeScreen extends SwipeRefreshLayout {
                 if(!attached||token!=generation)return;
                 int old=rows.size();if(reset){rows.clear();identities.clear();}
                 for(Anime anime:YoruBrain.visible(result.items))if(Anime.valid(anime)&&identities.add(anime.key()))rows.add(anime);
-                page=next;more=result.more;loading=false;if(reset)updated=System.currentTimeMillis();setRefreshing(false);
+                page=next;more=result.more;loading=false;updated=System.currentTimeMillis();setRefreshing(false);
                 if(reset){day=LocalDate.now().toEpochDay();recommendation=rows.isEmpty()?null:rows.get((int)Math.floorMod(day,(long)rows.size()));adapter.notifyDataSetChanged();}
                 else{int added=rows.size()-old;if(added>0)adapter.notifyItemRangeInserted(old+1,added);adapter.notifyItemChanged(rows.size()+1);}
             });}catch(Exception e){post(()->{if(!attached||token!=generation)return;loading=false;failed=true;setRefreshing(false);adapter.notifyItemChanged(rows.size()+1);});}

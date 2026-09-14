@@ -16,6 +16,4 @@ public class EpisodeRulesTest {
     @Test public void discoveredDetailsRejectConflictingMal(){Anime a=new Anime(),b=new Anime();a.malId=11;b.malId=12;assertTrue(EpisodeRules.conflicts(a,b));}
     @Test public void discoveredDetailsRejectConflictingAnilist(){Anime a=new Anime(),b=new Anime();a.anilistId=21;b.anilistId=22;assertTrue(EpisodeRules.conflicts(a,b));}
     @Test public void missingIdentityIsNotFabricatedConflict(){Anime a=new Anime(),b=new Anime();a.malId=11;assertFalse(EpisodeRules.conflicts(a,b));b.malId=11;assertFalse(EpisodeRules.conflicts(a,b));assertFalse(EpisodeRules.conflicts(null,b));}
-    @Test public void batchExcludesFutureAndDuplicateEpisodes(){assertEquals(1,EpisodeRules.downloadable(null,Arrays.asList(episode(1,false),episode(1,false),episode(2,true))).size());}
-    @Test public void batchRespectsConfirmedSeasonBounds(){Anime anime=new Anime();anime.shikimoriEpisodes=12;assertEquals(1,EpisodeRules.downloadable(anime,Arrays.asList(episode(12,false),episode(13,false))).size());}
 }

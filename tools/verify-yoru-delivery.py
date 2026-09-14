@@ -6,7 +6,7 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-version = "4.20.0-dev.7"
+version = "4.20.0-dev.8"
 report = json.loads((root / f"handoff/YORU-{version}-build-report.json").read_text())
 source = report["source_commit"]
 if not re.fullmatch(r"[0-9a-f]{40}", source):
