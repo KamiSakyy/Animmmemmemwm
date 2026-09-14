@@ -1,0 +1,9 @@
+{
+  "source_commit": "d8ae13a81612dd6370ab83b1b5009de50b91b0c8",
+  "apk_bytes": 16458164,
+  "apk_sha256": "3cb61ffccb1172e7c87a13819e92b9099724a631be21b0d9a6d891795c7d46e3",
+  "minification_enabled": false,
+  "resource_shrinking_enabled": false,
+  "all_apk_entries_stored": true,
+  "previous_bytes": 15825566
+}
