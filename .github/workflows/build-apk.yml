@@ -93,29 +93,29 @@ jobs:
         run: |
           git pull --rebase origin arena/01a0828d-animmmemmemwm
           mkdir -p apk-output
-          rm -f apk-output/YORU-4.20.0-dev.1-release.apk apk-output/YORU-4.20.0-dev.1-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.1-release.apk
-          sha256sum apk-output/YORU-4.20.0-dev.1-release.apk > apk-output/YORU-4.20.0-dev.1-release.apk.sha256
-          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.1-debug.apk
-          sha256sum apk-output/YORU-4.20.0-dev.1-debug.apk > apk-output/YORU-4.20.0-dev.1-debug.apk.sha256
+          rm -f apk-output/YORU-4.20.0-dev.2-release.apk apk-output/YORU-4.20.0-dev.2-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/release/app-release.apk apk-output/YORU-4.20.0-dev.2-release.apk
+          sha256sum apk-output/YORU-4.20.0-dev.2-release.apk > apk-output/YORU-4.20.0-dev.2-release.apk.sha256
+          cp yoru-android/app/build/outputs/apk/debug/app-debug.apk apk-output/YORU-4.20.0-dev.2-debug.apk
+          sha256sum apk-output/YORU-4.20.0-dev.2-debug.apk > apk-output/YORU-4.20.0-dev.2-debug.apk.sha256
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk-output/YORU-4.20.0-dev.1-*.apk apk-output/YORU-4.20.0-dev.1-*.apk.sha256
-          git commit -m "Add built YORU 4.20.0-dev.1 release APK [skip ci]" || exit 0
+          git add -f apk-output/YORU-4.20.0-dev.2-*.apk apk-output/YORU-4.20.0-dev.2-*.apk.sha256
+          git commit -m "Add built YORU 4.20.0-dev.2 release APK [skip ci]" || exit 0
           git push origin HEAD:arena/01a0828d-animmmemmemwm
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.1-release-apk
+          name: yoru-4.20.0-dev.2-release-apk
           path: |
-            apk-output/YORU-4.20.0-dev.1-*.apk
-            apk-output/YORU-4.20.0-dev.1-*.apk.sha256
+            apk-output/YORU-4.20.0-dev.2-*.apk
+            apk-output/YORU-4.20.0-dev.2-*.apk.sha256
 
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.20.0-dev.1-tests
+          name: yoru-4.20.0-dev.2-tests
           path: yoru-android/app/build/test-results/testDebugUnitTest/
           if-no-files-found: ignore
 
@@ -147,7 +147,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yoru-4.20.0-dev.1-sdk36-verification
+          name: yoru-4.20.0-dev.2-sdk36-verification
           path: |
             yoru-android/verification.log
             yoru-android/app/build/test-results/testDebugUnitTest/

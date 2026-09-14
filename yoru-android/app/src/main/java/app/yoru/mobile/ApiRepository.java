@@ -108,6 +108,14 @@ public final class ApiRepository {
     private static String shikiSort(Filter f,String q){return q!=null&&!q.trim().isEmpty()&&"RATING_DESC".equals(f.sort)?"aired_on":shikiSort(f);}
     private static String libriaSort(Filter f){String v=f==null?"":f.sort;return v.equals("YEAR_DESC")?"YEAR_DESC":v.equals("NAME")?"NAME_ASC":v.equals("POPULARITY")?"RATING_DESC":"RATING_DESC";}
 
+    public List<Anime> franchise(Anime base)throws Exception{
+        int id=base.malId>0?base.malId:parseInt(base.id);if(id<=0)throw new IOException("Нет идентификатора истории");
+        JSONArray rows=shiki("{animes(ids:"+JSONObject.quote(String.valueOf(id))+",limit:1){chronology{"+SH_FIELDS+"}}}").optJSONArray("animes");
+        LinkedHashMap<String,Anime> parts=new LinkedHashMap<>();parts.put(String.valueOf(id),base);
+        JSONArray chronology=rows==null||rows.length()==0?null:rows.getJSONObject(0).optJSONArray("chronology");
+        for(int i=0;chronology!=null&&i<chronology.length();i++){Anime part=shikiAnime(chronology.getJSONObject(i));if(Anime.valid(part))parts.put(part.id,part);}
+        ArrayList<Anime> result=new ArrayList<>(parts.values());result.sort((a,b)->{int year=Integer.compare(a.year==0?Integer.MAX_VALUE:a.year,b.year==0?Integer.MAX_VALUE:b.year);return year!=0?year:a.airedDate.compareTo(b.airedDate);});return result;
+    }
     public String[][] shikiGenres()throws Exception{
         JSONArray rows=new JSONArray(shikiRest("/api/genres"));ArrayList<String[]> result=new ArrayList<>();
         for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null||"Manga".equalsIgnoreCase(row.optString("entry_type")))continue;String id=row.optString("id"),name=row.optString("russian");if(name.isEmpty())name=row.optString("name");if(!id.isEmpty()&&!name.isEmpty())result.add(new String[]{id,name});}

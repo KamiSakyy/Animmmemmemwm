@@ -3,4 +3,5 @@
  <cache-path name="shared_video" path="shared-video/" />
  <cache-path name="mp4_export_cache" path="mp4-export/" />
  <files-path name="mp4_export_files" path="mp4-export/" />
+ <files-path name="native_captures" path="captures/" />
 </paths>
