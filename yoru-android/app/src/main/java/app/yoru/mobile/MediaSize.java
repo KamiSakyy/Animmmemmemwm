@@ -34,14 +34,14 @@ final class MediaSize {
     static long probe(String raw){return probeInfo(raw).bytes;}
     static Info probeInfo(String raw){return probeInfo(raw,false);}
     static Info probeInfo(String raw,boolean exact){
-        String url=ApiRepository.safeUrl(raw);Info unknown=new Info(-1,"");if(url.isEmpty())return unknown;if(manifest(url))return exact?hlsInfo(url):new Info(-1,url.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");
+        String url=ApiRepository.safeUrl(raw);Info unknown=new Info(-1,"");if(url.isEmpty())return unknown;if(manifest(url))return exact?adaptiveInfo(url,url.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,url.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");
         Info found=unknown;
         for(int attempt=0;attempt<2;attempt++){
             HttpURLConnection connection=null;
             try{
                 TaskQueue.check();connection=HttpTransport.open(new URL(url));connection.setConnectTimeout(2500);connection.setReadTimeout(2500);connection.setRequestMethod(attempt==0?"HEAD":"GET");connection.setRequestProperty("Accept-Encoding","identity");connection.setRequestProperty("Referer","https://yani.tv/");if(attempt==1)connection.setRequestProperty("Range","bytes=0-0");
                 int code=connection.getResponseCode();if(attempt==0&&code!=200)continue;if(code!=200&&code!=206)return found;
-                String finalUrl=connection.getURL().toString();if(manifest(finalUrl))return exact?hlsInfo(finalUrl):new Info(-1,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");String encoding=connection.getContentEncoding();
+                String finalUrl=connection.getURL().toString();if(manifest(finalUrl))return exact?adaptiveInfo(finalUrl,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")):new Info(-1,finalUrl.toLowerCase(Locale.ROOT).contains(".mpd")?"application/dash+xml":"application/x-mpegURL");String encoding=connection.getContentEncoding();
                 String type=connection.getContentType();String mime=type==null?"":type.toLowerCase(Locale.ROOT).split(";",2)[0].trim();if(mime.contains("mpegurl"))return exact?hlsInfo(finalUrl):new Info(-1,"application/x-mpegURL");if(mime.equals("application/dash+xml"))return new Info(-1,"application/dash+xml");boolean container=containerMime(mime);
                 if(!container&&(!singleFile(finalUrl)||(!mime.isEmpty()&&!mime.startsWith("video/")&&!mime.equals("application/octet-stream"))))continue;
                 String format=container?canonicalMime(mime):"";found=new Info(-1,format);if(encoding!=null&&!encoding.equalsIgnoreCase("identity"))continue;
@@ -51,24 +51,50 @@ final class MediaSize {
         }
         return found;
     }
+    static Info adaptiveInfo(String url,boolean dash){return dash?dashInfo(url):hlsInfo(url);}
+    private static String fetchText(String raw,String[] finalUrl)throws Exception{
+        HttpURLConnection connection=null;
+        try{
+            connection=HttpTransport.open(new URL(raw));
+            connection.setConnectTimeout(3000);connection.setReadTimeout(6000);
+            connection.setRequestMethod("GET");connection.setRequestProperty("Accept-Encoding","identity");connection.setRequestProperty("Referer","https://yani.tv/");
+            int code=connection.getResponseCode();if(code!=200)return null;
+            if(finalUrl!=null&&finalUrl.length>0)finalUrl[0]=connection.getURL().toString();
+            InputStream stream=connection.getInputStream();ByteArrayOutputStream buffer=new ByteArrayOutputStream();byte[] chunk=new byte[16384];int read;long loaded=0;
+            while((read=stream.read(chunk))>0){TaskQueue.check();loaded+=read;if(loaded>4L*1024*1024)break;buffer.write(chunk,0,read);}
+            return new String(buffer.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
+        }finally{if(connection!=null)connection.disconnect();}
+    }
+    static Info dashInfo(String url){return new Info(dashBytes(url),"application/dash+xml");}
+    private static long dashBytes(String raw){
+        String url=ApiRepository.safeUrl(raw);if(url.isEmpty())return -1;
+        try{
+            TaskQueue.check();
+            String[] holder={url};String text=fetchText(url,holder);String base=holder[0];
+            if(text==null||text.isEmpty())return -1;
+            TaskQueue.check();
+            ArrayList<String> files=new ArrayList<>();
+            Matcher found=Pattern.compile("<BaseURL>([^<]+)</BaseURL>",Pattern.CASE_INSENSITIVE).matcher(text);
+            while(found.find()){
+                String value=found.group(1).trim();if(value.isEmpty())continue;
+                String lower=value.toLowerCase(Locale.ROOT);if(lower.endsWith(".mpd")||lower.endsWith(".m3u8"))continue;
+                String resolved=resolveSegment(base,value);if(resolved.isEmpty())return -1;
+                if(!files.contains(resolved))files.add(resolved);
+            }
+            if(files.isEmpty())return -1;
+            long total=measureSegments(files,base,0);
+            if(total<0)total=measureSegments(files,"https://yani.tv/",0);
+            return total;
+        }catch(InterruptedIOException error){return -1;}catch(Exception error){return -1;}
+    }
     static Info hlsInfo(String url){return new Info(hlsBytes(url),"application/x-mpegURL");}
     private static final int MAX_SEGMENTS=1800;
     private static long hlsBytes(String raw){
         String url=ApiRepository.safeUrl(raw);if(url.isEmpty())return -1;
         try{
             TaskQueue.check();
-            String text="",base=url;
-            HttpURLConnection connection=null;
-            try{
-                connection=HttpTransport.open(new URL(url));
-                connection.setConnectTimeout(3000);connection.setReadTimeout(6000);
-                connection.setRequestMethod("GET");connection.setRequestProperty("Accept-Encoding","identity");connection.setRequestProperty("Referer","https://yani.tv/");
-                int code=connection.getResponseCode();if(code!=200)return -1;
-                base=connection.getURL().toString();
-                InputStream stream=connection.getInputStream();ByteArrayOutputStream buffer=new ByteArrayOutputStream();byte[] chunk=new byte[16384];int read;long loaded=0;
-                while((read=stream.read(chunk))>0){TaskQueue.check();loaded+=read;if(loaded>4L*1024*1024)break;buffer.write(chunk,0,read);}
-                text=new String(buffer.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
-            }finally{if(connection!=null)connection.disconnect();}
+            String[] holder={url};String text=fetchText(url,holder);String base=holder[0];
+            if(text==null)return -1;
             TaskQueue.check();
             if(text.isEmpty()||text.contains("#EXT-X-STREAM-INF"))return -1;
             long sum=0,pending=-1;ArrayList<String> measure=new ArrayList<>();
