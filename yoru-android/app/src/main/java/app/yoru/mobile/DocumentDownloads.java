@@ -90,7 +90,7 @@ final class DocumentDownloads {
                 if(output==null)throw new IOException();byte[] buffer=new byte[65536];int count;
                 while((count=source.read(buffer,0,buffer.length))!=-1){check(cancelled);output.write(buffer,0,count);total+=count;progress.accept(total);}output.flush();
             }
-            check(cancelled);long expected=prepared==null?(download.contentLength>0?download.contentLength:available):prepared.length();if(total<=0||(expected>0&&total!=expected))throw new EOFException();
+            check(cancelled);long expected=prepared==null?(download.contentLength>0?download.contentLength:available>0?available:download.getBytesDownloaded()):prepared.length();if(total<=0||(expected>0&&total!=expected))throw new EOFException();
             synchronized(DocumentDownloads.class){
                 check(cancelled);if(!ownsPending(journal,identity,operation,target))throw new InterruptedIOException();
                 if(!journal.edit().putString("done:"+identity,target.toString()).putString("operation:"+identity,operation).putLong("bytes:"+identity,total).remove("pending:"+identity).remove("pending-operation:"+identity).commit())throw new IOException();
