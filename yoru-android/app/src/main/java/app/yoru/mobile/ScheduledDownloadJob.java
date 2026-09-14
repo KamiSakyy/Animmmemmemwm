@@ -62,7 +62,7 @@ public final class ScheduledDownloadJob extends JobService {
                 }
                 store.update(p,"waiting","Проверяем выбранную озвучку и качество",ScheduledDownloads.nextCheck(p.due));
                 try {
-                    Anime fresh=app.api.details(Anime.from(p.anime.json()),false);
+                    Anime fresh=app.api.details(Anime.from(p.anime.json()),false,false);
                     TaskQueue.check();
                     if(EpisodeRules.conflicts(p.anime,fresh)||!EpisodeRules.allowsNumber(fresh,p.episode)){store.update(p,"waiting","Уточняем состав серий — план сохранён",ScheduledDownloads.nextCheck(0));continue;}
                     List<ApiRepository.DownloadOption> options=app.api.downloadOptions(fresh,null,p.episode,p.voice,p.quality,!p.voice.isEmpty());
