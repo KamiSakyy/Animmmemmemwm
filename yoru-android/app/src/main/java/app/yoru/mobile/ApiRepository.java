@@ -47,7 +47,7 @@ public final class ApiRepository {
     private static final class Cache {String text;long at;Cache(String t){text=t;at=System.currentTimeMillis();}}
     private static final class StreamCache {TreeMap<Integer,String> streams;long at;StreamCache(TreeMap<Integer,String> s){streams=new TreeMap<>(s);at=System.currentTimeMillis();}}
     private static final class YoruChoice {Anime.Variant variant;int quality;TreeMap<Integer,String> streams;YoruChoice(Anime.Variant v,int q,TreeMap<Integer,String> s){variant=v;quality=q;streams=new TreeMap<>(s);}}
-    public static final class Filter {public String year="",genre="",type="",status="",sort="RATING_DESC",season="";}
+    public static final class Filter {public String year="",genre="",genreName="",type="",status="",sort="RATING_DESC",season="";}
     public static final class AiringItem {public Anime anime;public long time;public int episode;public String kind="",precision="",source="";}
     public static JSONArray airingJson(List<AiringItem> rows){JSONArray arr=new JSONArray();try{if(rows!=null)for(AiringItem item:rows){if(item==null||item.anime==null)continue;arr.put(new JSONObject().put("anime",item.anime.json()).put("time",item.time).put("episode",item.episode).put("kind",item.kind).put("precision",item.precision).put("source",item.source));}}catch(Exception ignored){}return arr;}
     public static ArrayList<AiringItem> airingFromJson(JSONArray arr){ArrayList<AiringItem> out=new ArrayList<>();try{for(int i=0;arr!=null&&i<arr.length()&&i<800;i++){JSONObject j=arr.optJSONObject(i);if(j==null)continue;AiringItem item=new AiringItem();item.anime=Anime.from(j.optJSONObject("anime"));item.time=j.optLong("time");item.episode=j.optInt("episode");item.kind=j.optString("kind");item.precision=j.optString("precision");item.source=j.optString("source");if(Anime.valid(item.anime)&&item.time>0)out.add(item);}}catch(Exception ignored){}return out;}
@@ -119,8 +119,16 @@ public final class ApiRepository {
     }
     public String[][] shikiGenres()throws Exception{
         JSONArray rows=new JSONArray(shikiRest("/api/genres"));ArrayList<String[]> result=new ArrayList<>();
-        for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null||"Manga".equalsIgnoreCase(row.optString("entry_type")))continue;String id=row.optString("id"),name=row.optString("russian");if(name.isEmpty())name=row.optString("name");if(!id.isEmpty()&&!name.isEmpty())result.add(new String[]{id,name});}
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null||"Manga".equalsIgnoreCase(row.optString("entry_type")))continue;String id=row.optString("id"),name=row.optString("russian");if(name.isEmpty())name=row.optString("name");if(!id.isEmpty()&&!name.isEmpty())result.add(new String[]{id,name,row.optString("name","")});}
         java.text.Collator order=java.text.Collator.getInstance(new Locale("ru"));result.sort((a,b)->order.compare(a[1],b[1]));result.add(0,new String[]{"","Все жанры"});return result.toArray(new String[0][]);
+    }
+    public String[][] genres(String source)throws Exception{
+        if(!"anilibria".equals(source)&&!"yummy".equals(source))return shikiGenres();
+        String url="anilibria".equals(source)?"https://anilibria.top/api/v1/anime/genres":"https://api.yani.tv/anime/genres";
+        Object decoded=new JSONTokener(request(url,"GET",null,false)).nextValue();JSONArray rows=decoded instanceof JSONArray?(JSONArray)decoded:decoded instanceof JSONObject?firstArray((JSONObject)decoded,"data","response","genres"):null;
+        if(rows==null)throw new IOException();LinkedHashMap<String,String> unique=new LinkedHashMap<>();
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null)continue;String id=row.optString("id","");Object raw=row.opt("name");String name=row.optString("russian","");if(name.isEmpty())name=raw instanceof String?(String)raw:raw instanceof JSONObject?((JSONObject)raw).optString("main",""):row.optString("title","");name=cleanText(name);if(!id.isEmpty()&&!name.isEmpty())unique.put(id,name);}
+        if(unique.isEmpty())throw new IOException();ArrayList<String[]> result=new ArrayList<>();for(Map.Entry<String,String> entry:unique.entrySet())result.add(new String[]{entry.getKey(),entry.getValue()});java.text.Collator order=java.text.Collator.getInstance(new Locale("ru"));result.sort((a,b)->order.compare(a[1],b[1]));result.add(0,new String[]{"","Все жанры"});return result.toArray(new String[0][]);
     }
     public Anime.Page homePage(int page)throws Exception{
         Anime.Page result=new Anime.Page();result.page=Math.max(1,page);

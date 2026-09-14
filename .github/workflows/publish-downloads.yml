@@ -4,7 +4,7 @@ on:
     branches:
       - arena/01a0828d-animmmemmemwm
     paths:
-      - handoff/YORU-4.20.0-dev.4-source.zip
+      - handoff/YORU-4.20.0-dev.5-source.zip
 permissions:
   contents: write
 concurrency:
@@ -21,11 +21,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag=yoru-4.20.0-dev.4
-          cp apk-output/YORU-4.20.0-dev.4-compat-sdk36-okhttp5.4.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
-          cp handoff/YORU-4.20.0-dev.4-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
+          tag=yoru-4.20.0-dev.5
+          cp apk-output/YORU-4.20.0-dev.5-compat-sdk36-okhttp5.4.apk "$RUNNER_TEMP/YORU-4.20.0-test.apk"
+          cp handoff/YORU-4.20.0-dev.5-source.zip "$RUNNER_TEMP/YORU-4.20.0-source.zip"
           if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — тестовое обновление" --notes "Оптимизированная тестовая копия YORU. Исправлено сохранение выбранной озвучки и связанные ошибки просмотра. Отдельные тестовые прогоны в этой версии не выполнялись. Исходники соответствуют APK. Это ещё не завершённый основной релиз. Основную YORU удалять не нужно. Перед переустановкой прежней тестовой копии сохраните её данные."
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "YORU 4.20.0 — тестовое обновление" --notes "Оптимизированная тестовая копия YORU. Продолжение обновления плеера, жанров, обоев и фонового сохранения видео. Отдельные тестовые прогоны в этой версии не выполнялись. Исходники соответствуют APK. Это ещё не завершённый основной релиз. Основную YORU удалять не нужно. Перед переустановкой прежней тестовой копии сохраните её данные."
           fi
           gh release upload "$tag" "$RUNNER_TEMP/YORU-4.20.0-test.apk" "$RUNNER_TEMP/YORU-4.20.0-source.zip" --clobber
           gh release edit "$tag" --draft=false --prerelease

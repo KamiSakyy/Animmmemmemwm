@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
  <uses-permission android:name="android.permission.INTERNET" />
  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -12,6 +12,7 @@
   <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true">
    <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
   </provider>
+  <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" tools:node="merge" />
   <service android:name=".YoruDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
   <service android:name=".ScheduledDownloadJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
   <service android:name=".YoruUpdateJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
@@ -24,6 +25,7 @@
    <meta-data android:name="android.appwidget.provider" android:resource="@xml/yoru_widget" />
   </receiver>
   <service android:name="androidx.media3.exoplayer.scheduler.PlatformScheduler$PlatformSchedulerService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
+  <activity android:name=".WallpaperPreviewActivity" android:exported="false" />
   <activity android:name=".WallpaperActivity" android:exported="false" />
   <activity android:name=".PlayerActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize" android:supportsPictureInPicture="true" android:resizeableActivity="true" />
   <activity android:name=".ImageViewerActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize" />

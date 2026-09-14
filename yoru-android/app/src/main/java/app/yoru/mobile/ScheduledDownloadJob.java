@@ -34,7 +34,7 @@ public final class ScheduledDownloadJob extends JobService {
     }
 
     @Override public boolean onStopJob(JobParameters params) {
-        if(cancelled!=null)cancelled.set(true);
+        if(cancelled!=null){cancelled.set(true);HttpTransport.cancel(cancelled);}
         Thread t=worker;
         if(t!=null)t.interrupt();
         return true;
@@ -77,9 +77,15 @@ public final class ScheduledDownloadJob extends JobService {
                         store.update(p.id,"waiting","Недостаточно места — освободите память",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
                         continue;
                     }
+                    if(EpisodeRules.conflicts(p.anime,best.source)){store.update(p.id,"waiting","Ожидает подходящий выпуск",System.currentTimeMillis()+ScheduledDownloads.PERIOD);continue;}
+                    if(SystemClock.elapsedRealtime()+10_000>=deadline)return;
+                    long bytes=MediaSize.probe(best.episode.streams.get(best.quality));TaskQueue.check();
+                    if(bytes>0&&bytes>getFilesDir().getUsableSpace()-32L*1024*1024){store.update(p.id,"waiting","Недостаточно места для файла · "+MediaSize.label(bytes),System.currentTimeMillis()+ScheduledDownloads.PERIOD);continue;}
+                    if(stop.get()||!store.exists(p.id))continue;
+                    store.update(p.id,"waiting","Подготавливаем скачивание · "+MediaSize.label(bytes),System.currentTimeMillis()+ScheduledDownloads.PERIOD);
                     if(SystemClock.elapsedRealtime()+5_000>=deadline)return;
                     boolean accepted=enqueue(p,best,stop,Math.min(30_000,deadline-SystemClock.elapsedRealtime()));
-                    if(accepted)store.update(p.id,"queued","Передано в загрузки — управление в списке загрузок",0);
+                    if(accepted)store.update(p.id,"queued","Передано в загрузки · "+MediaSize.label(bytes),0);
                     else if(!stop.get())store.update(p.id,"waiting","Повторим запуск позже; при ограничениях Android откройте YORU",System.currentTimeMillis()+ScheduledDownloads.PERIOD);
                 } catch(java.io.InterruptedIOException|InterruptedException e) { Thread.currentThread().interrupt();return; }
                 catch(Exception e) { store.update(p.id,"waiting","Источник пока недоступен — повторим проверку",System.currentTimeMillis()+ScheduledDownloads.PERIOD); }
