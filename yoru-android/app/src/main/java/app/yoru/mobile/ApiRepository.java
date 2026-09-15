@@ -215,10 +215,49 @@ public final class ApiRepository {
         ArrayList<String> order=SourceEngine.playbackOrder(input);
         ExecutorService pool=TaskQueue.pool(Math.max(1,Math.min(4,order.size())));
         CompletionService<Anime.Playback> done=new ExecutorCompletionService<>(pool);
-        for(String source:order){final String src=source;done.submit(()->{Anime video=findPlayableSource(input,src);return video==null?null:playbackResult(input,video,src);});}
-        long deadline=System.currentTimeMillis()+9500;
-        try{for(int i=0;i<order.size();i++){long left=deadline-System.currentTimeMillis();if(left<=0)break;Future<Anime.Playback> f=done.poll(left,TimeUnit.MILLISECONDS);if(f==null)break;try{Anime.Playback r=f.get();if(r!=null)return r;}catch(Exception ignored){}}}finally{pool.shutdownNow();}
+        int submitted=0;
+        for(String source:order){final String src=source;done.submit(()->{Anime video=findPlayableSource(input,src);return video==null?null:playbackResult(input,video,src);});submitted++;}
+        long deadline=System.currentTimeMillis()+14000;
+        Anime.Playback best=null;ArrayList<Anime.Playback> found=new ArrayList<>();
+        try{
+            for(int i=0;i<submitted;i++){
+                long left=deadline-System.currentTimeMillis();if(left<=0)break;
+                Future<Anime.Playback> f=done.poll(left,TimeUnit.MILLISECONDS);if(f==null)break;
+                try{Anime.Playback r=f.get();
+                    if(r!=null&&r.video!=null&&!r.video.episodeList.isEmpty()){
+                        found.add(r);
+                        if(best==null||r.video.episodeList.size()>best.video.episodeList.size())best=r;
+                    }
+                }catch(Exception ignored){}
+            }
+        }finally{pool.shutdownNow();}
+        if(best!=null){if(found.size()>1)mergeEpisodes(best,found);return best;}
         throw new IOException("YORU сейчас не нашёл серии");
+    }
+    private void mergeEpisodes(Anime.Playback best,ArrayList<Anime.Playback> all){
+        try{
+            if(best==null||best.video==null)return;
+            LinkedHashMap<Double,Anime.Episode> merged=new LinkedHashMap<>();
+            for(Anime.Episode ep:best.video.episodeList)if(ep!=null)merged.put(ep.number,ep);
+            for(Anime.Playback other:all){
+                if(other==null||other==best||other.video==null)continue;
+                for(Anime.Episode ep:other.video.episodeList){
+                    if(ep==null)continue;
+                    Anime.Episode existing=merged.get(ep.number);
+                    if(existing==null){merged.put(ep.number,ep);continue;}
+                    for(Anime.Variant variant:ep.variants)if(variant!=null&&!hasVariant(existing,variant))existing.variants.add(variant);
+                    if(existing.streams.isEmpty()&&!ep.streams.isEmpty())existing.streams.putAll(ep.streams);
+                }
+            }
+            java.util.ArrayList<Anime.Episode> rows=new java.util.ArrayList<>(merged.values());
+            rows.sort((a,b)->Double.compare(a.number,b.number));
+            best.video.episodeList.clear();best.video.episodeList.addAll(rows);
+        }catch(Exception ignored){}
+    }
+    private static boolean hasVariant(Anime.Episode episode,Anime.Variant variant){
+        String url=variant==null?null:variant.url;if(url==null||url.isEmpty())return true;
+        for(Anime.Variant existing:episode.variants)if(existing!=null&&url.equals(existing.url))return true;
+        return false;
     }
     private Anime.Playback playbackResult(Anime catalog,Anime video,String provider){Anime.Playback r=new Anime.Playback();r.catalog=catalog;r.video=video;r.provider=provider==null||provider.isEmpty()?video.source:provider;return r;}
     private Anime findPlayableSource(Anime input,String source){long started=System.currentTimeMillis();try{Anime candidate=findSourceCandidate(input,source);if(candidate==null){SourceEngine.record(source,false,System.currentTimeMillis()-started,0,0,0);return null;}Anime full=candidate.episodeList.isEmpty()?details(candidate,true,false):candidate;if(!full.blocked&&!full.episodeList.isEmpty()){SourceEngine.record(source,true,System.currentTimeMillis()-started,full.episodeList.size(),SourceEngine.optionCount(full),SourceEngine.maxQuality(full));return full;}SourceEngine.record(source,false,System.currentTimeMillis()-started,0,0,0);}catch(Exception ignored){SourceEngine.record(source,false,System.currentTimeMillis()-started,0,0,0);}return null;}
@@ -454,7 +493,42 @@ public final class ApiRepository {
     public static String cleanLabel(String value){String v=value==null?"":value.trim();if(v.isEmpty())return "";String l=v.toLowerCase(Locale.ROOT);if(l.contains("kodik")||l.contains("aniqit"))return "YORU";if(l.contains("yummy")||l.contains("yani")||l.contains("cvh")||l.contains("cdnvideohub"))return "YORU";if(l.equals("player")||l.equals("плеер"))return "Вариант";return v.replace("Kodik","YORU").replace("kodik","YORU");}
     private static int downloadSourceRank(String id){if("yoru".equals(id))return -1;if("yummy".equals(id))return 0;if("anixsekai".equals(id))return 1;if("animevost".equals(id))return 2;if("anidub".equals(id))return 3;if("animelib4k".equals(id))return 4;if("anilibria".equals(id))return 5;if("animelib".equals(id))return 6;if("animedia".equals(id))return 7;if("animetka".equals(id))return 8;if("kodik".equals(id))return 9;return 20;}
     private static void normalizeIds(Anime a){if(a!=null&&a.malId==0&&"shikimori".equals(a.source))try{a.malId=Integer.parseInt(a.id);}catch(Exception ignored){}}
-    private Anime findYummy(Anime a)throws Exception{normalizeIds(a);String url=a.malId>0?"https://api.yani.tv/anime?shikimori_ids="+a.malId+"&limit=20":"https://api.yani.tv/anime?q="+enc(a.title)+"&limit=20";JSONArray rows=get(url).optJSONArray("response");Anime found=null;for(int i=0;rows!=null&&i<rows.length();i++){Anime y=yummyAnime(rows.getJSONObject(i));if(a.malId>0){JSONObject remote=rows.getJSONObject(i).optJSONObject("remote_ids");if(remote!=null&&(remote.optInt("myanimelist_id")==a.malId||remote.optInt("shikimori_id")==a.malId))return remember(y);}if(a.malId==0&&plainName(y.title).equals(plainName(a.title))&&(a.year==0||a.year==y.year)){if(found!=null&&found.malId!=y.malId)return null;found=y;}}return found==null?null:remember(found);}
+    private Anime findYummy(Anime a)throws Exception{
+        normalizeIds(a);
+        ArrayList<String> urls=new ArrayList<>();
+        if(a.malId>0)urls.add("https://api.yani.tv/anime?shikimori_ids="+a.malId+"&limit=20");
+        urls.add("https://api.yani.tv/anime?q="+enc(a.title)+"&limit=20");
+        for(String extra:yummySearchTerms(a))urls.add("https://api.yani.tv/anime?q="+enc(extra)+"&limit=20");
+        for(String url:urls){
+            JSONArray rows;
+            try{rows=get(url).optJSONArray("response");}catch(Exception ignored){continue;}
+            Anime match=matchYummy(rows,a);
+            if(match!=null)return match;
+        }
+        return null;
+    }
+    private ArrayList<String> yummySearchTerms(Anime a){
+        LinkedHashSet<String> out=new LinkedHashSet<>();
+        if(a.original!=null&&!a.original.trim().isEmpty()&&!a.original.equals(a.title))out.add(a.original.trim());
+        if(a.alias!=null&&!a.alias.trim().isEmpty()&&!a.alias.equals(a.title))out.add(a.alias.replace('-',' ').trim());
+        return new ArrayList<>(out);
+    }
+    private Anime matchYummy(JSONArray rows,Anime a){
+        Anime found=null;
+        for(int i=0;rows!=null&&i<rows.length();i++){
+            Anime y;
+            try{y=yummyAnime(rows.getJSONObject(i));}catch(Exception ignored){continue;}
+            if(a.malId>0){
+                JSONObject remote=rows.optJSONObject(i)==null?null:rows.optJSONObject(i).optJSONObject("remote_ids");
+                if(remote!=null&&(remote.optInt("myanimelist_id")==a.malId||remote.optInt("shikimori_id")==a.malId))return remember(y);
+            }
+            if(a.malId==0&&plainName(y.title).equals(plainName(a.title))&&(a.year==0||a.year==y.year)){
+                if(found!=null&&found.malId!=y.malId)return null;
+                found=y;
+            }
+        }
+        return found==null?null:remember(found);
+    }
     private Anime findAniLib(Anime a)throws Exception{normalizeIds(a);Anime best=null;for(String q:searchTerms(a)){Anime.Page page=catalog("animelib",q,1,new Filter());for(Anime item:page.items){if(!matchesAnime(item,a))continue;Anime full=details(item,false);if(a.malId>0&&full.malId==a.malId)return item;if(a.anilistId>0&&full.anilistId==a.anilistId)return item;if(best==null)best=item;}}return best;}
     private JSONObject animelibDetail(String slug,Anime base)throws Exception{String fields="?fields[]=genres&fields[]=releaseDate&fields[]=shiki_id&fields[]=anilist_id&fields[]=rate&fields[]=rate_avg";String resolved=slug;if(parseInt(slug)>0&&!slug.contains("--")){String found=animelibSlug(base);if(!found.isEmpty())resolved=found;}try{return get("https://api.cdnlibs.org/api/anime/"+enc(resolved)+fields);}catch(Exception first){String found=animelibSlug(base);if(!found.isEmpty()&&!found.equals(resolved))return get("https://api.cdnlibs.org/api/anime/"+enc(found)+fields);throw first;}}
     private String animelibSlug(Anime base){try{if(base==null)return "";if(base.alias!=null&&!base.alias.isEmpty()&&base.alias.contains("--"))return base.alias;for(String q:searchTerms(base)){Anime.Page page=catalog("animelib",q,1,new Filter());for(Anime item:page.items){if(item.id.equals(base.id)||matchesAnime(item,base))return item.alias;}}}catch(Exception ignored){}return "";}
