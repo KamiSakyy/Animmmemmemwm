@@ -1,3 +1,8 @@
+35:/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/HomeScreen.java:97: error: cannot find symbol
+44:> Task :app:compileDebugJavaWithJavac FAILED
+50:* What went wrong:
+54:  /home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/HomeScreen.java:97: error: cannot find symbol
+72:BUILD FAILED in 1m
 ----- tail -----
 Downloading https://services.gradle.org/distributions/gradle-9.4.1-bin.zip
 .............10%.............20%.............30%.............40%.............50%.............60%..............70%.............80%.............90%.............100%
@@ -33,49 +38,36 @@ Daemon will be stopped at the end of the build
 > Task :app:javaPreCompileDebug
 
 > Task :app:compileDebugJavaWithJavac
+/home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/HomeScreen.java:97: error: cannot find symbol
+        top.addView(lucky);box.addView(top);Ui.space(box,12);
+                    ^
+  symbol:   variable lucky
+  location: class HomeScreen
 Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
+1 error
 
-> Task :app:checkDebugAarMetadata
-> Task :app:mapDebugSourceSetPaths
-> Task :app:compileDebugNavigationResources
-> Task :app:mergeDebugResources
-> Task :app:createDebugCompatibleScreenManifests
-> Task :app:extractDeepLinksDebug
-> Task :app:processDebugMainManifest
-> Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
-> Task :app:processDebugResources
-> Task :app:dexBuilderDebug
-> Task :app:mergeDebugGlobalSynthetics
-> Task :app:checkDebugDuplicateClasses
-> Task :app:mergeDebugStartupProfile
-> Task :app:mergeExtDexDebug
-> Task :app:mergeDexDebug
-> Task :app:compileDebugArtProfile
-> Task :app:generateDebugAssets UP-TO-DATE
-> Task :app:mergeDebugAssets
-> Task :app:compressDebugAssets
-> Task :app:extractDebugVersionControlInfo
-> Task :app:extractProguardFiles
-> Task :app:generateDebugLintVitalReportModel
-> Task :app:lintVitalAnalyzeDebug
-> Task :app:lintVitalReportDebug
-> Task :app:lintVitalDebug
-> Task :app:processDebugJavaRes NO-SOURCE
-> Task :app:mergeDebugJavaResource
-> Task :app:optimizeDebugResources
-> Task :app:collectDebugDependencies
-> Task :app:sdkDebugDependencyData
-> Task :app:validateSigningDebug
-> Task :app:writeDebugAppMetadata
-> Task :app:writeDebugSigningConfigVersions
-> Task :app:packageDebug
-> Task :app:createDebugApkListingFileRedirect
-> Task :app:assembleDebug
-> Task :app:assembleStoredDebug
+> Task :app:compileDebugJavaWithJavac FAILED
 
 [Incubating] Problems report is available at: file:///home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  /home/runner/work/Animmmemmemwm/Animmmemmemwm/yoru-android/app/src/main/java/app/yoru/mobile/HomeScreen.java:97: error: cannot find symbol
+          top.addView(lucky);box.addView(top);Ui.space(box,12);
+                      ^
+    symbol:   variable lucky
+    location: class HomeScreen
+  Note: Some input files use or override a deprecated API.
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 
@@ -83,6 +75,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 2m 15s
-47 actionable tasks: 47 executed
-Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html
+BUILD FAILED in 1m
+12 actionable tasks: 12 executed
