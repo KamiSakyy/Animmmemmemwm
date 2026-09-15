@@ -10,7 +10,7 @@ import org.json.*;
 import java.util.*;
 
 public final class DownloadsScreen extends LinearLayout {
-    private final Activity activity;private final DownloadHub hub;private final ArrayList<Entry> rows=new ArrayList<>();private final TextView summary,empty;private final ListView list;private final Adapter adapter;private final Handler handler=new Handler(Looper.getMainLooper());private String lastSignature="";
+    private final Activity activity;private final DownloadHub hub;private final java.util.HashMap<String,long[]> speedSamples=new java.util.HashMap<>();private final ArrayList<Entry> rows=new ArrayList<>();private final TextView summary,empty;private final ListView list;private final Adapter adapter;private final Handler handler=new Handler(Looper.getMainLooper());private String lastSignature="";
     private final Runnable update=new Runnable(){public void run(){refreshSafe();handler.postDelayed(this,5000);}};
     public DownloadsScreen(Activity a){super(a);activity=a;hub=YoruApp.app().downloads();setOrientation(VERTICAL);setPadding(Ui.dp(a,17),Ui.dp(a,15),Ui.dp(a,17),Ui.dp(a,8));addView(Ui.label(a,"ОФЛАЙН-БИБЛИОТЕКА"));Ui.space(this,10);addView(Ui.text(a,"Загрузки",28,Ui.TEXT,true));Ui.space(this,9);addView(Ui.text(a,"Скачанные серии с превью и быстрым запуском в YORU. В выбранную папку сохраняются видео и звук; отдельные дорожки субтитров остаются в YORU.",12,Ui.MUTED,false));Ui.space(this,10);addView(Ui.button(a,"Папка сохранения",false,()->DocumentDownloads.choose(a)),Ui.lp(a,-1,-2));Ui.space(this,16);summary=Ui.text(a,"",12,Ui.PURPLE,true);addView(summary);Ui.space(this,11);
         HorizontalScrollView actionScroll=new HorizontalScrollView(a);actionScroll.setHorizontalScrollBarEnabled(false);LinearLayout actionRow=Ui.row(a);
@@ -119,6 +119,8 @@ public final class DownloadsScreen extends LinearLayout {
                     if(!keep)it.remove();
                 }}
                 fresh.sort((x,y)->Integer.compare(stateRank(x),stateRank(y)));
+                java.util.HashSet<String> liveIds=new java.util.HashSet<>();for(Entry entry:fresh)if(entry.download!=null)liveIds.add(entry.download.request.id);
+                speedSamples.keySet().retainAll(liveIds);
                 signature.append("#").append(listFilter);
                 String next=signature.toString();
                 YoruApp.app().main.post(()->{if(!attached||gen!=generation)return;refreshing=false;summary.setText(text);empty.setVisibility(fresh.isEmpty()?VISIBLE:GONE);boolean changed=!next.equals(lastSignature);lastSignature=next;rows.clear();rows.addAll(fresh);if(changed)adapter.notifyDataSetChanged();else refreshVisibleRows();});
@@ -227,7 +229,18 @@ public final class DownloadsScreen extends LinearLayout {
             boolean saving=ExportPresentation.active(exportStates,d);boolean active=preparing||saving||d.state==Download.STATE_DOWNLOADING||d.state==Download.STATE_QUEUED||d.state==Download.STATE_RESTARTING;
             progress.setVisibility(active?View.VISIBLE:View.GONE);float pct=preparing?-1:saving?ExportPresentation.percent(export):d.getPercentDownloaded();progress.setIndeterminate(pct<0);progress.setProgress(pct<0?0:(int)pct);
             String exportSize=ExportPresentation.size(export);
-            size.setText(exportSize.isEmpty()?(d.getBytesDownloaded()==0?"0 байт":MediaSize.label(d.getBytesDownloaded()))+(d.contentLength>0?" / "+MediaSize.label(d.contentLength):""):exportSize);
+            String sizeText=exportSize.isEmpty()?(d.getBytesDownloaded()==0?"0 байт":MediaSize.label(d.getBytesDownloaded()))+(d.contentLength>0?" / "+MediaSize.label(d.contentLength):""):exportSize;
+            if(exportSize.isEmpty()&&d.state==Download.STATE_DOWNLOADING){
+                long bytes=d.getBytesDownloaded(),now=System.currentTimeMillis();
+                long[] sample=speedSamples.get(d.request.id);
+                double rate=-1;
+                if(sample!=null){long gap=now-sample[1];if(gap>=1200&&gap<=25000&&bytes>=sample[0])rate=(bytes-sample[0])*1000d/gap;}
+                if(sample==null||now-sample[1]>4000||bytes<sample[0])speedSamples.put(d.request.id,new long[]{bytes,now});
+                if(rate>0){sizeText+=" · "+Ui.speed(rate);
+                    if(d.contentLength>0&&d.contentLength>bytes)sizeText+=" · "+Ui.eta((long)Math.ceil((d.contentLength-bytes)/rate));
+                }
+            }
+            size.setText(sizeText);
             primary.setText(preparing?"Остановить подготовку":d.state==Download.STATE_COMPLETED?"Смотреть":d.state==Download.STATE_STOPPED?"Продолжить":d.state==Download.STATE_FAILED?"Повторить":"Пауза");
             primary.setEnabled(d.state!=Download.STATE_REMOVING);
             save.setText(saving?"Остановить":export!=null&&export.getState()==androidx.work.WorkInfo.State.FAILED?"Повторить сохранение":"Сохранить");save.setVisibility(d.state==Download.STATE_COMPLETED&&DocumentDownloads.canExport(d)?View.VISIBLE:View.GONE);

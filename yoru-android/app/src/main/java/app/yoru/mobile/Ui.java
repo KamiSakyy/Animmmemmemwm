@@ -94,5 +94,17 @@ public final class Ui {
     public static void openOffline(Context c,String id,Anime a,double episode){c.startActivity(new Intent(c,PlayerActivity.class).putExtra("anime",a.json().toString()).putExtra("downloadId",id).putExtra("episode",episode));}
     public static String bytes(long n){if(n<0)return "—";if(n>=1024L*1024*1024)return String.format(new java.util.Locale("ru"),"%.2f ГБ",n/(1024.0*1024*1024));if(n>=1024L*1024)return String.format(new java.util.Locale("ru"),"%.1f МБ",n/(1024.0*1024));if(n>=1024)return String.format(new java.util.Locale("ru"),"%.0f КБ",n/1024.0);return n+" Б";}
     public static String videoSizeHint(int quality,int seconds){return "Размер неизвестен";}
+    public static String speed(double bytesPerSecond){
+        if(!(bytesPerSecond>0))return "";
+        if(bytesPerSecond>=1024d*1024d){long tenths=Math.round(bytesPerSecond*10d/(1024d*1024d));return (tenths/10)+","+(tenths%10)+" \u041c\u0411/\u0441";}
+        if(bytesPerSecond>=1024d)return Math.round(bytesPerSecond/1024d)+" \u041a\u0411/\u0441";
+        return Math.round(bytesPerSecond)+" \u0411/\u0441";
+    }
+    public static String eta(long seconds){
+        if(seconds<0)return "";
+        if(seconds<60)return "\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c "+seconds+" \u0441";
+        if(seconds<3600)return "\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c "+(seconds/60)+" \u043c\u0438\u043d";
+        return "\u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c "+(seconds/3600)+" \u0447 "+((seconds%3600)/60)+" \u043c\u0438\u043d";
+    }
     public static String number(double n){return n==Math.floor(n)?String.valueOf((int)n):String.valueOf(n);}
 }
