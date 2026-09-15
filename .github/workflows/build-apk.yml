@@ -40,18 +40,6 @@ jobs:
           set -e
           yes 2>/dev/null | sdkmanager --licenses --sdk_root="$ANDROID_SDK_ROOT" >/dev/null || true
           sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-          LIST=$(sdkmanager --list --sdk_root="$ANDROID_SDK_ROOT" 2>/dev/null || true)
-          if echo "$LIST" | grep -q "platforms;android-37" && echo "$LIST" | grep -q "build-tools;37.0.0"; then
-            echo "SDK 37 packages are available"
-            sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-37" "build-tools;37.0.0" || echo "SDK 37 install failed"
-          else
-            echo "SDK 37 packages are not published for this channel"
-          fi
-          if [ -d "$ANDROID_SDK_ROOT/platforms/android-37" ] && [ -d "$ANDROID_SDK_ROOT/build-tools/37.0.0" ]; then
-            echo "HAS_SDK37=1" >> "$GITHUB_ENV"
-          else
-            echo "HAS_SDK37=0" >> "$GITHUB_ENV"
-          fi
       - name: Restore existing update signature
         run: unzip -oq YORU-android-2.0.1-source.zip 'yoru-android/owner-signing/*'
       - name: Assemble final APK without test runs
@@ -59,13 +47,7 @@ jobs:
         run: |
           chmod +x gradlew
           set -o pipefail
-          if [ "$HAS_SDK37" = "1" ]; then
-            echo "Building on SDK 37 with OkHttp 5.5"
-            ./gradlew --no-daemon -PownerSignedApk :app:assembleStoredDebug 2>&1 | tee android-final-build.log
-          else
-            echo "SDK 37 unavailable, using the unchanged SDK 36 profile"
-            ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug 2>&1 | tee android-final-build.log
-          fi
+          ./gradlew --no-daemon -PverifyOnSdk36 -PownerSignedApk :app:assembleStoredDebug 2>&1 | tee android-final-build.log
       - name: Package matching APK and sources
         run: python3 tools/package-yoru-major.py
       - name: Publish final APK and sources
