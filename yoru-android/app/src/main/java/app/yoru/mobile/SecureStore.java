@@ -195,6 +195,8 @@ public final class SecureStore {
     public synchronized void exactSizes(boolean enabled){ensure();try{settings.put("exactSizes",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized boolean autoDownloadNew(){ensure();return settings.optBoolean("autoDownloadNew",false);}
     public synchronized void autoDownloadNew(boolean enabled){ensure();try{settings.put("autoDownloadNew",enabled);write("settings",settings);}catch(Exception ignored){}}
+    public synchronized boolean autoDeleteWatched(){ensure();return settings.optBoolean("autoDeleteWatched",false);}
+    public synchronized void autoDeleteWatched(boolean enabled){ensure();try{settings.put("autoDeleteWatched",enabled);write("settings",settings);}catch(Exception ignored){}}
     public synchronized void wifiDownloads(boolean enabled){ensure();try{settings.put("wifiDownloads",enabled);write("settings",settings);}catch(Exception ignored){}}
 
     public synchronized List<String> searchHistory(){ensure();ArrayList<String> out=new ArrayList<>();JSONArray rows=settings.optJSONArray("searchHistory");for(int i=0;rows!=null&&i<rows.length();i++){String q=rows.optString(i,"").trim();if(!q.isEmpty()&&!out.contains(q))out.add(q);if(out.size()>=14)break;}return out;}
