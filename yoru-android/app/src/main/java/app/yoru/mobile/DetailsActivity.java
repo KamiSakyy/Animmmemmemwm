@@ -88,6 +88,7 @@ public final class DetailsActivity extends Activity {
             jump.addView(field,new LinearLayout.LayoutParams(0,Ui.dp(this,44),1));
             LinearLayout.LayoutParams gp=Ui.lp(this,-2,-2);gp.leftMargin=Ui.dp(this,8);jump.addView(go,gp);body.addView(jump);Ui.space(body,10);}
         if(displayedEpisodes.isEmpty()){LinearLayout card=card();card.addView(Ui.text(this,episodesLoaded?"Список серий сейчас недоступен. Можно повторить загрузку.":"Загружаем список серий…",12,Ui.MUTED,false));Ui.space(card,10);TextView retry=Ui.button(this,"Загрузить список серий",false,this::loadFull);retry.setEnabled(episodesLoaded);card.addView(retry,Ui.lp(this,-1,48));body.addView(card);return;}if(episodeRecycler==null){episodeRecycler=new RecyclerView(this);episodeRecycler.setLayoutManager(new LinearLayoutManager(this));episodeRecycler.setHasFixedSize(false);episodeRecycler.setItemViewCacheSize(10);episodeRecycler.setNestedScrollingEnabled(true);episodeRecycler.setClipToPadding(false);episodeRecycler.setPadding(0,0,0,Ui.dp(this,6));episodeAdapter=new EpisodeAdapter();episodeRecycler.setAdapter(episodeAdapter);}RecyclerView rv=episodeRecycler;ViewParent oldParent=rv.getParent();if(oldParent instanceof ViewGroup)((ViewGroup)oldParent).removeView(rv);episodeAdapter.updateRows();int visible=Math.max(3,Math.min(8,displayedEpisodes.size()));body.addView(rv,Ui.lp(this,-1,visible*78));if(displayedEpisodes.size()>visible){Ui.space(body,7);body.addView(Ui.text(this,"Прокрутите список серий внутри блока.",10,Ui.MUTED,false));}}
+    private boolean spoilerWatched(Anime.Episode ep){return YoruApp.app().store.spoilerSafe()&&ep!=null&&!ep.name.isEmpty();}
     private boolean futureEpisode(Anime.Episode ep) {
         return ep.future;
     }
@@ -190,7 +191,9 @@ public final class DetailsActivity extends Activity {
             boolean current=Math.abs(progressCached.optDouble("episode",-9999)-ep.number)<0.001;
             String name=YoruApp.app().store.spoilerSafe()?"":ep.name;
             title.setText((current?"▶ ":"")+"Серия "+Ui.number(ep.number)+(name.isEmpty()?"":" · "+name));title.setTextColor(current?Ui.PURPLE:Ui.TEXT);
-            subtitle.setText(future?episodeDate(ep):(ep.duration>0?Ui.time(ep.duration):"Доступна"));
+            double watchedUpTo=progressCached.optDouble("episode",0);
+            boolean watched=!future&&!current&&watchedUpTo>0&&ep.number<=watchedUpTo+0.001&&!spoilerWatched(ep);
+            subtitle.setText(future?episodeDate(ep):(ep.duration>0?Ui.time(ep.duration):"Доступна")+(watched?" · просмотрена":""));
             String poster=future?"":episodePoster(ep);
             shot.setVisibility(poster.isEmpty()?View.GONE:View.VISIBLE);
             placeholder.setVisibility(poster.isEmpty()?View.VISIBLE:View.GONE);
@@ -203,6 +206,7 @@ public final class DetailsActivity extends Activity {
             boolean done=completed.containsKey(DownloadHub.episodeKey(ep.number));
             download.setText(future?"Скачать\nпосле выхода":done?"Скачана":"Скачать\n"+downloadVoiceName());
             download.setEnabled(true);download.setAlpha(1f);
+            card.setAlpha(watched?0.68f:1f);
             download.setContentDescription((future?"Скачать после выхода, серия ":"Скачать серию ")+Ui.number(ep.number));
         }
     }
