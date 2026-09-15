@@ -55,28 +55,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd workspace-output/yoru-final
-          gh release delete yoru-4.47.0 --yes --cleanup-tag || true
-          gh release create yoru-4.47.0 --target "$GITHUB_SHA" --title "YORU 4.47.0" --notes "Финальная сборка объединённого обновления YORU 4.47.0 (code 109)." YORU-4.47.0.apk YORU-4.47.0.apk.sha256 YORU-4.47.0-source.zip YORU-4.47.0-source.zip.sha256 BUILD-RECEIPT.json
+          gh release delete yoru-4.48.0 --yes --cleanup-tag || true
+          gh release create yoru-4.48.0 --target "$GITHUB_SHA" --title "YORU 4.48.0" --notes "Финальная сборка объединённого обновления YORU 4.48.0 (code 110)." YORU-4.48.0.apk YORU-4.48.0.apk.sha256 YORU-4.48.0-source.zip YORU-4.48.0-source.zip.sha256 BUILD-RECEIPT.json
       - name: Preserve final APK in repository
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           mkdir -p apk-output
-          cp workspace-output/yoru-final/YORU-4.47.0.apk apk-output/YORU-4.47.0-release.apk
-          cp workspace-output/yoru-final/YORU-4.47.0.apk.sha256 apk-output/YORU-4.47.0-release.apk.sha256
-          cp workspace-output/yoru-final/YORU-4.47.0-source.zip apk-output/YORU-4.47.0-source.zip
-          cp workspace-output/yoru-final/YORU-4.47.0-source.zip.sha256 apk-output/YORU-4.47.0-source.zip.sha256
-          cp workspace-output/yoru-final/BUILD-RECEIPT.json apk-output/YORU-4.47.0-BUILD-RECEIPT.json
+          cp workspace-output/yoru-final/YORU-4.48.0.apk apk-output/YORU-4.48.0-release.apk
+          cp workspace-output/yoru-final/YORU-4.48.0.apk.sha256 apk-output/YORU-4.48.0-release.apk.sha256
+          cp workspace-output/yoru-final/YORU-4.48.0-source.zip apk-output/YORU-4.48.0-source.zip
+          cp workspace-output/yoru-final/YORU-4.48.0-source.zip.sha256 apk-output/YORU-4.48.0-source.zip.sha256
+          cp workspace-output/yoru-final/BUILD-RECEIPT.json apk-output/YORU-4.48.0-BUILD-RECEIPT.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f apk-output
-          git commit -m "Preserve final YORU 4.47.0 APK and sources"
+          git commit -m "Preserve final YORU 4.48.0 APK and sources"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
       - uses: actions/upload-artifact@v4
         with:
-          name: yoru-4.47.0-final
+          name: yoru-4.48.0-final
           path: workspace-output/yoru-final/*
           compression-level: 0
           if-no-files-found: error
