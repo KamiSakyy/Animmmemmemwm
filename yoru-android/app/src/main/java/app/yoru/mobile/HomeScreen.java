@@ -94,10 +94,6 @@ final class HomeScreen extends SwipeRefreshLayout {
     private void header(LinearLayout box){
         LinearLayout top=Ui.row(activity);top.setGravity(android.view.Gravity.CENTER_VERTICAL);
         top.addView(Ui.label(activity,"РЕКОМЕНДАЦИИ"),new LinearLayout.LayoutParams(0,-2,1));
-        TextView lucky=Ui.text(activity,"Случайное",10,Ui.PURPLE,true);lucky.setPadding(Ui.dp(activity,12),Ui.dp(activity,8),Ui.dp(activity,12),Ui.dp(activity,8));
-        lucky.setBackground(Ui.stroke(Ui.SURFACE,13,activity));Ui.press(lucky);lucky.setContentDescription("Открыть случайное аниме");
-        lucky.setOnClickListener(v->{if(rows.isEmpty()){Ui.toast(activity,"Список ещё загружается");return;}
-            Anime pick=rows.get(new java.util.Random().nextInt(rows.size()));Ui.openDetails(activity,pick);});
         top.addView(lucky);box.addView(top);Ui.space(box,12);
         if(updated>0){TextView stamp=Ui.text(activity,"Обновлено в "+android.text.format.DateFormat.getTimeFormat(activity).format(new java.util.Date(updated))+" · обновляем каждый час",10,Ui.MUTED,false);box.addView(stamp);Ui.space(box,12);}
         Anime anime=recommendation;
@@ -115,9 +111,10 @@ final class HomeScreen extends SwipeRefreshLayout {
         }
         extras.accept(box);Ui.space(box,24);LinearLayout topRow=Ui.row(activity);topRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
         topRow.addView(Ui.text(activity,"Топ аниме",23,Ui.TEXT,true),new LinearLayout.LayoutParams(0,-2,1));box.addView(topRow);
-        LinearLayout sorts=Ui.row(activity);String[][] orders={{"ranked","Рейтинг"},{"popularity","Популярное"},{"aired_on","Свежие"},{"random","Случайные"}};
+        HorizontalScrollView sortScroll=new HorizontalScrollView(activity);sortScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout sorts=Ui.row(activity);String[][] orders={{"ranked","Рейтинг"},{"popularity","Популярное"},{"aired_on","Свежие"}};
         for(String[] variant:orders){TextView chip=Ui.chip(activity,variant[1],order.equals(variant[0]),()->{if(order.equals(variant[0]))return;order=variant[0];load(true);});
             LinearLayout.LayoutParams p=Ui.lp(activity,-2,-2);p.rightMargin=Ui.dp(activity,7);sorts.addView(chip,p);}
-        box.addView(sorts);Ui.space(box,12);
+        sortScroll.addView(sorts);box.addView(sortScroll);Ui.space(box,12);
     }
 }

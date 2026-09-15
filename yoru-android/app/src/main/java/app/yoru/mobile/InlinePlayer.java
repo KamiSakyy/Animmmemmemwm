@@ -27,7 +27,6 @@ final class InlinePlayer extends LinearLayout {
     private boolean busy,closed,locked,foreground,restorePending;
     private double restoredEpisode=Double.NaN;
     private long initialPosition=-1,progressAtPause=Long.MIN_VALUE;
-    private TextView lockButton;
     private final Runnable checkpoint=new Runnable(){public void run(){if(player!=null){save();postDelayed(this,5000);}}};
 
     InlinePlayer(Activity activity){
@@ -40,10 +39,6 @@ final class InlinePlayer extends LinearLayout {
         episodeButton=Ui.button(activity,"Список серий",false,this::chooseEpisode);addView(episodeButton,Ui.lp(activity,-1,-2));
         voiceButton=Ui.button(activity,"Озвучка",false,this::chooseVoice);addView(voiceButton,Ui.lp(activity,-1,-2));
         qualityButton=Ui.button(activity,"Разрешение",false,this::chooseQuality);addView(qualityButton,Ui.lp(activity,-1,-2));
-        LinearLayout tools=Ui.row(activity);
-        tools.addView(Ui.iconButton(activity,"camera","Снимок видеокадра",()->{if(!locked)NativeFrame.capture(activity,video);}),Ui.lp(activity,48,48));
-        tools.addView(Ui.iconButton(activity,"expand","На весь экран",()->{if(anime==null||locked)return;double number=episode==null?(restorePending?restoredEpisode:YoruApp.app().store.progress(anime).optDouble("episode",1)):episode.number;restorePending=false;suspend();activity.startActivity(new android.content.Intent(activity,PlayerActivity.class).putExtra("anime",anime.json().toString()).putExtra("mode","yoru").putExtra("episode",number).putExtra("voice",YoruApp.app().store.voicePreference(anime).isEmpty()?voice:YoruApp.app().store.voicePreference(anime)).putExtra("quality",requestedQuality).putExtra("position",resumePosition).putExtra("playRequested",playRequested).putExtra("fullscreen",true));}),Ui.lp(activity,48,48));
-        TextView lock=Ui.button(activity,"Блокировка",false,()->{});lockButton=lock;lock.setOnClickListener(v->{locked=!locked;video.setUseController(!locked);start.setEnabled(!locked&&!busy);seasonButton.setEnabled(!locked&&!busy);episodeButton.setEnabled(!locked&&!busy);voiceButton.setEnabled(!locked&&!busy);qualityButton.setEnabled(!locked&&!busy);lock.setText(locked?"Разблокировать":"Блокировка");});tools.addView(lock,new LayoutParams(0,-2,1));addView(tools);
     }
     android.os.Bundle saveState(){
         android.os.Bundle state=new android.os.Bundle();
@@ -63,7 +58,7 @@ final class InlinePlayer extends LinearLayout {
         restorePending=Double.isFinite(restoredEpisode)&&restoredEpisode>=0;
         resumePosition=Math.max(0,state.getLong("position",0));playRequested=state.getBoolean("play",false);
         locked=state.getBoolean("locked",false);video.setUseController(!locked);
-        lockButton.setText(locked?"Разблокировать":"Блокировка");
+        
         if(restorePending)episodeButton.setText("Серия "+Ui.number(restoredEpisode));
         state(false,restorePending?"Восстанавливаем выбранную серию…":"Выберите серию и начните просмотр");
     }
@@ -131,8 +126,53 @@ final class InlinePlayer extends LinearLayout {
     }
     private String streamStatus(){String resolution=actualHeight>0?QualityPlus.streamLabel(actualHeight):quality>0?"до "+QualityPlus.streamLabel(quality):"Разрешение уточняется";return "Серия "+Ui.number(episode.number)+" · "+resolution+" · "+sizeLabel;}
     private void chooseEpisode(){restorePending=false;if(playback==null){prepare(true);return;}ArrayList<Anime.Episode> rows=new ArrayList<>();for(Anime.Episode row:EpisodeRules.visible(anime,playback.video.episodeList))if(!row.future)rows.add(row);if(rows.isEmpty()){Ui.toast(activity,"Доступных серий пока нет");return;}String[] labels=new String[rows.size()];for(int i=0;i<labels.length;i++)labels[i]=rows.get(i).label();int token=generation;Ui.choices(activity,"Список серий",labels,index->{if(alive(token)&&!busy&&!locked)load(rows.get(index));});}
-    private void chooseVoice(){ArrayList<Anime.Variant> rows=episode==null?new ArrayList<>():new ArrayList<>(SourceEngine.sortVariants(episode.variants));if(rows.isEmpty()){Ui.toast(activity,"Сначала откройте доступную серию");return;}String[] labels=new String[rows.size()];for(int i=0;i<labels.length;i++)labels[i]=rows.get(i).label();int token=generation;Anime.Episode selectedEpisode=episode;Ui.choices(activity,"Озвучка",labels,index->{if(!alive(token)||busy||locked||episode!=selectedEpisode)return;Anime.Variant selected=rows.get(index);String name=ApiRepository.voiceTitle(selected.name.isEmpty()?selected.label():selected.name);if(!name.isEmpty()){YoruApp.app().store.voicePreference(anime,name);YoruApp.app().store.rememberVoice(name);}resolve(selected);});}
-    private void chooseQuality(){ArrayList<Integer> rows=new ArrayList<>(streams.keySet());if(rows.isEmpty()){Ui.toast(activity,"Сначала выберите доступную серию и озвучку");return;}String[] labels=new String[rows.size()];for(int i=0;i<labels.length;i++)labels[i]=QualityPlus.streamLabel(rows.get(i));int token=generation;Ui.choices(activity,"Разрешение",labels,index->{if(!alive(token)||busy||locked)return;long position=player==null?resumePosition:player.getCurrentPosition();if(player!=null)playRequested=player.getPlayWhenReady();quality=rows.get(index);requestedQuality=quality;play(streams.get(quality),position);});}
+    private void openWatchDialog(){
+        if(episode==null){Ui.toast(activity,"Сначала откройте доступную серию");return;}
+        ArrayList<Anime.Variant> variants=new ArrayList<>(SourceEngine.sortVariants(episode.variants));
+        if(variants.isEmpty()){Ui.toast(activity,"Для этой серии нет доступных озвучек");return;}
+        java.util.LinkedHashMap<String,Anime.Variant> unique=new java.util.LinkedHashMap<>();
+        for(Anime.Variant variant:variants){
+            String title=ApiRepository.voiceTitle(variant.name.isEmpty()?variant.label():variant.name);
+            if(title.isEmpty())title="Дорожка без названия";
+            String key=ApiRepository.voiceKey(title);if(key.isEmpty())key=title;
+            unique.putIfAbsent(key,variant);
+        }
+        ArrayList<String> names=new ArrayList<>();ArrayList<Anime.Variant> values=new ArrayList<>();
+        names.add("Авто · лучшая доступная");values.add(null);
+        for(Anime.Variant variant:unique.values()){
+            names.add(ApiRepository.voiceTitle(variant.name.isEmpty()?variant.label():variant.name));values.add(variant);
+        }
+        int selectedVoice=0;String preferred=YoruApp.app().store.voicePreference(anime);
+        for(int i=1;i<values.size();i++)if(ApiRepository.voiceMatches(preferred,names.get(i))){selectedVoice=i;break;}
+        LinearLayout col=Ui.column(activity);col.setPadding(Ui.dp(activity,4),0,Ui.dp(activity,4),0);
+        TextView note=Ui.text(activity,"Выберите озвучку и разрешение. Дальше серия открывается сразу, выбор запоминается.",12,Ui.MUTED,false);
+        note.setLineSpacing(Ui.dp(activity,4),1);col.addView(note);Ui.space(col,12);
+        col.addView(Ui.text(activity,"Озвучка",11,Ui.MUTED,false));
+        Spinner voiceSpinner=new Spinner(activity);
+        voiceSpinner.setAdapter(new ArrayAdapter<>(activity,android.R.layout.simple_spinner_dropdown_item,names));
+        voiceSpinner.setSelection(selectedVoice);col.addView(voiceSpinner,Ui.lp(activity,-1,46));
+        Ui.space(col,10);
+        col.addView(Ui.text(activity,"Разрешение",11,Ui.MUTED,false));
+        Spinner qualitySpinner=new Spinner(activity);
+        qualitySpinner.setAdapter(new ArrayAdapter<>(activity,android.R.layout.simple_spinner_dropdown_item,QualityPlus.LABELS_WITH_BEST));
+        qualitySpinner.setSelection(QualityPlus.indexWithBest(requestedQuality));col.addView(qualitySpinner,Ui.lp(activity,-1,46));
+        Ui.custom(activity,"Серия "+Ui.number(episode.number),col,"Применить",()->{
+            if(busy)return;
+            int position=voiceSpinner.getSelectedItemPosition();
+            Anime.Variant chosen=position>=0&&position<values.size()?values.get(position):null;
+            String title=chosen==null?"":ApiRepository.voiceTitle(chosen.name.isEmpty()?chosen.label():chosen.name);
+            if(!title.isEmpty()){YoruApp.app().store.voicePreference(anime,title);YoruApp.app().store.rememberVoice(title);voice=title;}
+            int[] qualities=QualityPlus.valuesWithBest();
+            int qualityIndex=Math.max(0,Math.min(qualities.length-1,qualitySpinner.getSelectedItemPosition()));
+            requestedQuality=qualities[qualityIndex];
+            YoruApp.app().store.settings(requestedQuality,YoruApp.app().store.autoNext());
+            if(chosen!=null)resolve(chosen);
+            else{Anime.Variant best=unique.values().iterator().next();if(best!=null)resolve(best);}
+        },null,null,"Отмена");
+    }
+    private void chooseVoice(){openWatchDialog();}
+    private void chooseQuality(){openWatchDialog();}
+
     private void chooseSeason(){if(anime==null||busy)return;int token=generation;state(true,"Загружаем части истории…");Anime selected=Anime.from(anime.json());tasks.submit(YoruApp.app().ui,()->{try{List<Anime> rows=YoruApp.app().api.franchise(selected);post(()->{if(!alive(token))return;state(false,"Выберите сезон или часть истории");seasons.clear();seasons.addAll(rows);String[] labels=new String[seasons.size()];for(int i=0;i<labels.length;i++){Anime row=seasons.get(i);labels[i]=row.title+(row.year>0?" · "+row.year:"");}Ui.choices(activity,"Сезон / часть",labels,index->{if(!alive(token)||busy||locked)return;suspend();anime=seasons.get(index);playback=null;episode=null;streams.clear();voice="";quality=0;sizeLabel="Размер неизвестен";voiceButton.setText("Озвучка");qualityButton.setText("Разрешение");seasonButton.setText(anime.title);episodeButton.setText("Список серий");resumePosition=0;initialPosition=-1;restoredEpisode=Double.NaN;restorePending=false;playRequested=false;if(seasonListener!=null)seasonListener.accept(anime);else prepare(true);});});}catch(Exception e){post(()->{if(alive(token))state(false,"Список частей сейчас недоступен");});}},()->state(false,"Очередь занята. Повторите позже."));}
     private void save(){if(player==null||anime==null||episode==null||!player.getCurrentTracks().isTypeSelected(C.TRACK_TYPE_VIDEO)||(player.getPlaybackState()!=Player.STATE_READY&&player.getPlaybackState()!=Player.STATE_ENDED))return;long duration=player.getDuration();YoruApp.app().store.progress(anime,episode.number,(int)(player.getCurrentPosition()/1000),duration==C.TIME_UNSET?0:(int)Math.max(0,duration/1000),"yoru",voice,true);}
     private void release(){removeCallbacks(checkpoint);if(player!=null){save();video.setPlayer(null);player.release();player=null;YoruApp.app().activePlayers=Math.max(0,YoruApp.app().activePlayers-1);}}
