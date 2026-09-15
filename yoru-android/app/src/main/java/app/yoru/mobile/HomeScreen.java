@@ -94,7 +94,7 @@ final class HomeScreen extends SwipeRefreshLayout {
     private void header(LinearLayout box){
         LinearLayout top=Ui.row(activity);top.setGravity(android.view.Gravity.CENTER_VERTICAL);
         top.addView(Ui.label(activity,"РЕКОМЕНДАЦИИ"),new LinearLayout.LayoutParams(0,-2,1));
-        top.addView(lucky);box.addView(top);Ui.space(box,12);
+        box.addView(top);Ui.space(box,12);
         if(updated>0){TextView stamp=Ui.text(activity,"Обновлено в "+android.text.format.DateFormat.getTimeFormat(activity).format(new java.util.Date(updated))+" · обновляем каждый час",10,Ui.MUTED,false);box.addView(stamp);Ui.space(box,12);}
         Anime anime=recommendation;
         if(anime!=null){
