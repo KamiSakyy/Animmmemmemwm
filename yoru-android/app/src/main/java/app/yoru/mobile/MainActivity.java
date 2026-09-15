@@ -132,8 +132,8 @@ if(!history){HorizontalScrollView h=new HorizontalScrollView(this);LinearLayout 
             sortScroll.setHorizontalScrollBarEnabled(false);sortScroll.addView(sorts);col.addView(sortScroll);Ui.space(col,12);}
         List<Anime> rows=YoruBrain.visible(history?YoruApp.app().store.recent():YoruApp.app().store.favorites(bucket,""));
         if(!libraryQuery.isEmpty()){String needle=libraryQuery.toLowerCase(java.util.Locale.ROOT);ArrayList<Anime> matched=new ArrayList<>();
-            for(Anime a:rows){String title=YoruBrain.title(a).toLowerCase(java.util.Locale.ROOT);
-                if(title.contains(needle)||a.original.toLowerCase(java.util.Locale.ROOT).contains(needle))matched.add(a);}
+            for(Anime a:rows){String haystack=YoruBrain.title(a).toLowerCase(java.util.Locale.ROOT);
+                if(haystack.contains(needle)||a.original.toLowerCase(java.util.Locale.ROOT).contains(needle))matched.add(a);}
             rows=matched;}
         if(!history&&!"new".equals(librarySort)){ArrayList<Anime> copy=new ArrayList<>(rows);
             if("title".equals(librarySort))copy.sort((x,y)->YoruBrain.title(x).compareToIgnoreCase(YoruBrain.title(y)));
